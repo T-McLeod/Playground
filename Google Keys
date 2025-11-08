@@ -1,0 +1,20 @@
+# Flask Configuration
+# SECRET_KEY=dev-secret-key-change-in-production
+
+# Canvas LMS API Configuration
+CANVAS_API_TOKEN=7~vZAcw8R4cGVfkQxa2Ch6vxMxf6L3GUNzRuGwNvynhrahhGuAEBnKUnLFxuNyxur6
+CANVAS_TEST_COURSE_ID=13299557
+CANVAS_BASE_URL=https://canvas.instructure.com/api/v1
+
+# Google Cloud Platform Configuration
+GOOGLE_CLOUD_PROJECT=gen-lang-client-0696883642
+GOOGLE_CLOUD_LOCATION=us-east1
+GOOGLE_APPLICATION_CREDENTIALS=service-account.json
+GCS_BUCKET_NAME=gen-lang-client-0696883642-canvas-files
+
+# Application Configuration
+# FLASK_ENV=development
+FLASK_DEBUG=True
+
+# Logging Configuration
+LOG_LEVEL=INFO

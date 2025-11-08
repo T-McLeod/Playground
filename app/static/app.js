@@ -308,10 +308,9 @@ function renderTopicEditor(topicsData) {
     // Store topics data globally for easy access
     window.topicsData = topicsData;
     
-    // Calculate sizes for each node (now returns {width, height})
-    const nodeSizes = topicsData.map(item => 
-        calculateNodeSize(item.topic, item.summary)
-    );
+    // Fixed compact size for all nodes
+    const compactSize = { width: 180, height: 80 };
+    const nodeSizes = topicsData.map(() => compactSize);
     window.nodeSizes = nodeSizes;
     
     // Calculate positions for nodes (distributed layout)
@@ -319,17 +318,22 @@ function renderTopicEditor(topicsData) {
     
     topicsData.forEach((item, index) => {
         const node = document.createElement('div');
-        node.className = `topic-node color-${(index % 6) + 1}`;
+        node.className = `topic-node color-${(index % 6) + 1} compact`;
         node.dataset.index = index;
         
-        // Set dynamic size (width and height for oval)
-        const size = nodeSizes[index];
-        node.style.width = size.width + 'px';
-        node.style.height = size.height + 'px';
+        // Set compact size
+        node.style.width = compactSize.width + 'px';
+        node.style.height = compactSize.height + 'px';
         
         // Set position
         node.style.left = positions[index].x + 'px';
         node.style.top = positions[index].y + 'px';
+        
+        // Store original position and size
+        node.dataset.originalLeft = positions[index].x;
+        node.dataset.originalTop = positions[index].y;
+        node.dataset.originalWidth = compactSize.width;
+        node.dataset.originalHeight = compactSize.height;
         
         // Create delete button
         const deleteBtn = document.createElement('button');
@@ -337,7 +341,7 @@ function renderTopicEditor(topicsData) {
         deleteBtn.dataset.index = index;
         deleteBtn.innerHTML = '&times;';
         
-        // Create editable title
+        // Create editable title (always visible)
         const title = document.createElement('div');
         title.className = 'node-title';
         title.contentEditable = 'true';
@@ -345,22 +349,22 @@ function renderTopicEditor(topicsData) {
         title.dataset.index = index;
         title.dataset.field = 'topic';
         
-        // Create editable summary
+        // Create editable summary (hidden in compact mode)
         const summary = document.createElement('div');
         summary.className = 'node-summary';
         summary.contentEditable = 'true';
         summary.textContent = item.summary;
         summary.dataset.index = index;
         summary.dataset.field = 'summary';
+        summary.style.display = 'none'; // Hidden by default
         
         // Add elements to node
         node.appendChild(deleteBtn);
         node.appendChild(title);
         node.appendChild(summary);
         
-        // Setup inline editing handlers
-        setupInlineEditHandlers(title, index, 'topic');
-        setupInlineEditHandlers(summary, index, 'summary');
+        // Setup click-to-expand and inline editing handlers
+        setupNodeExpandHandlers(node, title, summary, index);
         
         canvas.appendChild(node);
     });
@@ -420,56 +424,135 @@ function calculateNodePositions(count, nodeSizes = null) {
     return positions;
 }
 
-// Setup inline editing handlers for a contentEditable element
-function setupInlineEditHandlers(element, index, field) {
-    const node = element.closest('.topic-node');
+// Setup node expand/collapse and editing handlers
+function setupNodeExpandHandlers(node, title, summary, index) {
+    let isExpanded = false;
     
-    // Prevent click from propagating to node
-    element.addEventListener('click', (e) => {
-        e.stopPropagation();
-    });
-    
-    // Focus event - zoom in and center the node
-    element.addEventListener('focus', () => {
-        zoomToNode(node);
-    });
-    
-    // Save on blur (when user clicks away)
-    element.addEventListener('blur', () => {
-        const newValue = element.textContent.trim();
-        if (newValue && window.topicsData[index]) {
-            window.topicsData[index][field] = newValue;
-            
-            // Recalculate and apply new size based on updated content
-            resizeNodeAfterEdit(node, index);
-        }
+    // Click on node (not on contentEditable areas) to expand/collapse
+    node.addEventListener('click', (e) => {
+        // Don't toggle if clicking on delete button or if already editing
+        if (e.target.closest('.node-delete-btn')) return;
+        if (e.target.contentEditable === 'true' && isExpanded) return;
         
-        // Check if no other element in this node is focused
+        if (!isExpanded) {
+            expandNode(node, title, summary);
+            isExpanded = true;
+        }
+    });
+    
+    // Handle focus on title
+    title.addEventListener('focus', () => {
+        if (!isExpanded) {
+            expandNode(node, title, summary);
+            isExpanded = true;
+        }
+    });
+    
+    // Handle focus on summary
+    summary.addEventListener('focus', () => {
+        if (!isExpanded) {
+            expandNode(node, title, summary);
+            isExpanded = true;
+        }
+    });
+    
+    // Save on blur - check if focus left the node entirely
+    const handleBlur = () => {
         setTimeout(() => {
             const activeElement = document.activeElement;
-            const isInSameNode = activeElement && activeElement.closest('.topic-node') === node;
-            if (!isInSameNode) {
-                zoomOutNode(node);
+            const isStillInNode = activeElement && activeElement.closest('.topic-node') === node;
+            
+            if (!isStillInNode && isExpanded) {
+                // Save changes
+                const newTitle = title.textContent.trim();
+                const newSummary = summary.textContent.trim();
+                
+                if (newTitle) {
+                    window.topicsData[index].topic = newTitle;
+                    window.topicsData[index].summary = newSummary;
+                }
+                
+                // Collapse node
+                collapseNode(node, summary);
+                isExpanded = false;
             }
         }, 10);
-    });
+    };
     
-    // Prevent Enter key from creating new lines in title
-    if (field === 'topic') {
-        element.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                element.blur(); // Save and exit editing
-            }
-        });
-    }
+    title.addEventListener('blur', handleBlur);
+    summary.addEventListener('blur', handleBlur);
     
-    // Allow Enter in summary but save on Escape
-    element.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            element.blur(); // Save and exit editing
+    // Keyboard shortcuts
+    title.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            summary.focus();
+        } else if (e.key === 'Escape') {
+            title.blur();
         }
     });
+    
+    summary.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            summary.blur();
+        }
+    });
+}
+
+// Expand node for editing
+function expandNode(node, title, summary) {
+    const canvas = document.getElementById('topic-canvas');
+    
+    // Calculate expanded size
+    const expandedWidth = 400;
+    const expandedHeight = 280;
+    
+    // Add expanded class
+    node.classList.remove('compact');
+    node.classList.add('expanded');
+    
+    // Set expanded size with smooth transition
+    node.style.width = expandedWidth + 'px';
+    node.style.height = expandedHeight + 'px';
+    
+    // Show summary
+    summary.style.display = 'block';
+    
+    // Dim other nodes
+    const allNodes = canvas.querySelectorAll('.topic-node');
+    allNodes.forEach(otherNode => {
+        if (otherNode !== node) {
+            otherNode.classList.add('dimmed');
+        }
+    });
+    
+    // Zoom to node
+    zoomToNode(node);
+}
+
+// Collapse node back to compact view
+function collapseNode(node, summary) {
+    const canvas = document.getElementById('topic-canvas');
+    
+    // Remove expanded class, add compact
+    node.classList.remove('expanded');
+    node.classList.add('compact');
+    
+    // Restore compact size
+    node.style.width = node.dataset.originalWidth + 'px';
+    node.style.height = node.dataset.originalHeight + 'px';
+    
+    // Hide summary
+    summary.style.display = 'none';
+    
+    // Un-dim other nodes
+    const allNodes = canvas.querySelectorAll('.topic-node');
+    allNodes.forEach(otherNode => {
+        otherNode.classList.remove('dimmed');
+    });
+    
+    // Zoom out
+    zoomOutNode(node);
 }
 
 // Resize node after editing to fit content
@@ -726,21 +809,29 @@ async function submitTopicsData() {
     generateBtn.disabled = true;
     generateBtn.textContent = 'Finalizing...';
     
+    console.log('Starting animation...');
+    
     // Animate nodes spreading out and removing delete buttons
     await animateNodesForGeneration();
     
-    // No API call needed - KG already generated and in Firestore
-    // Just transition to chat interface
-    currentState = 'ACTIVE';
-    initializeUI();
+    console.log('Animation complete!');
     
+    // Hide the generate action buttons
     const generateAction = document.querySelector('.generate-action');
     if (generateAction) {
         generateAction.style.display = 'none';
     }
     
+    // Reset button state
+    generateBtn.textContent = 'Generate Course';
+    generateBtn.disabled = false;
+    
+    console.log('About to show chat interface...');
+    
     // Show chat interface
     showChatInterface();
+    
+    console.log('Chat interface should be visible now!');
 }
 
 // Animate nodes spreading out and hide delete buttons
@@ -807,6 +898,56 @@ async function animateNodesForGeneration() {
 
 // Calculate evenly spread positions in a circular/grid pattern
 function calculateEvenlySpreadPositions(count) {
+    const canvas = document.getElementById('topic-canvas');
+    const canvasWidth = canvas.offsetWidth || 1200;
+    const canvasHeight = 600; // Fixed height for consistent spread
+    const padding = 80;
+    
+    // Use compact node size for final layout
+    const nodeSize = { width: 180, height: 80 };
+    
+    const positions = [];
+    
+    if (count === 1) {
+        // Single node - center it
+        positions.push({
+            x: (canvasWidth - nodeSize.width) / 2,
+            y: (canvasHeight - nodeSize.height) / 2
+        });
+    } else if (count <= 3) {
+        // 2-3 nodes - horizontal line
+        const spacing = (canvasWidth - padding * 2 - nodeSize.width) / (count - 1);
+        for (let i = 0; i < count; i++) {
+            positions.push({
+                x: padding + i * spacing,
+                y: (canvasHeight - nodeSize.height) / 2
+            });
+        }
+    } else {
+        // 4+ nodes - even grid distribution
+        const cols = Math.ceil(Math.sqrt(count * (canvasWidth / canvasHeight)));
+        const rows = Math.ceil(count / cols);
+        
+        const cellWidth = (canvasWidth - padding * 2) / cols;
+        const cellHeight = (canvasHeight - padding * 2) / rows;
+        
+        for (let i = 0; i < count; i++) {
+            const row = Math.floor(i / cols);
+            const col = i % cols;
+            
+            // Center within cell
+            const x = padding + col * cellWidth + (cellWidth - nodeSize.width) / 2;
+            const y = padding + row * cellHeight + (cellHeight - nodeSize.height) / 2;
+            
+            positions.push({ x, y });
+        }
+    }
+    
+    return positions;
+}
+
+// Old circular layout code for reference (keeping rest of function)
+function calculateEvenlySpreadPositions_OLD(count) {
     const canvas = document.getElementById('topic-canvas');
     const canvasWidth = canvas.offsetWidth || 1200;
     const canvasHeight = canvas.offsetHeight || 600;
@@ -1204,23 +1345,34 @@ function addMessageToChat(sender, message, sources = [], messageId = null) {
 
 // Show chat interface and set up handlers
 function showChatInterface() {
+    console.log('showChatInterface called');
     const chatInterface = document.getElementById('chat-interface');
-    if (!chatInterface) return;
+    console.log('chatInterface element:', chatInterface);
     
-    // Show the chat interface
-    chatInterface.style.display = 'block';
+    if (!chatInterface) {
+        console.error('Chat interface element not found!');
+        return;
+    }
+    
+    // Show the chat interface (use flex to match CSS definition)
+    chatInterface.style.display = 'flex';
+    console.log('Set display to flex');
     
     // Set up chat handlers
     setupChatHandlers();
+    console.log('Setup chat handlers');
     
     // Set up collapse/expand functionality
     setupChatToggle();
+    console.log('Setup chat toggle');
     
     // Set up back to edit button
     setupBackToEditButton();
+    console.log('Setup back to edit button');
     
     // Add welcome message
     addChatMessage('assistant', 'Course generated! You can now ask me questions about your course materials.');
+    console.log('Added welcome message');
 }
 
 // Set up back to edit button functionality
