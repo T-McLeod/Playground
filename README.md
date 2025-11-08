@@ -103,10 +103,15 @@ A Canvas-integrated LTI app that indexes course materials into a Vertex AI RAG E
 2. Enable the following APIs:
    - Vertex AI API
    - Cloud Firestore API
+   - Generative Language API
 3. Create a service account with appropriate permissions
 4. Download the service account key JSON file
-5. Place it as `service-account.json` in the project root
+5. Place it as `service-account.json` in the project root (see `service-account.json.example` for structure)
 6. Update `GOOGLE_CLOUD_PROJECT` in your `.env` file
+
+**📖 Detailed Setup Guide**: See [GCP_SETUP_GUIDE.md](GCP_SETUP_GUIDE.md) for step-by-step instructions with screenshots and troubleshooting.
+
+**⚠️ Security Note**: The `service-account.json` file contains sensitive credentials and is automatically excluded from git via `.gitignore`. Never commit this file to the repository.
 
 ### 4. Run the Application
 
