@@ -56,7 +56,10 @@ def initialize_course():
     try:
         data = request.json
         course_id = data.get('course_id')
-        topics = data.get('topics', '').split(",")
+        topics = data.get('topics')
+        if not topics or not any(t.strip() for t in topics.split(",")):
+            return jsonify({"error": "topics is required"}), 400
+        topics = topics.split(",")
         
         if not course_id:
             return jsonify({"error": "course_id is required"}), 400
