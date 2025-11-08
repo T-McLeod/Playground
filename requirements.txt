@@ -13,5 +13,6 @@ networkx
 # HTTP & API
 requests
 
-# Utilities
+# Testing
+pytest==7.4.3
 python-dotenv

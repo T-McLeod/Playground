@@ -1,3 +1,4 @@
 """
-Tests package for Canvas TA-Bot
+Test package for Playground AI application.
 """
+
