@@ -4,7 +4,6 @@ Handles all Vertex AI RAG Engine operations.
 """
 import vertexai
 from vertexai.preview import rag
-from vertexai.preview.rag.utils.resources import RagCorpus, RagFile
 from vertexai.generative_models import GenerativeModel
 import os
 import logging
