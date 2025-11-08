@@ -38,6 +38,55 @@ else:
     logger.warning("GOOGLE_CLOUD_PROJECT not set - Gemini service not initialized")
 
 
+def get_embedding(text: str, model_name: str = "text-embedding-004", task_type: str = "RETRIEVAL_QUERY") -> list:
+    """
+    Generates an embedding vector for text using Vertex AI's text-embedding model.
+    
+    Args:
+        text: The text to embed
+        model_name: The embedding model to use (default: text-embedding-004)
+        task_type: The task type for the embedding. Options:
+                   - RETRIEVAL_QUERY: For search queries
+                   - RETRIEVAL_DOCUMENT: For documents being indexed
+                   - SEMANTIC_SIMILARITY: For comparing text similarity
+                   - CLASSIFICATION: For text classification
+                   - CLUSTERING: For grouping similar texts
+        
+    Returns:
+        List of floats representing the embedding vector (768 dimensions for text-embedding-004)
+        
+    Example:
+        vector = get_embedding("What is machine learning?", task_type="RETRIEVAL_QUERY")
+        # Returns: [0.123, -0.456, 0.789, ...] (768 dimensions)
+    """
+    try:
+        from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
+        
+        logger.info(f"Generating embedding for text: {text[:50]}... (task_type: {task_type})")
+        
+        # Initialize the embedding model
+        model = TextEmbeddingModel.from_pretrained(model_name)
+        
+        # Create embedding input with task type
+        embedding_input = TextEmbeddingInput(
+            text=text,
+            task_type=task_type
+        )
+        
+        # Generate embedding
+        embeddings = model.get_embeddings([embedding_input])
+        
+        # Extract the vector from the first (and only) embedding
+        vector = embeddings[0].values
+        
+        logger.info(f"Generated embedding vector with {len(vector)} dimensions")
+        return vector
+        
+    except Exception as e:
+        logger.error(f"Failed to generate embedding: {e}", exc_info=True)
+        raise
+
+
 def generate_answer(query: str, model_name: str = DEFAULT_MODEL) -> str:
     """
     Generates a direct answer to a query using Gemini (no RAG context).

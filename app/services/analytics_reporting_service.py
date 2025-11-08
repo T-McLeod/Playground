@@ -181,24 +181,20 @@ def _extract_vectors(events: List[dict]) -> tuple:
     Returns:
         Tuple of (vectors_array, doc_ids_list)
     """
-    # TODO: Implement when embeddings are ready
-    # import numpy as np
-    # 
-    # # Filter events that have vectors
-    # events_with_vectors = [e for e in events if e.get('query_vector')]
-    # 
-    # vectors = np.array([e['query_vector'] for e in events_with_vectors])
-    # doc_ids = [e['doc_id'] for e in events_with_vectors]
-    # 
-    # return vectors, doc_ids
-    
-    # Placeholder until embeddings are implemented
-    logger.warning("Embeddings not yet implemented - using placeholder")
     import numpy as np
     
-    # Generate random vectors for testing
-    doc_ids = [event['doc_id'] for event in events]
-    vectors = np.random.rand(len(doc_ids), 768)  # 768-dim vectors (text-embedding-004 size)
+    # Filter events that have vectors
+    events_with_vectors = [e for e in events if e.get('query_vector')]
+    
+    if not events_with_vectors:
+        logger.warning("No events with vectors found")
+        return np.array([]), []
+    
+    # Extract vectors and doc_ids
+    vectors = np.array([e['query_vector'] for e in events_with_vectors])
+    doc_ids = [e['doc_id'] for e in events_with_vectors]
+    
+    logger.info(f"Extracted {len(vectors)} vectors with {vectors.shape[1] if len(vectors) > 0 else 0} dimensions")
     
     return vectors, doc_ids
 

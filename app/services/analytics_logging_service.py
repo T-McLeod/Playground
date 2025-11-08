@@ -33,6 +33,41 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def get_query_vector(query_text: str) -> list:
+    """
+    Generates an embedding vector for a query using Gemini's text-embedding model.
+    
+    Args:
+        query_text: The text to embed
+        
+    Returns:
+        List of floats representing the embedding vector
+        
+    Example:
+        vector = get_query_vector("What is machine learning?")
+        # Returns: [0.123, -0.456, 0.789, ...]
+    """
+    try:
+        logger.info(f"Generating embedding for query: {query_text[:50]}...")
+        
+        # Use Gemini's text-embedding model for query embeddings
+        vector = gemini_service.get_embedding(
+            text=query_text,
+            model_name="text-embedding-004",
+            task_type="RETRIEVAL_QUERY"
+        )
+        
+        return vector
+        
+    except Exception as e:
+        logger.error(f"Failed to generate embedding: {e}", exc_info=True)
+        return None
+
+
+# ============================================================================
 # LOGGING FUNCTIONS
 # ============================================================================
 
@@ -63,16 +98,8 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
     try:
         logger.info(f"Logging chat query for course {course_id}: {query_text[:50]}...")
         
-        # Get embedding from Gemini service
-        # TODO: Implement get_embedding in gemini_service
-        # query_vector = gemini_service.get_embedding(
-        #     text=query_text,
-        #     model="text-embedding-004",
-        #     task_type="RETRIEVAL_QUERY"
-        # )
-        
-        # For now, use a placeholder (will implement embedding later)
-        query_vector = None
+        # Get embedding vector for the query
+        query_vector = get_query_vector(query_text)
         
         # Prepare the log data
         log_data = {
@@ -169,65 +196,6 @@ def rate_answer(doc_id: str, rating: str) -> None:
 # ============================================================================
 
 if __name__ == "__main__":
-    """
-    Test the analytics logging functions.
-    """
-    from dotenv import load_dotenv
     
-    load_dotenv()
     
-    print("="*70)
-    print("ANALYTICS LOGGING SERVICE TEST")
-    print("="*70)
-    
-    TEST_COURSE_ID = "test_course_123"
-    
-    print(f"\nTest Course ID: {TEST_COURSE_ID}")
-    
-    # Test 1: Log a chat query
-    print("\n" + "="*70)
-    print("Test 1: Logging a chat query")
-    print("="*70)
-    
-    try:
-        doc_id = log_chat_query(
-            course_id=TEST_COURSE_ID,
-            query_text="What is machine learning?",
-            answer_text="Machine learning is a subset of AI...",
-            sources=["Chapter1.pdf"]
-        )
-        print(f"✓ Chat query logged with ID: {doc_id}")
-    except Exception as e:
-        print(f"✗ Failed to log chat query: {e}")
-    
-    # Test 2: Log a KG click
-    print("\n" + "="*70)
-    print("Test 2: Logging a KG node click")
-    print("="*70)
-    
-    try:
-        doc_id = log_kg_node_click(
-            course_id=TEST_COURSE_ID,
-            node_id="topic_1",
-            node_label="Machine Learning",
-            node_type="topic"
-        )
-        print(f"✓ KG click logged with ID: {doc_id}")
-    except Exception as e:
-        print(f"✗ Failed to log KG click: {e}")
-    
-    # Test 3: Rate an answer
-    print("\n" + "="*70)
-    print("Test 3: Rating an answer")
-    print("="*70)
-    
-    if doc_id:
-        try:
-            rate_answer(doc_id, "helpful")
-            print(f"✓ Answer rated successfully")
-        except Exception as e:
-            print(f"✗ Failed to rate answer: {e}")
-    
-    print("\n" + "="*70)
-    print("✓ Analytics logging service ready!")
-    print("="*70)
+    print("\nNote: Vector generation requires get_embedding() to be implemented in gemini_service")
