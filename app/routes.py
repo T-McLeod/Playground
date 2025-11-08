@@ -80,12 +80,12 @@ def initialize_course():
             return jsonify({"error": "course_id is required"}), 400
         
         logger.info(f"Starting initialization for course {course_id}")
-        
+        logger.info(f"topics: {topics}")
         # Auto-extract topics if not provided
         if not topics or not any(t.strip() for t in topics.split(",")):
             logger.info("No topics provided, auto-extracting from syllabus...")
             syllabus_text = canvas_service.get_syllabus(course_id, CANVAS_TOKEN)
-            
+            logger.info(f"Syllabus Text: {syllabus_text}")
             if not syllabus_text or len(syllabus_text.strip()) < 100:
                 return jsonify({"error": "Cannot auto-generate: syllabus not found or too short"}), 400
             
