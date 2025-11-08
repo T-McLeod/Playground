@@ -3,7 +3,7 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service
+from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service
 import os
 import logging
 import shutil
@@ -184,9 +184,18 @@ def chat():
         corpus_id=corpus_id,
     )
 
+    logger.info(f"Logging chat query for course {course_id}: {query[:50]}...")
+    doc_id = analytics_logging_service.log_chat_query(
+        course_id=course_id,
+        query_text=query,
+        answer_text=answer,
+        sources=sources
+    )
+
     return jsonify({
         "answer": answer,
         "sources": sources,
+        "log_doc_id": doc_id
     })
 
 
@@ -203,3 +212,159 @@ def get_graph():
         "edges": course_data.get("kg_edges"),
         "data": course_data.get("kg_data")
     })
+
+
+@app.route('/api/rate-answer', methods=['POST'])
+def rate_answer():
+    """
+    Allows students to rate (like/dislike) an answer.
+    
+    Request body:
+        {
+            "log_doc_id": "abc123",
+            "rating": "helpful" | "not_helpful"
+        }
+    """
+    data = request.json
+    log_doc_id = data.get('log_doc_id')
+    rating = data.get('rating')
+    
+    if not log_doc_id or not rating:
+        return jsonify({
+            "error": "Missing required fields: log_doc_id and rating"
+        }), 400
+    
+    if rating not in ['helpful', 'not_helpful']:
+        return jsonify({
+            "error": "Invalid rating. Must be 'helpful' or 'not_helpful'"
+        }), 400
+    
+    try:
+        analytics_logging_service.rate_answer(log_doc_id, rating)
+        
+        return jsonify({
+            "success": True,
+            "message": "Rating recorded successfully"
+        })
+    except Exception as e:
+        logger.error(f"Failed to rate answer: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to record rating",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/log-node-click', methods=['POST'])
+def log_node_click():
+    """
+    Logs when a student clicks on a knowledge graph node.
+    
+    Request body:
+        {
+            "course_id": "12345",
+            "node_id": "topic_1",
+            "node_label": "Machine Learning",
+            "node_type": "topic" | "file"
+        }
+    """
+    data = request.json
+    course_id = data.get('course_id')
+    node_id = data.get('node_id')
+    node_label = data.get('node_label')
+    node_type = data.get('node_type')
+    
+    if not course_id or not node_id or not node_label:
+        return jsonify({
+            "error": "Missing required fields: course_id, node_id, node_label"
+        }), 400
+    
+    try:
+        doc_id = analytics_logging_service.log_kg_node_click(
+            course_id=course_id,
+            node_id=node_id,
+            node_label=node_label,
+            node_type=node_type
+        )
+        
+        return jsonify({
+            "success": True,
+            "log_doc_id": doc_id
+        })
+    except Exception as e:
+        logger.error(f"Failed to log node click: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to log node click",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/analytics/<course_id>', methods=['GET'])
+def get_analytics(course_id):
+    """
+    Retrieves the latest analytics report for a course.
+    
+    Returns cluster analysis and insights for professors.
+    """
+    try:
+        from .services import analytics_reporting_service
+        
+        report = analytics_reporting_service.get_analytics_report(course_id)
+        
+        if not report:
+            return jsonify({
+                "message": "No analytics report available yet. Run analytics first."
+            }), 404
+        
+        return jsonify(report)
+    except Exception as e:
+        logger.error(f"Failed to get analytics report: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to retrieve analytics report",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/analytics/run', methods=['POST'])
+def run_analytics():
+    """
+    Triggers analytics processing for a course (professor-only).
+    
+    Request body:
+        {
+            "course_id": "12345",
+            "n_clusters": 5  // optional, uses elbow method if not specified
+        }
+    """
+    data = request.json
+    course_id = data.get('course_id')
+    n_clusters = data.get('n_clusters')
+    
+    if not course_id:
+        return jsonify({
+            "error": "Missing required field: course_id"
+        }), 400
+    
+    try:
+        from .services import analytics_reporting_service
+        
+        # Run analytics with auto-detection or specified clusters
+        if n_clusters:
+            report = analytics_reporting_service.run_daily_analytics(
+                course_id, 
+                n_clusters=n_clusters, 
+                auto_detect_clusters=False
+            )
+        else:
+            report = analytics_reporting_service.run_daily_analytics(
+                course_id, 
+                auto_detect_clusters=True
+            )
+        
+        return jsonify(report)
+    except Exception as e:
+        logger.error(f"Failed to run analytics: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to run analytics",
+            "message": str(e)
+        }), 500
+
