@@ -217,15 +217,18 @@ def get_analytics_events_by_ids(doc_ids: list[str]) -> list[dict]:
     results = []
     batch_size = 10
     
+    # Build collection reference once for efficiency
+    collection_ref = db.collection(ANALYTICS_COLLECTION)
+    
     for i in range(0, len(doc_ids), batch_size):
         batch = doc_ids[i:i + batch_size]
         
         # Query using document IDs with filter keyword argument
-        docs = db.collection(ANALYTICS_COLLECTION).where(
+        docs = collection_ref.where(
             filter=FieldFilter(
                 '__name__', 
                 'in', 
-                [db.collection(ANALYTICS_COLLECTION).document(doc_id) for doc_id in batch]
+                [collection_ref.document(doc_id) for doc_id in batch]
             )
         ).stream()
         
