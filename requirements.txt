@@ -4,6 +4,7 @@ flask-cors
 
 # Google Cloud
 google-cloud-firestore
+google-cloud-storage
 google-cloud-aiplatform
 vertexai
 
