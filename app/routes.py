@@ -224,34 +224,33 @@ def chat():
         # Convert DocumentSnapshot to dict
         data_dict = course_data.to_dict()
         corpus_id = data_dict.get('corpus_id')
-
-        answer, sources = gemini_service.generate_answer_with_context(
+        answer, sources  = gemini_service.generate_answer_with_context(
             query=query,
             corpus_id=corpus_id,
         )
-
-        # Log the chat query for analytics
-        logger.info(f"Logging chat query for course {course_id}: {query[:50]}...")
-        doc_id = analytics_logging_service.log_chat_query(
-            course_id=course_id,
-            query_text=query,
-            answer_text=answer,
-            sources=sources
-        )
-
-        return jsonify({
-            "answer": answer,
-            "sources": sources,
-            "response": answer,  # Also include 'response' for compatibility
-            "log_doc_id": doc_id
-        })
     except Exception as e:
-        logger.error(f"[CHAT ERROR] {str(e)}", exc_info=True)
+        print(f"[CHAT ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "error": str(e),
             "response": f"Sorry, an error occurred: {str(e)}"
         }), 500
 
+    logger.info(f"Logging chat query for course {course_id}: {query[:50]}...")
+    doc_id = analytics_logging_service.log_chat_query(
+        course_id=course_id,
+        query_text=query,
+        answer_text=answer,
+        sources=sources
+    )
+
+    return jsonify({
+        "answer": answer,
+        "sources": sources,
+        "log_doc_id": doc_id,
+        "response": answer 
+    })
 
 @app.route('/api/get-graph', methods=['GET'])
 def get_graph():

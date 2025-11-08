@@ -985,14 +985,15 @@ button:hover {
     padding: 30px 40px;
     text-align: left;
     line-height: 1.8;
-    overflow-y: hidden;
+    overflow-y: auto;
     overflow-x: hidden;
-    flex: 1;
     display: block !important;
     outline: none;
     border: none;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    height: 150px;
+    flex: none;
 }
 
 .topic-node.expanded .node-summary:focus {
@@ -1003,12 +1004,16 @@ button:hover {
 
 /* Hide scrollbar for contenteditable areas */
 .topic-node .node-title::-webkit-scrollbar,
-.topic-node .node-summary::-webkit-scrollbar {
+.topic-node .node-summary::-webkit-scrollbar,
+.topic-node.expanded .node-summary::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
     display: none;
 }
 
 .topic-node .node-title,
-.topic-node .node-summary {
+.topic-node .node-summary,
+.topic-node.expanded .node-summary {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }

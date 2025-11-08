@@ -525,13 +525,12 @@ function setupNodeExpandHandlers(node, title, summary, index) {
 function expandNode(node, title, summary) {
     const canvas = document.getElementById('topic-canvas');
     
-    // Calculate expanded size - almost full screen
+    // Calculate expanded size - fixed dimensions for consistent layout
     const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
     const padding = 80; // Padding from edges
     
     const expandedWidth = Math.min(viewportWidth - padding * 2, 1200); // Max 1200px width
-    const expandedHeight = Math.min(viewportHeight - padding * 2, 700); // Max 700px height
+    const expandedHeight = 600; // Fixed height for consistent summary area
     
     // Add expanded class
     node.classList.remove('compact');
