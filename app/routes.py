@@ -195,22 +195,35 @@ def chat():
     """
     Handles student questions using the RAG-powered TA bot.
     """
-    data = request.json
-    course_id = data.get('course_id')
-    query = data.get('query')
+    try:
+        data = request.json
+        course_id = data.get('course_id')
+        query = data.get('query')
 
-    course_data = firestore_service.get_course_data(course_id)
-    corpus_id = course_data.get('corpus_id')
+        course_data = firestore_service.get_course_data(course_id)
+        
+        # Convert DocumentSnapshot to dict
+        data_dict = course_data.to_dict()
+        corpus_id = data_dict.get('corpus_id')
 
-    answer, sources  = gemini_service.generate_answer_with_context(
-        query=query,
-        corpus_id=corpus_id,
-    )
+        answer, sources = gemini_service.generate_answer_with_context(
+            query=query,
+            corpus_id=corpus_id,
+        )
 
-    return jsonify({
-        "answer": answer,
-        "sources": sources,
-    })
+        return jsonify({
+            "answer": answer,
+            "sources": sources,
+            "response": answer  # Also include 'response' for compatibility
+        })
+    except Exception as e:
+        print(f"[CHAT ERROR] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": str(e),
+            "response": f"Sorry, an error occurred: {str(e)}"
+        }), 500
 
 
 @app.route('/api/get-graph', methods=['GET'])
