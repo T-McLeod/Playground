@@ -95,7 +95,7 @@ def generate_answer_with_context(
         corpus_id: RAG corpus resource name to retrieve context from
         top_k: Number of context chunks to retrieve (default: 10)
         threshold: Similarity threshold for retrieval (default: 0.5)
-        model_name: Gemini model to use (default: gemini-1.5-flash)
+        model_name: Gemini model to use (default: gemini-2.5-flash-lite)
         
     Returns:
         Tuple of (answer_text, list of source names)
