@@ -196,6 +196,72 @@ def rate_answer(doc_id: str, rating: str) -> None:
 # ============================================================================
 
 if __name__ == "__main__":
+    """
+    Script to log a batch of queries into Firestore with embeddings.
+    """
+    from dotenv import load_dotenv
+    import time
     
+    load_dotenv()
+    
+    print("="*70)
+    print("BATCH QUERY LOGGING TO FIRESTORE")
+    print("="*70)
+    
+    # Configuration
+    COURSE_ID = "13299557"  # Update this to your course ID
+    
+    queries = [] #script for logging multiple queries
+    
+    print(f"\nCourse ID: {COURSE_ID}")
+    print(f"Total queries to log: {len(queries)}")
+    print(f"\nStarting batch logging...")
+    print("="*70)
+    
+    logged_count = 0
+    failed_count = 0
+    
+    for i, query_text in enumerate(queries, 1):
+        try:
+            print(f"\n[{i}/{len(queries)}] Logging: {query_text[:60]}...")
+            
+            # Use the log_chat_query function which handles embedding generation
+            doc_id = log_chat_query(
+                course_id=COURSE_ID,
+                query_text=query_text,
+                answer_text=None,  # Leave blank as requested
+                sources=None       # Leave blank as requested
+            )
+            
+            if doc_id:
+                logged_count += 1
+                print(f"  ✓ Logged successfully (doc_id: {doc_id})")
+            else:
+                failed_count += 1
+                print(f"  ✗ Failed to log")
+            
+            # Small delay to avoid rate limiting
+            time.sleep(0.5)
+            
+        except Exception as e:
+            failed_count += 1
+            print(f"  ✗ Error: {e}")
+    
+    print(f"\n{'='*70}")
+    print(f"BATCH LOGGING COMPLETE")
+    print(f"{'='*70}")
+    print(f"  Successfully logged: {logged_count}")
+    print(f"  Failed: {failed_count}")
+    print(f"  Total processed: {len(queries)}")
+    print(f"{'='*70}")
+    print(f"\nAll queries logged to Firestore with:")
+    print(f"  - course_id: {COURSE_ID}")
+    print(f"  - type: chat")
+    print(f"  - query_text: <each query>")
+    print(f"  - query_vector: <768-dim embedding>")
+    print(f"  - timestamp: <server timestamp>")
+    print(f"  - answer_text: None")
+    print(f"  - sources: []")
+    print(f"  - rating: None")
     
     print("\nNote: Vector generation requires get_embedding() to be implemented in gemini_service")
