@@ -292,7 +292,6 @@ if __name__ == "__main__":
 
     
     # Configuration
-    COURSE_ID = "13299557"  # Update this to your course ID
     
     queries = [] #script for logging multiple queries
     
