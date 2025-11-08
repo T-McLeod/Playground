@@ -1,17 +1,17 @@
 # Flask
-Flask==3.0.0
-flask-cors==4.0.0
+Flask
+flask-cors
 
 # Google Cloud
-google-cloud-firestore==2.13.1
-google-cloud-aiplatform==1.38.1
-vertexai==1.38.1
+google-cloud-firestore
+google-cloud-aiplatform
+vertexai
 
 # Graph
-networkx==3.2.1
+networkx
 
 # HTTP & API
-requests==2.31.0
+requests
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv
