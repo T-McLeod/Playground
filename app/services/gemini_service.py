@@ -119,7 +119,6 @@ def generate_answer_with_context(
         
         # Step 1: Retrieve context from RAG corpus
         context_texts, source_names = retrieve_context(corpus_id, query, top_k, threshold)
-        print("CHECK HERE", context_texts, source_names)
 
         if not context_texts:
             logger.warning("No context retrieved from RAG corpus")
