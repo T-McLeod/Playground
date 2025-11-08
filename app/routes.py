@@ -3,7 +3,7 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, current_app as app
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service
+from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service
 import os
 import logging
 
@@ -173,15 +173,18 @@ def chat():
     data = request.json
     course_id = data.get('course_id')
     query = data.get('query')
-    
-    # TODO: Implement chat logic
-    # 1. Get corpus_id from Firestore
-    # 2. Query RAG corpus
-    # 3. Return answer with citations
-    
+
+    course_data = firestore_service.get_course_data(course_id)
+    corpus_id = course_data.get('corpus_id')
+
+    answer, sources  = gemini_service.generate_answer_with_context(
+        query=query,
+        corpus_id=corpus_id,
+    )
+
     return jsonify({
-        "answer": "This is a placeholder response.",
-        "sources": []
+        "answer": answer,
+        "sources": sources,
     })
 
 
@@ -191,13 +194,10 @@ def get_graph():
     Fetches the knowledge graph data for visualization.
     """
     course_id = request.args.get('course_id')
-    
-    # TODO: Implement graph retrieval
-    # 1. Get course doc from Firestore
-    # 2. Return serialized graph data
+    course_data = firestore_service.get_course_data(course_id)
     
     return jsonify({
-        "nodes": "[]",
-        "edges": "[]",
-        "data": "{}"
+        "nodes": course_data.get("kg_nodes"),
+        "edges": course_data.get("kg_edges"),
+        "data": course_data.get("kg_data")
     })
