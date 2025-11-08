@@ -101,6 +101,11 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         # Get embedding vector for the query
         query_vector = get_query_vector(query_text)
         
+        # Check if vector generation failed
+        if query_vector is None:
+            logger.warning(f"Failed to generate embedding for query, skipping vector storage")
+            # Still log the query but without the vector (won't be used in clustering)
+        
         # Prepare the log data
         log_data = {
             'type': 'chat',
@@ -108,7 +113,7 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
             'query_text': query_text,
             'answer_text': answer_text,
             'sources': sources or [],
-            'query_vector': query_vector,
+            'query_vector': query_vector,  # May be None if embedding failed
             'timestamp': firestore.SERVER_TIMESTAMP,
             'rating': None  # Will be updated if user rates this answer
         }
