@@ -3,7 +3,7 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
+from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service
 import os
 import logging
 import shutil
