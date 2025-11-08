@@ -916,9 +916,10 @@ button:hover {
 
 /* Dimmed nodes (when another is focused) */
 .topic-node.dimmed {
-    opacity: 0.3;
-    filter: blur(2px);
+    opacity: 0.15;
+    filter: blur(3px);
     pointer-events: none;
+    transition: all 0.3s ease-out;
 }
 
 /* Compact node state (title only) */
@@ -951,28 +952,65 @@ button:hover {
     transition: all 0.3s ease-out;
     z-index: 50 !important;
     cursor: default;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
 }
 
 .topic-node.expanded .node-title {
-    font-size: 16px;
-    font-weight: 600;
-    padding: 15px 15px 8px 15px;
+    font-size: 24px;
+    font-weight: 700;
+    padding: 30px 40px 20px 40px;
     text-align: center;
-    min-height: 50px;
+    min-height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    outline: none;
+}
+
+.topic-node.expanded .node-title:focus {
+    outline: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: none;
 }
 
 .topic-node.expanded .node-summary {
-    font-size: 14px;
-    padding: 8px 15px 15px 15px;
+    font-size: 16px;
+    padding: 30px 40px;
     text-align: left;
-    line-height: 1.5;
-    overflow-y: auto;
+    line-height: 1.8;
+    overflow-y: hidden;
+    overflow-x: hidden;
     flex: 1;
     display: block !important;
+    outline: none;
+    border: none;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.topic-node.expanded .node-summary:focus {
+    outline: none;
+    border: none;
+    box-shadow: none;
+}
+
+/* Hide scrollbar for contenteditable areas */
+.topic-node .node-title::-webkit-scrollbar,
+.topic-node .node-summary::-webkit-scrollbar {
+    display: none;
+}
+
+.topic-node .node-title,
+.topic-node .node-summary {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* Chat Interface - Collapsible Bottom Bar */
@@ -1156,6 +1194,7 @@ button:hover {
     word-wrap: break-word;
     max-width: 100%;
     outline: none;
+    border: none;
     cursor: text;
     padding: 4px 8px;
     border-radius: 8px;
@@ -1163,8 +1202,10 @@ button:hover {
 }
 
 .node-title:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    outline: none;
+    border: none;
 }
 
 .node-title[contenteditable="false"] {
@@ -1186,6 +1227,7 @@ button:hover {
     line-clamp: 6;
     -webkit-box-orient: vertical;
     outline: none;
+    border: none;
     cursor: text;
     padding: 4px 8px;
     border-radius: 8px;
@@ -1193,8 +1235,10 @@ button:hover {
 }
 
 .node-summary:focus {
-    background-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    outline: none;
+    border: none;
     display: block;
     overflow: visible;
     -webkit-line-clamp: unset;

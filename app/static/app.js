@@ -368,6 +368,12 @@ function renderTopicEditor(topicsData) {
         
         canvas.appendChild(node);
     });
+    
+    // Setup canvas click to collapse expanded nodes (click outside)
+    setupCanvasClickToCollapse(canvas);
+    
+    // Setup escape key to collapse expanded nodes
+    setupEscapeKeyHandler();
 }
 
 // Calculate positions for nodes in an attractive layout
@@ -428,31 +434,47 @@ function calculateNodePositions(count, nodeSizes = null) {
 function setupNodeExpandHandlers(node, title, summary, index) {
     let isExpanded = false;
     
-    // Click on node (not on contentEditable areas) to expand/collapse
+    // Click on node (not on contentEditable areas) to expand
     node.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent canvas click handler from firing
+        
         // Don't toggle if clicking on delete button or if already editing
         if (e.target.closest('.node-delete-btn')) return;
         if (e.target.contentEditable === 'true' && isExpanded) return;
         
         if (!isExpanded) {
+            // Collapse any other expanded nodes first
+            collapseAllNodes();
+            
             expandNode(node, title, summary);
             isExpanded = true;
+            
+            // Store reference to currently expanded node
+            window.currentExpandedNode = { node, title, summary, handlers: { setExpanded: (val) => { isExpanded = val; } } };
         }
     });
     
     // Handle focus on title
     title.addEventListener('focus', () => {
         if (!isExpanded) {
+            // Collapse any other expanded nodes first
+            collapseAllNodes();
+            
             expandNode(node, title, summary);
             isExpanded = true;
+            window.currentExpandedNode = { node, title, summary, handlers: { setExpanded: (val) => { isExpanded = val; } } };
         }
     });
     
     // Handle focus on summary
     summary.addEventListener('focus', () => {
         if (!isExpanded) {
+            // Collapse any other expanded nodes first
+            collapseAllNodes();
+            
             expandNode(node, title, summary);
             isExpanded = true;
+            window.currentExpandedNode = { node, title, summary, handlers: { setExpanded: (val) => { isExpanded = val; } } };
         }
     });
     
@@ -503,9 +525,13 @@ function setupNodeExpandHandlers(node, title, summary, index) {
 function expandNode(node, title, summary) {
     const canvas = document.getElementById('topic-canvas');
     
-    // Calculate expanded size
-    const expandedWidth = 400;
-    const expandedHeight = 280;
+    // Calculate expanded size - almost full screen
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const padding = 80; // Padding from edges
+    
+    const expandedWidth = Math.min(viewportWidth - padding * 2, 1200); // Max 1200px width
+    const expandedHeight = Math.min(viewportHeight - padding * 2, 700); // Max 700px height
     
     // Add expanded class
     node.classList.remove('compact');
@@ -526,7 +552,7 @@ function expandNode(node, title, summary) {
         }
     });
     
-    // Zoom to node
+    // Zoom to node and center it
     zoomToNode(node);
 }
 
@@ -553,6 +579,51 @@ function collapseNode(node, summary) {
     
     // Zoom out
     zoomOutNode(node);
+}
+
+// Collapse all currently expanded nodes
+function collapseAllNodes() {
+    if (window.currentExpandedNode) {
+        const { node, summary, handlers } = window.currentExpandedNode;
+        collapseNode(node, summary);
+        handlers.setExpanded(false);
+        window.currentExpandedNode = null;
+    }
+}
+
+// Setup canvas click handler to collapse nodes when clicking outside
+function setupCanvasClickToCollapse(canvas) {
+    // Remove any existing handler to avoid duplicates
+    if (window.canvasClickHandler) {
+        canvas.removeEventListener('click', window.canvasClickHandler);
+    }
+    
+    // Create new handler
+    window.canvasClickHandler = (e) => {
+        // Only collapse if clicking directly on canvas (not on a node)
+        if (e.target === canvas) {
+            collapseAllNodes();
+        }
+    };
+    
+    canvas.addEventListener('click', window.canvasClickHandler);
+}
+
+// Setup escape key handler to collapse expanded nodes
+function setupEscapeKeyHandler() {
+    // Remove any existing handler to avoid duplicates
+    if (window.escapeKeyHandler) {
+        document.removeEventListener('keydown', window.escapeKeyHandler);
+    }
+    
+    // Create new handler
+    window.escapeKeyHandler = (e) => {
+        if (e.key === 'Escape') {
+            collapseAllNodes();
+        }
+    };
+    
+    document.addEventListener('keydown', window.escapeKeyHandler);
 }
 
 // Resize node after editing to fit content
