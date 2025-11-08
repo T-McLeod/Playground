@@ -282,7 +282,7 @@ if __name__ == "__main__":
         'size': 153935,
         'created_at': '2025-11-07T05:39:33Z',
         'updated_at': '2025-11-07T05:39:33Z',
-        'local_path': 'C:\\Users\\tm419\\Documents\\Repositories\\Playground\\app\\data\\courses\\13299557\\Lec 1.pdf'
+        'local_path': os.path.join(os.getcwd(), 'app', 'data', 'courses', '13299557', 'Lec 1.pdf')
     }
     
     try:
