@@ -50,18 +50,18 @@ async function startAutoGeneration() {
     document.getElementById('landing-screen').style.display = 'none';
     document.getElementById('init-loading').style.display = 'block';
     
-    try {
-        const response = await fetch('/api/initialize-course', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        try {
+            const response = await fetch('/api/initialize-course', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 course_id: COURSE_ID
                 // No topics - backend will auto-extract
             })
-        });
-        
-        const result = await response.json();
-        
+            });
+            
+            const result = await response.json();
+            
         if (!response.ok) {
             throw new Error(result.error || 'Generation failed');
         }
@@ -871,14 +871,17 @@ async function setupAppPage() {
     // Load graph data
     await loadGraphData();
     
-    // Initialize Vis.js network
+    // Initialize graph visualization
     initializeGraph();
     
     // Setup chat interface
     setupChat();
     
-    // Setup file toggle
-    setupFileToggle();
+    // Setup chat toggle (collapse/expand)
+    setupChatToggleActive();
+    
+    // Setup edit button
+    setupEditButtonActive();
 }
 
 // Load graph data from API
@@ -897,11 +900,16 @@ async function loadGraphData() {
     }
 }
 
-// Initialize the Vis.js graph visualization
+// Initialize the graph visualization for ACTIVE state
 function initializeGraph() {
     if (!graphData) return;
     
-    const container = document.getElementById('graph-network');
+    const container = document.getElementById('graph-network-active');
+    
+    if (!container) {
+        console.warn('Graph container not found');
+        return;
+    }
     
     // Convert graph data to topics format
     const topicsData = [];
@@ -920,16 +928,21 @@ function initializeGraph() {
     // Store globally for reference
     window.topicsData = topicsData;
     
-    // Create visual nodes (reuse editor style)
+    // Create visual nodes (full-screen style)
     container.innerHTML = '';
-    container.style.position = 'relative';
-    container.style.minHeight = '600px';
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100vw';
+    container.style.height = '100vh';
     container.style.backgroundColor = '#f5f5f5';
-    container.style.borderRadius = '8px';
+    container.style.padding = '0';
+    container.style.margin = '0';
+    container.style.overflow = 'hidden';
     
-    // Calculate positions
-    const canvasWidth = container.offsetWidth || 1200;
-    const canvasHeight = 600;
+    // Calculate positions for full viewport
+    const canvasWidth = window.innerWidth;
+    const canvasHeight = window.innerHeight;
     
     // Calculate node sizes
     const nodeSizes = topicsData.map(item => calculateNodeSize(item.topic, item.summary, true));
@@ -937,7 +950,7 @@ function initializeGraph() {
     
     const positions = calculatePositionsForContainer(topicsData.length, nodeSizes, canvasWidth, canvasHeight);
     
-    // Render each node
+    // Render each node (read-only, no delete buttons)
     topicsData.forEach((item, index) => {
         const pos = positions[index];
         const size = nodeSizes[index];
@@ -950,27 +963,72 @@ function initializeGraph() {
         nodeDiv.style.top = `${pos.y}px`;
         nodeDiv.style.width = `${size.width}px`;
         nodeDiv.style.height = `${size.height}px`;
-        nodeDiv.style.cursor = 'pointer';
+        nodeDiv.style.cursor = 'default';
         
         const titleDiv = document.createElement('div');
         titleDiv.className = 'node-title';
         titleDiv.textContent = item.topic;
-        titleDiv.contentEditable = 'false'; // Read-only in ACTIVE state
+        titleDiv.contentEditable = 'false';
+        titleDiv.style.cursor = 'default';
         
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'node-summary';
         summaryDiv.textContent = item.summary;
-        summaryDiv.contentEditable = 'false'; // Read-only in ACTIVE state
+        summaryDiv.contentEditable = 'false';
+        summaryDiv.style.cursor = 'default';
         
         nodeDiv.appendChild(titleDiv);
         nodeDiv.appendChild(summaryDiv);
         
-        // Click to show details
-        nodeDiv.addEventListener('click', () => {
-            showNodeDetails(item.topic, item.summary);
-        });
-        
         container.appendChild(nodeDiv);
+    });
+    
+    // Show chat interface
+    const chatInterface = document.getElementById('chat-interface-active');
+    if (chatInterface) {
+        chatInterface.style.display = 'block';
+    }
+}
+
+// Setup chat toggle for ACTIVE state
+function setupChatToggleActive() {
+    const chatInterface = document.getElementById('chat-interface-active');
+    const chatToggleBtn = document.getElementById('chat-toggle-btn-active');
+    const chatInput = document.getElementById('chat-input-active');
+    const chatInputContainer = document.getElementById('chat-input-container-active');
+    
+    if (!chatInterface || !chatToggleBtn) return;
+    
+    // Toggle button click
+    chatToggleBtn.addEventListener('click', () => {
+        chatInterface.classList.toggle('collapsed');
+    });
+    
+    // Expand when clicking on input area
+    if (chatInput) {
+        chatInput.addEventListener('focus', () => {
+            chatInterface.classList.remove('collapsed');
+        });
+    }
+    
+    // Also expand when clicking anywhere in the input container
+    if (chatInputContainer) {
+        chatInputContainer.addEventListener('click', () => {
+            chatInterface.classList.remove('collapsed');
+        });
+    }
+}
+
+// Setup edit button for ACTIVE state
+function setupEditButtonActive() {
+    const editBtn = document.getElementById('back-to-edit-btn-active');
+    
+    if (!editBtn) return;
+    
+    editBtn.addEventListener('click', () => {
+        // This would reload the page in NEEDS_INIT state to edit topics
+        // For now, show alert that editing is not available in production
+        alert('To edit topics, please re-initialize the course from Canvas.');
     });
 }
 
@@ -1015,16 +1073,6 @@ function calculatePositionsForContainer(count, nodeSizes, containerWidth, contai
     }
     
     return positions;
-}
-
-// Show details for a clicked node
-function showNodeDetails(topicName, summary) {
-    const detailsDiv = document.getElementById('node-details');
-    
-    detailsDiv.innerHTML = `
-        <h3>${escapeHtml(topicName)}</h3>
-        <p>${escapeHtml(summary)}</p>
-    `;
 }
 
 // Setup the chat interface
@@ -1088,7 +1136,7 @@ async function sendMessage() {
         
         // Add bot response to chat
         if (response.ok) {
-            addMessageToChat('bot', result.answer, result.sources);
+        addMessageToChat('bot', result.answer, result.sources);
         } else {
             addMessageToChat('bot', 'Sorry, I encountered an error: ' + (result.error || 'Unknown error'));
         }
@@ -1388,14 +1436,6 @@ function setupChatToggle() {
             chatInterface.classList.remove('collapsed');
         });
     }
-}
-
-// Setup file toggle functionality
-function setupFileToggle() {
-    const toggleBtn = document.getElementById('toggle-files');
-    
-    // TODO: Implement file list toggle
-    // Show/hide file nodes in the graph
 }
 
 // Initialize on page load
