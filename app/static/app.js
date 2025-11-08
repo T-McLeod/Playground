@@ -39,7 +39,7 @@ function setupInitPage() {
     
     if (generateNowBtn) {
         generateNowBtn.addEventListener('click', () => {
-            startTopicGeneration();
+            submitTopicsData();
         });
     }
 }
@@ -62,7 +62,7 @@ async function loadSuggestedTopics() {
     const editorDiv = document.getElementById('init-editor');
     
     try {
-        const response = await fetch('/api/generate-suggested-topics', {
+        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ course_id: COURSE_ID })
@@ -606,10 +606,10 @@ async function submitTopicsData() {
         item.summary && item.summary.trim()
     );
     
-    if (validTopics.length === 0) {
-        alert('Please add at least one topic with both a name and summary.');
-        return;
-    }
+    // if (validTopics.length === 0) {
+    //     alert('Please add at least one topic with both a name and summary.');
+    //     return;
+    // }
     
     // Disable button and show loading state
     generateBtn.disabled = true;
@@ -619,13 +619,16 @@ async function submitTopicsData() {
     await animateNodesForGeneration();
     
         try {
+            currentState = 'GENERATING';
+            initializeUI();
+
             const response = await fetch('/api/initialize-course', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                course_id: COURSE_ID, 
-                topics_data: validTopics 
-            })
+                body: JSON.stringify({
+                    course_id: COURSE_ID,
+                    topics: validTopics.map(item => item.topic.trim())
+                })
             });
             
             const result = await response.json();
