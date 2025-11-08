@@ -17,3 +17,6 @@ requests
 # Testing
 pytest==7.4.3
 python-dotenv
+
+# Other
+python-dotenv

@@ -2,7 +2,7 @@
 Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
-from flask import request, render_template, jsonify, current_app as app
+from flask import request, render_template, jsonify, session, current_app as app
 from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service
 import os
 import logging
@@ -14,24 +14,30 @@ logger = logging.getLogger(__name__)
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 
 
-@app.route('/launch', methods=['POST'])
+@app.route('/launch', methods=['GET', 'POST'])
 def launch():
     """
     Main LTI entry point from Canvas.
     Determines app state and renders the appropriate UI.
     """
     # Extract LTI parameters
-    context_id = request.form.get('context_id')
-    roles = request.form.get('roles', '')
+    course_id = request.args.get('course_id')
+    user_id = request.args.get('user_id')
+    role = request.args.get('role')
+
+    session["couse_id"] = course_id
+    session["user_id"] = user_id
+    session["role"] = role
     
     # Determine application state
-    state = firestore_service.get_course_state(context_id)
+    state = firestore_service.get_course_state(course_id)
     
     # Render the single-page app with injected state
     return render_template(
         'index.html',
-        course_id=context_id,
-        user_roles=roles,
+        course_id=course_id,
+        user_roles=role,
+        user_id = user_id,
         app_state=state
     )
 

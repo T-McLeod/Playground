@@ -48,4 +48,8 @@ Thumbs.db
 # Logs
 *.log
 
+# local keys
+localhost-key.pem
+localhost.pem
+
 app/data/
