@@ -89,46 +89,50 @@ def initialize_course():
         successful_uploads = sum(1 for f in files if f.get('gcs_uri'))
         logger.info(f"Uploaded {successful_uploads}/{len(files)} files to GCS")
         
-        # Step 4: Create RAG corpus and import files from GCS
-        logger.info("Step 4: Creating RAG corpus and importing files...")
-        corpus_id = rag_service.create_and_provision_corpus(
-            files=files,
-            corpus_name_suffix=f"Course {course_id}"
-        )
-        logger.info(f"Created corpus: {corpus_id}")
-        
-        # Step 5: Build knowledge graph
-        logger.info("Step 5: Building knowledge graph...")
-        kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
-            topic_list=topics,
-            corpus_id=corpus_id,
-            files=files
-        )
-        logger.info("Knowledge graph built successfully")
-        
-        # Step 6: Clean up local files
-        logger.info("Step 6: Cleaning up local files...")
-        local_dir = os.path.join('app', 'data', 'courses', course_id)
-        if os.path.exists(local_dir):
-            import shutil
-            shutil.rmtree(local_dir)
-            logger.info(f"Deleted local directory: {local_dir}")
-        
-        # Step 7: Clean up GCS files (optional - comment out if you want to keep them)
-        logger.info("Step 7: Cleaning up GCS files...")
-        gcs_service.delete_course_files(course_id)
-        logger.info("GCS files deleted")
-        
-        # Step 8: Finalize Firestore document with all data
-        logger.info("Step 8: Finalizing Firestore document...")
-        update_payload = {
-            'corpus_id': corpus_id,
-            'indexed_files': indexed_files_map,
-            'kg_nodes': kg_nodes,
-            'kg_edges': kg_edges,
-            'kg_data': kg_data
-        }
-        firestore_service.finalize_course_doc(course_id, update_payload)
+        try:
+            # Step 4: Create RAG corpus and import files from GCS
+            logger.info("Step 4: Creating RAG corpus and importing files...")
+            corpus_id = rag_service.create_and_provision_corpus(
+                files=files,
+                corpus_name_suffix=f"Course {course_id}"
+            )
+            logger.info(f"Created corpus: {corpus_id}")
+            
+            # Step 5: Build knowledge graph
+            logger.info("Step 5: Building knowledge graph...")
+            kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
+                topic_list=topics,
+                corpus_id=corpus_id,
+                files=files
+            )
+            logger.info("Knowledge graph built successfully")
+            
+            # Step 6: Clean up local files
+            logger.info("Step 6: Cleaning up local files...")
+            local_dir = os.path.join('app', 'data', 'courses', course_id)
+            if os.path.exists(local_dir):
+                import shutil
+                shutil.rmtree(local_dir)
+                logger.info(f"Deleted local directory: {local_dir}")
+            
+            # Step 8: Finalize Firestore document with all data
+            logger.info("Step 8: Finalizing Firestore document...")
+            update_payload = {
+                'corpus_id': corpus_id,
+                'indexed_files': indexed_files_map,
+                'kg_nodes': kg_nodes,
+                'kg_edges': kg_edges,
+                'kg_data': kg_data
+            }
+            firestore_service.finalize_course_doc(course_id, update_payload)
+        finally:
+            # Step 7: Clean up GCS files (always runs, even on failure)
+            try:
+                logger.info("Step 7: Cleaning up GCS files...")
+                gcs_service.delete_course_files(course_id)
+                logger.info("GCS files deleted")
+            except Exception as cleanup_error:
+                logger.error(f"Failed to clean up GCS files: {cleanup_error}")
         
         logger.info(f"Course {course_id} initialization complete!")
         
