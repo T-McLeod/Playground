@@ -7,6 +7,7 @@ import networkx as nx
 import json
 import logging
 import os
+from typing import List
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
@@ -19,6 +20,33 @@ logger = logging.getLogger(__name__)
 SUMMARY_QUERY_TEMPLATE = (
     "Write a 1-paragraph summary for the topic: {topic}."
 )
+
+def extract_topics_from_syllabus(syllabus_text: str, count: int = 8) -> List[str]:
+    """
+    Uses Gemini to extract main course topics from syllabus text.
+    
+    Args:
+        syllabus_text: The syllabus content
+        count: Number of topics to extract (default 8)
+        
+    Returns:
+        List of topic strings
+    """
+    prompt = f"""Analyze this course syllabus and extract the {count} most important topics covered.
+Return ONLY a comma-separated list of topics, nothing else.
+
+Syllabus:
+{syllabus_text[:5000]}
+
+Example output: Machine Learning, Neural Networks, Data Processing, Model Evaluation"""
+    
+    try:
+        topics_text = gemini_service.generate_answer(prompt)
+        topics = [t.strip() for t in topics_text.split(',') if t.strip()]
+        return topics[:count]
+    except Exception as e:
+        logger.error(f"Failed to extract topics from syllabus: {e}")
+        raise
 
 def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tuple[str, str, str]:
     """

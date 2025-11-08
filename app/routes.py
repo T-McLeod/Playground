@@ -64,15 +64,25 @@ def initialize_course():
     try:
         data = request.json
         course_id = data.get('course_id')
-        topics = data.get('topics')
-        if not topics or not any(t.strip() for t in topics.split(",")):
-            return jsonify({"error": "topics is required"}), 400
-        topics = topics.split(",")
+        topics = data.get('topics')  # Optional now
         
         if not course_id:
             return jsonify({"error": "course_id is required"}), 400
         
         logger.info(f"Starting initialization for course {course_id}")
+        
+        # Auto-extract topics if not provided
+        if not topics or not any(t.strip() for t in topics.split(",")):
+            logger.info("No topics provided, auto-extracting from syllabus...")
+            syllabus_text = canvas_service.get_syllabus(course_id, CANVAS_TOKEN)
+            
+            if not syllabus_text or len(syllabus_text.strip()) < 100:
+                return jsonify({"error": "Cannot auto-generate: syllabus not found or too short"}), 400
+            
+            topics = kg_service.extract_topics_from_syllabus(syllabus_text)
+            logger.info(f"Auto-extracted topics: {topics}")
+        else:
+            topics = topics.split(",")
         
         # Step 1: Create Firestore doc with status: GENERATING
         logger.info("Step 1: Creating Firestore document...")
@@ -146,7 +156,10 @@ def initialize_course():
             "status": "complete",
             "corpus_id": corpus_id,
             "files_count": len(files),
-            "uploaded_count": successful_uploads
+            "uploaded_count": successful_uploads,
+            "kg_nodes": kg_nodes,
+            "kg_edges": kg_edges,
+            "kg_data": kg_data
         })
         
     except Exception as e:

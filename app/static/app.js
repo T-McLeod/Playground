@@ -39,9 +39,117 @@ function setupInitPage() {
     
     if (generateNowBtn) {
         generateNowBtn.addEventListener('click', () => {
-            submitTopicsData();
+            startAutoGeneration();
         });
     }
+}
+
+// Start the automatic course generation pipeline
+async function startAutoGeneration() {
+    // Hide landing, show loading
+    document.getElementById('landing-screen').style.display = 'none';
+    document.getElementById('init-loading').style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/initialize-course', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                course_id: COURSE_ID
+                // No topics - backend will auto-extract
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Generation failed');
+        }
+        
+        // Hide loading, show editor with generated KG
+        document.getElementById('init-loading').style.display = 'none';
+        document.getElementById('init-editor').style.display = 'block';
+        
+        // Convert KG nodes to topics format for editing
+        const topicsData = convertGraphToTopics(result);
+        renderTopicEditor(topicsData);
+        setupTopicEditorHandlers();
+        
+    } catch (error) {
+        console.error('Auto-generation failed:', error);
+        showManualFallback(error.message);
+    }
+}
+
+// Convert knowledge graph API response to topics editor format
+function convertGraphToTopics(apiResponse) {
+    const nodes = apiResponse.kg_nodes || [];
+    const data = apiResponse.kg_data || {};
+    
+    const topicsData = [];
+    
+    // Parse JSON strings if needed
+    const parsedNodes = typeof nodes === 'string' ? JSON.parse(nodes) : nodes;
+    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+    
+    // Filter for topic nodes only (not file nodes)
+    const topicNodes = parsedNodes.filter(node => node.group === 'topic');
+    
+    // Convert to topics editor format
+    for (const node of topicNodes) {
+        const topicId = node.id; // e.g., "topic_1"
+        const topicInfo = parsedData[topicId] || {};
+        
+        topicsData.push({
+            topic: node.label || 'Untitled Topic',
+            summary: topicInfo.summary || 'No summary available.'
+        });
+    }
+    
+    console.log('Converted topics data:', topicsData);
+    return topicsData;
+}
+
+// Show manual fallback UI when auto-generation fails
+function showManualFallback(errorMessage) {
+    const loadingDiv = document.getElementById('init-loading');
+    const editorDiv = document.getElementById('init-editor');
+    
+    // Show the Airbnb-style error page
+    loadingDiv.innerHTML = `
+        <div class="generation-failed">
+            <div class="error-illustration">
+                <div class="sad-face">
+                    <div class="face-circle">
+                        <div class="eye left-eye"></div>
+                        <div class="eye right-eye"></div>
+                        <div class="mouth"></div>
+                    </div>
+                    <div class="sparkle sparkle-1">✨</div>
+                    <div class="sparkle sparkle-2">⚡</div>
+                    <div class="sparkle sparkle-3">💫</div>
+                </div>
+            </div>
+            <h2 class="error-title">Oops!</h2>
+            <p class="error-message">We couldn't auto-generate topics: ${escapeHtml(errorMessage)}</p>
+            <p class="error-hint">But don't worry! You can still create an amazing course by adding topics manually.</p>
+            <button id="start-manual-btn" class="manual-btn">
+                <span class="btn-icon">✏️</span>
+                <span class="btn-text">Create Topics Manually</span>
+            </button>
+        </div>
+    `;
+    
+    // Add event listener to the manual button
+    document.getElementById('start-manual-btn').addEventListener('click', () => {
+        loadingDiv.style.display = 'none';
+        editorDiv.style.display = 'block';
+        renderTopicEditor([{ 
+            topic: 'My First Topic', 
+            summary: 'Click to edit this topic and add your course content.' 
+        }]);
+        setupTopicEditorHandlers();
+    });
 }
 
 // Start the topic generation process
@@ -606,52 +714,33 @@ async function submitTopicsData() {
         item.summary && item.summary.trim()
     );
     
-    // if (validTopics.length === 0) {
-    //     alert('Please add at least one topic with both a name and summary.');
-    //     return;
-    // }
+    console.log('Topics data:', topicsData);
+    console.log('Valid topics:', validTopics);
+    
+    if (validTopics.length === 0) {
+        alert('Please add at least one topic with both a name and summary before generating the course.');
+        return;
+    }
     
     // Disable button and show loading state
     generateBtn.disabled = true;
-    generateBtn.textContent = 'Generating...';
+    generateBtn.textContent = 'Finalizing...';
     
     // Animate nodes spreading out and removing delete buttons
     await animateNodesForGeneration();
     
-        try {
-            currentState = 'GENERATING';
-            initializeUI();
-
-            const response = await fetch('/api/initialize-course', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    course_id: COURSE_ID,
-                    topics: validTopics.map(item => item.topic.trim())
-                })
-            });
-            
-            const result = await response.json();
-            
-        if (result.status === 'generating' || result.status === 'complete') {
-            // Hide the generate button
-            const generateAction = document.querySelector('.generate-action');
-            if (generateAction) {
-                generateAction.style.display = 'none';
-            }
-            
-            // Show chat interface
-            showChatInterface();
-        } else {
-            throw new Error('Unexpected response status');
-        }
-        
-        } catch (error) {
-        console.error('Course generation failed:', error);
-        alert('Failed to generate course. Please try again.');
-        generateBtn.disabled = false;
-        generateBtn.textContent = 'Generate Course';
+    // No API call needed - KG already generated and in Firestore
+    // Just transition to chat interface
+    currentState = 'ACTIVE';
+    initializeUI();
+    
+    const generateAction = document.querySelector('.generate-action');
+    if (generateAction) {
+        generateAction.style.display = 'none';
     }
+    
+    // Show chat interface
+    showChatInterface();
 }
 
 // Animate nodes spreading out and hide delete buttons
@@ -813,43 +902,140 @@ function initializeGraph() {
     if (!graphData) return;
     
     const container = document.getElementById('graph-network');
-    const data = {
-        nodes: new vis.DataSet(graphData.nodes),
-        edges: new vis.DataSet(graphData.edges)
-    };
     
-    const options = {
-        // TODO: Configure Vis.js options
-        // Set colors for topic vs file nodes
-        // Configure physics, layout, etc.
-    };
+    // Convert graph data to topics format
+    const topicsData = [];
+    const topicNodes = graphData.nodes.filter(node => node.group === 'topic');
     
-    network = new vis.Network(container, data, options);
+    for (const node of topicNodes) {
+        const topicId = node.id;
+        const topicInfo = graphData.data[topicId] || {};
+        
+        topicsData.push({
+            topic: node.label || 'Untitled Topic',
+            summary: topicInfo.summary || 'No summary available.'
+        });
+    }
     
-    // Handle node clicks
-    network.on('click', (params) => {
-        if (params.nodes.length > 0) {
-            const nodeId = params.nodes[0];
-            showNodeDetails(nodeId);
-        }
+    // Store globally for reference
+    window.topicsData = topicsData;
+    
+    // Create visual nodes (reuse editor style)
+    container.innerHTML = '';
+    container.style.position = 'relative';
+    container.style.minHeight = '600px';
+    container.style.backgroundColor = '#f5f5f5';
+    container.style.borderRadius = '8px';
+    
+    // Calculate positions
+    const canvasWidth = container.offsetWidth || 1200;
+    const canvasHeight = 600;
+    
+    // Calculate node sizes
+    const nodeSizes = topicsData.map(item => calculateNodeSize(item.topic, item.summary, true));
+    window.nodeSizes = nodeSizes;
+    
+    const positions = calculatePositionsForContainer(topicsData.length, nodeSizes, canvasWidth, canvasHeight);
+    
+    // Render each node
+    topicsData.forEach((item, index) => {
+        const pos = positions[index];
+        const size = nodeSizes[index];
+        const colorClass = `color-${(index % 6) + 1}`;
+        
+        const nodeDiv = document.createElement('div');
+        nodeDiv.className = `topic-node ${colorClass}`;
+        nodeDiv.style.position = 'absolute';
+        nodeDiv.style.left = `${pos.x}px`;
+        nodeDiv.style.top = `${pos.y}px`;
+        nodeDiv.style.width = `${size.width}px`;
+        nodeDiv.style.height = `${size.height}px`;
+        nodeDiv.style.cursor = 'pointer';
+        
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'node-title';
+        titleDiv.textContent = item.topic;
+        titleDiv.contentEditable = 'false'; // Read-only in ACTIVE state
+        
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'node-summary';
+        summaryDiv.textContent = item.summary;
+        summaryDiv.contentEditable = 'false'; // Read-only in ACTIVE state
+        
+        nodeDiv.appendChild(titleDiv);
+        nodeDiv.appendChild(summaryDiv);
+        
+        // Click to show details
+        nodeDiv.addEventListener('click', () => {
+            showNodeDetails(item.topic, item.summary);
+        });
+        
+        container.appendChild(nodeDiv);
     });
 }
 
+// Helper function to calculate node positions for any container
+function calculatePositionsForContainer(count, nodeSizes, containerWidth, containerHeight) {
+    const positions = [];
+    
+    if (!nodeSizes || nodeSizes.length === 0) {
+        // Fallback to default sizes
+        nodeSizes = Array(count).fill({width: 200, height: 150});
+    }
+    
+    if (count <= 4) {
+        // For small counts, use horizontal layout
+        const spacing = 40;
+        const totalWidth = nodeSizes.reduce((sum, size) => sum + size.width, 0) + (count - 1) * spacing;
+        let startX = (containerWidth - totalWidth) / 2;
+        const centerY = containerHeight / 2;
+        
+        for (let i = 0; i < count; i++) {
+            const nodeSize = nodeSizes[i];
+            positions.push({
+                x: startX,
+                y: centerY - nodeSize.height / 2
+            });
+            startX += nodeSize.width + spacing;
+        }
+    } else {
+        // For larger counts, use circular pattern
+        const centerX = containerWidth / 2;
+        const centerY = containerHeight / 2;
+        const radius = Math.min(containerWidth, containerHeight) * 0.35;
+        
+        for (let i = 0; i < count; i++) {
+            const nodeSize = nodeSizes[i];
+            const angle = (i * 2 * Math.PI) / count - Math.PI / 2;
+            positions.push({
+                x: centerX + radius * Math.cos(angle) - nodeSize.width / 2,
+                y: centerY + radius * Math.sin(angle) - nodeSize.height / 2
+            });
+        }
+    }
+    
+    return positions;
+}
+
 // Show details for a clicked node
-function showNodeDetails(nodeId) {
+function showNodeDetails(topicName, summary) {
     const detailsDiv = document.getElementById('node-details');
     
-    // TODO: Implement node details display
-    // If it's a topic node, show summary and sources
-    // If it's a file node, show link to file
-    
-    detailsDiv.innerHTML = `<p>Details for node: ${nodeId}</p>`;
+    detailsDiv.innerHTML = `
+        <h3>${escapeHtml(topicName)}</h3>
+        <p>${escapeHtml(summary)}</p>
+    `;
 }
 
 // Setup the chat interface
 function setupChat() {
-    const sendBtn = document.getElementById('chat-send');
-    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-active');
+    const input = document.getElementById('chat-input-active');
+    
+    if (!sendBtn || !input) {
+        console.warn('Chat elements not found');
+        return;
+    }
     
     sendBtn.addEventListener('click', () => sendMessage());
     input.addEventListener('keypress', (e) => {
@@ -859,7 +1045,14 @@ function setupChat() {
 
 // Send a chat message
 async function sendMessage() {
-    const input = document.getElementById('chat-input');
+    const input = document.getElementById('chat-input-active');
+    const sendBtn = document.getElementById('chat-send-active');
+    
+    if (!input || !sendBtn) {
+        console.warn('Chat input elements not found');
+        return;
+    }
+    
     const query = input.value.trim();
     
     if (!query) return;
@@ -868,35 +1061,93 @@ async function sendMessage() {
     addMessageToChat('user', query);
     input.value = '';
     
+    // Disable input while processing
+    input.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Thinking...';
+    
+    // Add loading indicator
+    const loadingId = 'msg-loading-' + Date.now();
+    addMessageToChat('bot', '...', [], loadingId);
+    
     try {
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ course_id: COURSE_ID, query: query })
+            body: JSON.stringify({ 
+                course_id: COURSE_ID, 
+                query: query 
+            })
         });
         
         const result = await response.json();
         
+        // Remove loading indicator
+        const loadingMsg = document.getElementById(loadingId);
+        if (loadingMsg) loadingMsg.remove();
+        
         // Add bot response to chat
-        addMessageToChat('bot', result.answer, result.sources);
+        if (response.ok) {
+            addMessageToChat('bot', result.answer, result.sources);
+        } else {
+            addMessageToChat('bot', 'Sorry, I encountered an error: ' + (result.error || 'Unknown error'));
+        }
         
     } catch (error) {
         console.error('Chat failed:', error);
+        
+        // Remove loading indicator
+        const loadingMsg = document.getElementById(loadingId);
+        if (loadingMsg) loadingMsg.remove();
+        
         addMessageToChat('bot', 'Sorry, I encountered an error. Please try again.');
+    } finally {
+        // Re-enable input
+        input.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+        input.focus();
     }
 }
 
 // Add a message to the chat display
-function addMessageToChat(sender, message, sources = []) {
-    const messagesDiv = document.getElementById('chat-messages');
+function addMessageToChat(sender, message, sources = [], messageId = null) {
+    const messagesDiv = document.getElementById('chat-messages-active');
+    
+    if (!messagesDiv) {
+        console.warn('Chat messages container not found');
+        return;
+    }
     
     const messageElement = document.createElement('div');
     messageElement.className = `message ${sender}-message`;
-    messageElement.innerHTML = `<p>${message}</p>`;
+    if (messageId) {
+        messageElement.id = messageId;
+    }
     
-    if (sources.length > 0) {
-        const sourcesHTML = sources.map(s => `<span class="source">${s}</span>`).join(', ');
-        messageElement.innerHTML += `<div class="sources">Sources: ${sourcesHTML}</div>`;
+    // Create message content
+    const messagePara = document.createElement('p');
+    messagePara.textContent = message;
+    messageElement.appendChild(messagePara);
+    
+    // Add sources if available
+    if (sources && sources.length > 0) {
+        const sourcesDiv = document.createElement('div');
+        sourcesDiv.className = 'sources';
+        sourcesDiv.innerHTML = '<strong>Sources:</strong> ';
+        
+        sources.forEach((source, index) => {
+            const sourceSpan = document.createElement('span');
+            sourceSpan.className = 'source';
+            sourceSpan.textContent = source;
+            sourcesDiv.appendChild(sourceSpan);
+            
+            if (index < sources.length - 1) {
+                sourcesDiv.appendChild(document.createTextNode(', '));
+            }
+        });
+        
+        messageElement.appendChild(sourcesDiv);
     }
     
     messagesDiv.appendChild(messageElement);
