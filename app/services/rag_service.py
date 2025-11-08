@@ -367,7 +367,7 @@ if __name__ == "__main__":
     project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
     location = os.environ.get('GOOGLE_CLOUD_LOCATION')
 
-    print(f"GOOGLE_CLOUD_LOCATION: {location}")
+    logger.info(f"GOOGLE_CLOUD_LOCATION: {location}")
 
     vertexai.init(project=project_id, location=location)
 
