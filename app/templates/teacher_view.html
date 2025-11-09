@@ -84,19 +84,20 @@
                 </div>
 
                 <div class="modal-body">
-                    <label for="new-topic-name">Topic Name:</label>
+                    <label for="new-topic-name">Topic Name: <span style="color: red;">*</span></label>
                     <input 
                         type="text" 
                         id="new-topic-name" 
-                        placeholder="Enter topic name"
+                        placeholder="e.g., Graph Theory, Machine Learning"
                         class="modal-input"
+                        required
                     />
 
-                    <label for="new-topic-summary">Summary:</label>
+                    <label for="new-topic-summary">Summary (Optional):</label>
                     <textarea 
                         id="new-topic-summary" 
                         rows="4" 
-                        placeholder="Optional summary"
+                        placeholder="Provide a custom summary, or leave blank to auto-generate from course materials"
                         class="modal-textarea"
                     ></textarea>
                 </div>

@@ -81,15 +81,39 @@ body {
     max-width: 500px;
 }
 
+#add-topic-modal .modal-body {
+    padding: 20px;
+}
+
+#add-topic-modal label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
 .modal-input,
 .modal-textarea {
     width: 100%;
     padding: 8px 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    margin-top: 6px;
     margin-bottom: 16px;
     font-size: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.modal-input:focus,
+.modal-textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.modal-textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .btn-primary {
@@ -99,10 +123,17 @@ body {
     padding: 10px 16px;
     border-radius: 8px;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: #4338CA;
+}
+
+.btn-primary:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .btn-secondary {

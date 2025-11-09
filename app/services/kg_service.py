@@ -50,6 +50,115 @@ Summaries: {all_summaries}"""
         logger.error(f"Failed to extract topics from syllabus: {e}")
         raise
 
+
+def add_topic_to_graph(topic_name: str, corpus_id: str, existing_nodes: list, existing_edges: list, existing_data: dict, custom_summary: str = None) -> tuple[str, str, str]:
+    """
+    Adds a new topic to an existing knowledge graph.
+    
+    Args:
+        topic_name: Name of the new topic to add
+        corpus_id: The RAG corpus ID to query for topic summary and sources
+        existing_nodes: Current list of graph nodes
+        existing_edges: Current list of graph edges
+        existing_data: Current kg_data dictionary
+        custom_summary: Optional custom summary to use instead of generating one via RAG
+        
+    Returns:
+        Tuple of (updated_nodes_json, updated_edges_json, updated_data_json)
+    """
+    logger.info(f"Adding new topic to graph: {topic_name}")
+    
+    # Find the next topic ID number
+    existing_topic_ids = [node['id'] for node in existing_nodes if node.get('group') == 'topic' and node['id'].startswith('topic_')]
+    topic_numbers = [int(tid.split('_')[1]) for tid in existing_topic_ids if '_' in tid and tid.split('_')[1].isdigit()]
+    next_number = max(topic_numbers) + 1 if topic_numbers else 1
+    new_topic_id = f"topic_{next_number}"
+    
+    # Create topic node
+    new_topic_node = {
+        'id': new_topic_id,
+        'label': topic_name,
+        'group': 'topic'
+    }
+    
+    # Create a mapping of file names to file IDs
+    file_name_to_id = {}
+    for node in existing_nodes:
+        if node.get('group') in ['file_pdf', 'file']:
+            file_name_to_id[node.get('label')] = node.get('id')
+    
+    # Query RAG corpus for this topic (or use custom summary)
+    try:
+        if custom_summary:
+            # Use the provided custom summary
+            summary = custom_summary
+            source_names = []
+            source_files = []
+            logger.info(f"Using custom summary for topic '{topic_name}'")
+        else:
+            # Use gemini_service to get summary and sources
+            summary, source_names = gemini_service.generate_answer_with_context(
+                query=SUMMARY_QUERY_TEMPLATE.format(topic=topic_name),
+                corpus_id=corpus_id,
+            )
+            
+            # Extract unique source file IDs
+            source_files = []
+            for source in source_names:
+                # Handle both old string format and new dict format
+                if isinstance(source, dict):
+                    source_name = source.get('filename', '')
+                else:
+                    source_name = source
+                
+                # Match source name to file IDs
+                for file_name, fid in file_name_to_id.items():
+                    if file_name in source_name or source_name in file_name:
+                        if fid not in source_files:
+                            source_files.append(fid)
+                        break
+        
+        # Store topic data
+        topic_data = {
+            'summary': summary,
+            'sources': source_names
+        }
+        
+        # Create edges from topic to relevant files
+        new_edges = []
+        for file_id in source_files:
+            edge = {
+                'from': new_topic_id,
+                'to': file_id
+            }
+            new_edges.append(edge)
+        
+        logger.info(f"Created topic '{topic_name}' with {len(source_files)} connected sources")
+        
+    except Exception as e:
+        logger.error(f"Error querying RAG for topic {topic_name}: {e}")
+        # If RAG query fails, still create the topic node but with empty data
+        topic_data = {
+            'summary': f"Error retrieving information for {topic_name}.",
+            'sources': []
+        }
+        new_edges = []
+    
+    # Update the graph structures
+    updated_nodes = existing_nodes + [new_topic_node]
+    updated_edges = existing_edges + new_edges
+    updated_data = {**existing_data, new_topic_id: topic_data}
+    
+    # Serialize to JSON strings
+    nodes_json = json.dumps(updated_nodes)
+    edges_json = json.dumps(updated_edges)
+    data_json = json.dumps(updated_data)
+    
+    logger.info(f"Successfully added topic '{topic_name}' (ID: {new_topic_id})")
+    
+    return (nodes_json, edges_json, data_json)
+
+
 def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tuple[str, str, str]:
     """
     Builds the complete knowledge graph with topics, files, and connections.
