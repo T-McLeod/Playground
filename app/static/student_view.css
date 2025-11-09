@@ -37,6 +37,95 @@ body {
     padding: 0;
 }
 
+.bottom-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    display: flex;
+    gap: 60px;
+
+    /* remove background */
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0;
+}
+
+.add-topic-btn,
+.init-course-btn {
+    font-size: 16px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid black;     /* ✅ Outlines added */
+    cursor: pointer;
+}
+
+.add-topic-btn {
+    background-color: #4F46E5;
+    color: white;
+}
+.add-topic-btn:hover {
+    background-color: #4338CA;
+}
+
+.init-course-btn {
+    background-color: #059669;
+    color: white;
+}
+.init-course-btn:hover {
+    background-color: #047857;
+}
+
+#add-topic-modal .modal-content {
+    max-width: 500px;
+}
+
+.modal-input,
+.modal-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-top: 6px;
+    margin-bottom: 16px;
+    font-size: 15px;
+}
+
+.btn-primary {
+    background-color: #4F46E5;
+    border: 1px solid black;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #4338CA;
+}
+
+.btn-secondary {
+    background-color: #aaa;
+    border: 1px solid black;
+    color: black;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.btn-secondary:hover {
+    background-color: #999;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding-bottom: 20px;   /* ✅ adds extra space before edge */
+}
+
+
 /* ===========================
    EXPLORATION CONTAINER
    =========================== */

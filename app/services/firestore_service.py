@@ -156,6 +156,30 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
         'kg_data': data.get('kg_data')
     })
 
+def update_knowledge_graph(course_id: str, kg_nodes: list, kg_edges: list, kg_data: dict) -> None:
+    """
+    Updates only the knowledge graph portion of a course document.
+    Does NOT overwrite corpus_id, indexed_files, or status.
+
+    Args:
+        course_id: The Canvas course ID
+        kg_nodes: Updated list of node dicts
+        kg_edges: Updated list of edge dicts
+        kg_data:  Updated dict keyed by topic_id
+    """
+    _ensure_db()
+
+    update_payload = {
+        'kg_nodes': kg_nodes,
+        'kg_edges': kg_edges,
+        'kg_data':  kg_data
+    }
+
+    db.collection(COURSES_COLLECTION).document(course_id).update(update_payload)
+
+    logger.info(f"Updated knowledge graph for course {course_id}")
+
+
 
 def log_analytics_event(data: dict) -> str:
     """

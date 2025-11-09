@@ -73,47 +73,55 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Full Chat Interface (Slides up from bottom when message sent) -->
-    <div id="chat-container" class="chat-container collapsed">
-        <div class="chat-header">
-            <div class="chat-title">
-                <span class="chat-icon">💬</span>
-                <span>Course Assistant</span>
-            </div>
-            <button id="chat-collapse" class="chat-collapse-btn">
-                <span id="collapse-icon">▼</span>
-            </button>
-        </div>
-        
-        <div id="chat-body" class="chat-body">
-            <div id="chat-messages" class="chat-messages">
-                <div class="message bot-message welcome-message">
-                    <div class="message-avatar">🤖</div>
-                    <div class="message-content">
-                        <p>Hi there! 👋 I'm your AI teaching assistant. Click on any topic card above to explore, or ask me a question below!</p>
-                    </div>
+        <!-- Add Topic Modal -->
+        <div id="add-topic-modal" class="topic-modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" id="add-topic-close">&times;</button>
+                <div class="modal-header">
+                    <h2 class="modal-title">Add New Topic</h2>
+                    <div class="topic-icon">➕</div>
                 </div>
-            </div>
-            <div class="chat-input-area">
-                <div class="typing-indicator hidden" id="typing-indicator">
-                    <span></span><span></span><span></span>
-                </div>
-                <div class="input-container">
+
+                <div class="modal-body">
+                    <label for="new-topic-name">Topic Name:</label>
+                    <input 
+                        type="text" 
+                        id="new-topic-name" 
+                        placeholder="Enter topic name"
+                        class="modal-input"
+                    />
+
+                    <label for="new-topic-summary">Summary:</label>
                     <textarea 
-                        id="chat-input" 
-                        class="chat-input" 
-                        placeholder="Ask a question about your course..."
-                        rows="1"
+                        id="new-topic-summary" 
+                        rows="4" 
+                        placeholder="Optional summary"
+                        class="modal-textarea"
                     ></textarea>
-                    <button id="send-btn" class="send-btn">
-                        <span class="send-icon">📤</span>
+                </div>
+
+                <div class="modal-footer">
+                    <button id="add-topic-save-btn" class="btn-primary">
+                        Save
+                    </button>
+                    <button id="add-topic-cancel-btn" class="btn-secondary">
+                        Cancel
                     </button>
                 </div>
             </div>
         </div>
+
     </div>
+
+    
+
+    <!-- ✅ ADDED — Bottom container -->
+        <div class="bottom-bar">
+            <button id="add-topic-btn" class="add-topic-btn">➕ Add New Topic</button>
+            <button id="init-course-btn" class="init-course-btn">🔄 Initialize Course</button>
+        </div>
+
 
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay hidden">
@@ -126,7 +134,7 @@
         const COURSE_ID = "{{ course_id }}";
         const USER_ID = "{{ user_id }}";
     </script>
-    <script src="{{ url_for('static', filename='student_view.js') }}"></script>
+    <script src="{{ url_for('static', filename='teacher_view.js') }}"></script>
 </body>
 </html>
 
