@@ -75,8 +75,48 @@ def create_course_doc(course_id: str) -> None:
     _ensure_db()
     #sets status to GENERATING
     db.collection(COURSES_COLLECTION).document(course_id).set({
-        'status': 'GENERATING'
+        'status': 'GENERATING',
+        'init_logs': []  # Initialize empty logs array
     })
+
+
+def add_init_log(course_id: str, message: str, level: str = 'info') -> None:
+    """
+    Adds a log message to the course document during initialization.
+    
+    Args:
+        course_id: The Canvas course ID
+        message: The log message
+        level: Log level ('info', 'success', 'warning', 'error')
+    """
+    _ensure_db()
+    import time
+    from google.cloud.firestore_v1 import ArrayUnion
+    log_entry = {
+        'message': message,
+        'level': level,
+        'timestamp': time.time()
+    }
+    db.collection(COURSES_COLLECTION).document(course_id).update({
+        'init_logs': ArrayUnion([log_entry])
+    })
+
+
+def get_init_logs(course_id: str) -> list:
+    """
+    Retrieves initialization logs for a course.
+    
+    Args:
+        course_id: The Canvas course ID
+        
+    Returns:
+        List of log entries
+    """
+    _ensure_db()
+    doc = db.collection(COURSES_COLLECTION).document(course_id).get()
+    if doc.exists:
+        return doc.get('init_logs', [])
+    return []
 
 
 # returns the google.cloud.firestore.document.DocumentSnapshot class

@@ -89,7 +89,7 @@ def get_embedding(text: str, model_name: str = "text-embedding-004", task_type: 
         raise
 
 
-def summarize_file(file_path: str, prompt: str = "Summarize this file in one paragraph, specifically the topics that are covered, both broad and specific.", model_name: str = DEFAULT_MODEL) -> str:
+def summarize_file(file_path: str, prompt: str = "Summarize this file in one paragraph, specifically the topics that are covered, both broad and specific. Answer in this format \"This file discusses...\"", model_name: str = DEFAULT_MODEL) -> str:
     """
     Summarize a local file using Gemini.
 

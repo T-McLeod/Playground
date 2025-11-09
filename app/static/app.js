@@ -106,6 +106,56 @@ async function startAutoGeneration() {
         }
     }, 250);
     
+    // Start polling for logs
+    const initLogsContainer = document.getElementById('init-logs');
+    let lastLogCount = 0;
+    let logPollInterval = null;
+    
+    function pollInitLogs() {
+        fetch(`/api/init-logs/${COURSE_ID}`)
+            .then(response => response.json())
+            .then(data => {
+                const logs = data.logs || [];
+                
+                // Only add new logs
+                if (logs.length > lastLogCount) {
+                    const newLogs = logs.slice(lastLogCount);
+                    newLogs.forEach(log => {
+                        addLogLine(log.message, log.level || 'info');
+                    });
+                    lastLogCount = logs.length;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching logs:', error);
+            });
+    }
+    
+    function addLogLine(message, level = 'info') {
+        if (!initLogsContainer) return;
+        
+        // Fade out old log lines (optional - only if you want to limit visible logs)
+        // For now, we'll just add new ones with the slide-in animation
+        
+        const logLine = document.createElement('div');
+        logLine.className = `init-log-line ${level}`;
+        logLine.textContent = message;
+        initLogsContainer.appendChild(logLine);
+        
+        // Auto-scroll to bottom after a brief delay to allow animation
+        setTimeout(() => {
+            initLogsContainer.scrollTop = initLogsContainer.scrollHeight;
+        }, 100);
+    }
+    
+    // Start polling every 500ms
+    logPollInterval = setInterval(pollInitLogs, 500);
+    
+    // Clear logs container
+    if (initLogsContainer) {
+        initLogsContainer.innerHTML = '';
+    }
+    
         try {
             const response = await fetch('/api/initialize-course', {
                 method: 'POST',
@@ -127,6 +177,15 @@ async function startAutoGeneration() {
         
     } catch (error) {
         console.error('Auto-generation failed:', error);
+        
+        // Stop polling on error
+        if (logPollInterval) {
+            clearInterval(logPollInterval);
+        }
+        
+        // Add error log
+        addLogLine(`Error: ${error.message}`, 'error');
+        
         showManualFallback(error.message);
     }
 }

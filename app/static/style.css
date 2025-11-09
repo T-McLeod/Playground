@@ -131,6 +131,78 @@ button:hover {
     animation-delay: 0s;
 }
 
+/* Init Logs Container */
+.init-logs-container {
+    margin-top: 3rem;
+    max-width: 600px;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    text-align: left;
+    padding: 1rem;
+    background: transparent;
+    border-radius: 0.75rem;
+}
+
+.init-log-line {
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.5;
+    background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    animation: logSlideIn 0.5s ease-out;
+    position: relative;
+}
+
+.init-log-line:last-child {
+    border-bottom: none;
+}
+
+.init-log-line.info {
+    color: #333;
+}
+
+.init-log-line.success {
+    color: #10b981;
+}
+
+.init-log-line.warning {
+    color: #f59e0b;
+}
+
+.init-log-line.error {
+    color: #ef4444;
+}
+
+/* Animation for new log line coming in from bottom */
+@keyframes logSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Animation for old log line fading out upward */
+.init-log-line.fade-out {
+    animation: logFadeOut 0.5s ease-in forwards;
+}
+
+@keyframes logFadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
 /* Keyframe animation for the moving shapes */
 @keyframes google-speed {
     0% {
@@ -415,11 +487,11 @@ button:hover {
 }
 
 .landing-title {
-    font-size: 62px;
+    font-size: 80px;
     font-weight: 900;
     color: #1a1a1a;
-    margin-bottom: 20px;
-    text-transform: uppercase;
+    margin-bottom: 17px;
+    text-transform: none;
     letter-spacing: 2px;
     line-height: 1.2;
     transition: opacity 0.5s ease;
@@ -428,7 +500,7 @@ button:hover {
 .landing-subtitle {
     font-size: 22px;
     color: #333;
-    margin-bottom: 40px;
+    margin-bottom: 25px;
     line-height: 1.6;
     transition: opacity 0.5s ease;
 }
@@ -2184,10 +2256,44 @@ button:hover {
     color: #007bff;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 #regenerate-button {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.btn-explorer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-explorer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
+}
+
+.btn-explorer:active {
+    transform: translateY(0);
 }
 
 .btn-icon {

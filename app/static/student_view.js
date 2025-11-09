@@ -36,6 +36,9 @@ const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
 const typingIndicator = document.getElementById('typing-indicator');
 const loadingOverlay = document.getElementById('loading-overlay');
+const modalChatInput = document.getElementById('modal-chat-input');
+const modalSendBtn = document.getElementById('modal-send-btn');
+const modalChatMessages = document.getElementById('modal-chat-messages');
 
 // ===========================
 // MARKDOWN & MATH RENDERING
@@ -109,20 +112,23 @@ function initializeEventListeners() {
             }
         }
     });
-
-    // Prompt input - focus expands the prompt, Enter sends message
-    promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && promptInput.value.trim()) {
-            e.preventDefault();
-            const query = promptInput.value.trim();
-            chatInput.value = query;
-            promptInput.value = '';
-            sendMessage();
-        }
-    });
+    if (promptInput) {
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && promptInput.value.trim()) {
+                e.preventDefault();
+                const query = promptInput.value.trim();
+                chatInput.value = query;
+                promptInput.value = '';
+                sendMessage();
+            }
+        });
+    }
 
     // Floating expand button
-    chatExpandFab.addEventListener('click', expandChat);
+    if (chatExpandFab) {
+        chatExpandFab.addEventListener('click', expandChat);
+    }
+
 
     // Chat collapse/expand toggle
     chatCollapseBtn.addEventListener('click', toggleChat);
@@ -144,6 +150,21 @@ function initializeEventListeners() {
         chatInput.style.height = 'auto';
         chatInput.style.height = chatInput.scrollHeight + 'px';
     });
+
+    // Modal chat handlers
+    if (modalSendBtn && modalChatInput) {
+        modalSendBtn.addEventListener('click', sendModalMessage);
+        modalChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendModalMessage();
+            }
+        });
+        modalChatInput.addEventListener('input', () => {
+            modalChatInput.style.height = 'auto';
+            modalChatInput.style.height = modalChatInput.scrollHeight + 'px';
+        });
+    }
 }
 
 // ===========================
@@ -268,8 +289,9 @@ function expandChat() {
     chatContainer.classList.add('expanded');
     
     // Hide floating button when chat is expanded
-    chatExpandFab.classList.remove('visible');
-    
+    if (chatExpandFab) {
+        chatExpandFab.classList.remove('visible');
+    }    
     // Rotate arrow
     const collapseIcon = document.getElementById('collapse-icon');
     if (collapseIcon) {
@@ -288,7 +310,10 @@ function collapseChat() {
     chatContainer.classList.add('collapsed');
     
     // Show floating button when chat is collapsed
-    chatExpandFab.classList.add('visible');
+    if (chatExpandFab) {
+        chatExpandFab.classList.add('visible');
+    }
+
     
     // Rotate arrow back
     const collapseIcon = document.getElementById('collapse-icon');
@@ -516,6 +541,18 @@ async function openTopicModal(topic) {
     const relatedResources = getRelatedResources(topic.id);
     renderRelatedResources(relatedResources);
 
+    // Clear modal chat messages when opening
+    if (modalChatMessages) {
+        modalChatMessages.innerHTML = '';
+    }
+    if (modalChatInput) {
+        modalChatInput.value = '';
+        modalChatInput.style.height = 'auto';
+    }
+    
+    // Ensure typing indicator is hidden
+    hideModalTypingIndicator();
+
     // Show modal with animation
     topicModal.classList.remove('hidden');
     setTimeout(() => topicModal.classList.add('show'), 10);
@@ -653,6 +690,149 @@ async function sendMessage() {
         sendBtn.disabled = false;
         chatInput.focus();
     }
+}
+
+// Modal chat functionality
+async function sendModalMessage() {
+    if (!modalChatInput || !modalSendBtn) return;
+    
+    const query = modalChatInput.value.trim();
+    if (!query) return;
+
+    // Include topic context in the query if available
+    let contextualQuery = query;
+    if (currentTopic) {
+        contextualQuery = `About "${currentTopic.label}": ${query}`;
+    }
+
+    // Disable input while sending
+    modalChatInput.disabled = true;
+    modalSendBtn.disabled = true;
+
+    // Add user message to modal chat
+    addModalMessage({
+        role: 'user',
+        content: query
+    });
+
+    // Clear input
+    modalChatInput.value = '';
+    modalChatInput.style.height = 'auto';
+
+    // Show typing indicator
+    showModalTypingIndicator();
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                course_id: COURSE_ID,
+                query: contextualQuery
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Chat request failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Hide typing indicator
+        hideModalTypingIndicator();
+
+        // Add bot response
+        addModalMessage({
+            role: 'assistant',
+            content: data.answer || data.response || 'I received your question but had trouble generating an answer.',
+            sources: data.sources || []
+        });
+
+    } catch (error) {
+        console.error('Error sending modal message:', error);
+        
+        // Hide typing indicator
+        hideModalTypingIndicator();
+        
+        addModalMessage({
+            role: 'assistant',
+            content: 'Sorry, I encountered an error processing your question. Please try again.',
+            sources: []
+        });
+    } finally {
+        modalChatInput.disabled = false;
+        modalSendBtn.disabled = false;
+        modalChatInput.focus();
+    }
+}
+
+function showModalTypingIndicator() {
+    if (!modalChatMessages) return;
+    
+    // Remove existing typing indicator if any
+    hideModalTypingIndicator();
+    
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'modal-typing-indicator';
+    typingIndicator.id = 'modal-typing-indicator';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'typing-avatar';
+    avatar.textContent = '🤖';
+    
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'typing-dots';
+    for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('span');
+        dotsContainer.appendChild(dot);
+    }
+    
+    typingIndicator.appendChild(avatar);
+    typingIndicator.appendChild(dotsContainer);
+    modalChatMessages.appendChild(typingIndicator);
+    
+    // Scroll to bottom
+    setTimeout(() => {
+        modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
+    }, 100);
+}
+
+function hideModalTypingIndicator() {
+    if (!modalChatMessages) return;
+    const typingIndicator = document.getElementById('modal-typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+function addModalMessage(message) {
+    if (!modalChatMessages) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `modal-chat-message ${message.role === 'user' ? 'user' : 'bot'}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'modal-chat-avatar';
+    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+
+    const content = document.createElement('div');
+    content.className = 'modal-chat-content';
+    
+    // Render markdown with math for assistant messages, plain text for user messages
+    if (message.role === 'user') {
+        content.textContent = message.content;
+    } else {
+        content.innerHTML = renderMarkdownWithMath(message.content);
+    }
+
+    messageDiv.appendChild(avatar);
+    messageDiv.appendChild(content);
+    modalChatMessages.appendChild(messageDiv);
+
+    // Scroll to bottom
+    modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
 }
 
 function addMessage(message) {

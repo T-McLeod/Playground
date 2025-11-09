@@ -33,8 +33,8 @@ def extract_topics_from_summaries(summaries: List[str]) -> List[str]:
         List of topic strings
     """
     all_summaries= "\n".join(summaries)
-    prompt = f"""Analyze these document summaries and group the topics discuessed into 4 to 8 most important topics covered. Do not create more than necessary.
-Return ONLY a comma-separated list of topics, nothing else.
+    prompt = f"""Analyze these document summaries and group the topics discuessed into 4 to 8 most important topics covered. Do not create more than necessary. Also, only include taught topics, not course policies or syllabi
+Return ONLY a comma-separated list of topics in order of importance, nothing else.
 
 Example output: Machine Learning, Neural Networks, Data Processing, Model Evaluation
 
@@ -43,7 +43,7 @@ Summaries: {all_summaries}"""
     try:
         topics_text = gemini_service.generate_answer(prompt)
         topics = [t.strip() for t in topics_text.split(',') if t.strip()]
-        return topics
+        return topics[:8]
     except Exception as e:
         logger.error(f"Failed to extract topics from syllabus: {e}")
         raise

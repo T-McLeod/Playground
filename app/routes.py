@@ -34,16 +34,27 @@ def launch():
     
     # When course is ACTIVE, route based on role
     if state == 'ACTIVE':
-        # Students get the fun exploration interface
-        if role and 'student' in role.lower():
-            return render_template(
-                'student_view.html',
-                course_id=course_id,
-                user_id=user_id,
-                role=role
-            )
+        # Route based on role
+        if role:
+            role_lower = role.lower()
+            # Students get the student exploration interface
+            if 'student' in role_lower:
+                return render_template(
+                    'student_view.html',
+                    course_id=course_id,
+                    user_id=user_id,
+                    role=role
+                )
+            # Teachers get the teacher view
+            elif 'teacher' in role_lower or 'instructor' in role_lower or 'professor' in role_lower:
+                return render_template(
+                    'teacher_view.html',
+                    course_id=course_id,
+                    user_id=user_id,
+                    role=role
+                )
         
-        # Professors/instructors get the editor
+        # Default fallback: Professors/instructors get the editor
         return render_template(
             'editor.html',
             course_id=course_id,
@@ -148,19 +159,6 @@ def initialize_course():
             return jsonify({"error": "course_id is required"}), 400
         
         logger.info(f"Starting initialization for course {course_id}")
-        # # Auto-extract topics if not provided
-        # if not topics or not any(t.strip() for t in topics.split(",")):
-        #     logger.info("No topics provided, auto-extracting from syllabus...")
-        #     syllabus_text = canvas_service.get_syllabus(course_id, CANVAS_TOKEN)
-        #     logger.info(f"Syllabus Text: {syllabus_text}")
-        #     if not syllabus_text or len(syllabus_text.strip()) < 100:
-        #         return jsonify({"error": "Cannot auto-generate: syllabus not found or too short"}), 400
-            
-        #     topics = kg_service.extract_topics_from_syllabus(syllabus_text)
-        #     logger.info(f"Auto-extracted topics: {topics}")
-        # else:
-        #     topics = topics.split(",")
-        
         # Step 1: Create Firestore doc with status: GENERATING
         logger.info("Step 1: Creating Firestore document...")
         firestore_service.create_course_doc(course_id)
@@ -194,8 +192,10 @@ def initialize_course():
             corpus_name_suffix=f"Course {course_id}"
         )
         logger.info(f"Created corpus: {corpus_id}")
+
         # Step 4.3: Summarize all files included:
         file_to_summary = {}
+        files_processed = 0
 
         for file in files:
             local_path = file.get("local_path")
@@ -208,10 +208,10 @@ def initialize_course():
 
             summary = gemini_service.summarize_file(
                 file_path=local_path,
-                prompt="Summarize this file in one paragraph. Describe what is covered."
             )
 
             file_to_summary[display_name] = summary
+            files_processed += 1
             logger.info(f"File Name: {display_name}\nSummary: {summary}")
 
 
@@ -266,9 +266,11 @@ def initialize_course():
             "kg_edges": kg_edges,
             "kg_data": kg_data
         })
+
         
     except Exception as e:
         logger.error(f"Error initializing course {course_id or 'unknown'}: {str(e)}", exc_info=True)
+        
         
         # Try to update Firestore with error status
         try:
@@ -343,6 +345,20 @@ def get_graph():
         "edges": course_data.get("kg_edges"),
         "data": course_data.get("kg_data")
     })
+
+
+@app.route('/api/init-logs/<course_id>', methods=['GET'])
+def get_init_logs(course_id):
+    """
+    Retrieves initialization logs for a course.
+    Used for real-time log display during course initialization.
+    """
+    try:
+        logs = firestore_service.get_init_logs(course_id)
+        return jsonify({"logs": logs})
+    except Exception as e:
+        logger.error(f"Failed to retrieve init logs: {e}")
+        return jsonify({"error": str(e), "logs": []}), 500
 
 
 @app.route('/api/download-source', methods=['GET'])
