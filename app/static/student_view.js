@@ -496,7 +496,7 @@ async function openTopicModal(topic) {
     setTimeout(() => topicModal.classList.add('show'), 10);
 
     // Log node click for analytics
-    logNodeClick(topic.id);
+    logNodeClick(topic.id, topic.label, 'topic');
 }
 
 function closeModal() {
@@ -658,10 +658,29 @@ function addMessage(message) {
         sourcesDiv.innerHTML = '<strong>Sources:</strong>';
         
         message.sources.forEach(source => {
-            const sourceTag = document.createElement('span');
-            sourceTag.className = 'source-tag';
-            sourceTag.textContent = source;
-            sourcesDiv.appendChild(sourceTag);
+            // Handle both old string format and new object format
+            if (typeof source === 'string') {
+                // Old format: just a filename string
+                const sourceTag = document.createElement('span');
+                sourceTag.className = 'source-tag';
+                sourceTag.textContent = source;
+                sourcesDiv.appendChild(sourceTag);
+            } else if (source.filename && source.source_uri) {
+                // New format: object with filename and source_uri
+                const sourceLink = document.createElement('a');
+                sourceLink.className = 'source-tag source-link';
+                sourceLink.textContent = source.filename;
+                sourceLink.href = '#';
+                sourceLink.title = `Download ${source.filename}`;
+                
+                // Add click handler to get signed URL and download
+                sourceLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await downloadSource(source.source_uri, source.filename);
+                });
+                
+                sourcesDiv.appendChild(sourceLink);
+            }
         });
 
         content.appendChild(sourcesDiv);
@@ -676,11 +695,35 @@ function addMessage(message) {
     chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
 }
 
+/**
+ * Downloads a source file from GCS using a signed URL
+ */
+async function downloadSource(gcsUri, filename) {
+    try {
+        // Fetch signed URL from backend
+        const response = await fetch(`/api/download-source?gcs_uri=${encodeURIComponent(gcsUri)}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to get download URL');
+        }
+        
+        const data = await response.json();
+        const downloadUrl = data.download_url;
+        
+        // Open the signed URL in a new tab to trigger download
+        window.open(downloadUrl, '_blank');
+        
+    } catch (error) {
+        console.error('Error downloading source:', error);
+        alert(`Failed to download ${filename}. Please try again.`);
+    }
+}
+
 // ===========================
 // ANALYTICS
 // ===========================
 
-async function logNodeClick(nodeId) {
+async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
     try {
         await fetch('/api/log-node-click', {
             method: 'POST',
@@ -690,6 +733,8 @@ async function logNodeClick(nodeId) {
             body: JSON.stringify({
                 course_id: COURSE_ID,
                 node_id: nodeId,
+                node_label: nodeLabel,
+                node_type: nodeType,
                 user_id: USER_ID,
                 timestamp: new Date().toISOString()
             })

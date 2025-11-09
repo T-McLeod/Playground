@@ -250,6 +250,55 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
         return None
 
 
+def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
+    """
+    Generates a signed URL for downloading a file from GCS.
+    
+    Args:
+        gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
+        expiration_minutes: URL expiration time in minutes (default: 60)
+        
+    Returns:
+        Signed URL string that allows temporary public access
+        
+    Raises:
+        ValueError: If GCS URI is invalid
+        Exception: If signed URL generation fails
+        
+    Example:
+        url = generate_signed_url('gs://my-bucket/file.pdf', 30)
+        # Returns: https://storage.googleapis.com/my-bucket/file.pdf?X-Goog-Signature=...
+    """
+    from datetime import timedelta
+    
+    # Parse GCS URI
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name = parts[0]
+    blob_path = parts[1] if len(parts) > 1 else ''
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        # Generate signed URL with expiration
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=expiration_minutes),
+            method="GET"
+        )
+        
+        logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
+        return url
+        
+    except Exception as e:
+        logger.error(f"Failed to generate signed URL for {gcs_uri}: {str(e)}")
+        raise
+
+
 if __name__ == "__main__":
     # Test the GCS service
     from dotenv import load_dotenv

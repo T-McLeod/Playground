@@ -316,6 +316,25 @@ def get_graph():
     })
 
 
+@app.route('/api/download-source', methods=['GET'])
+def download_source():
+    """
+    Generates a signed URL for downloading a file from GCS.
+    """
+    gcs_uri = request.args.get('gcs_uri')
+    
+    if not gcs_uri or not gcs_uri.startswith('gs://'):
+        return jsonify({"error": "Invalid GCS URI"}), 400
+    
+    try:
+        # Generate a signed URL that expires in 1 hour
+        signed_url = gcs_service.generate_signed_url(gcs_uri, expiration_minutes=60)
+        return jsonify({"download_url": signed_url})
+    except Exception as e:
+        logger.error(f"Failed to generate signed URL: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/rate-answer', methods=['POST'])
 def rate_answer():
     """
