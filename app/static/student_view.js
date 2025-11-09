@@ -353,7 +353,7 @@ function renderGraph() {
         arrows: {
             to: {
                 enabled: true,
-                scaleFactor: 1,
+                scaleFactor: 0.8,  // Smaller arrow heads
                 type: 'arrow'
             }
         },
@@ -366,7 +366,8 @@ function renderGraph() {
             enabled: true,
             type: 'dynamic',
             roundness: 0.5
-        }
+        },
+        length: 200  // Longer edges to increase spacing between nodes
     }));
 
     // Create network
@@ -378,21 +379,32 @@ function renderGraph() {
     const options = {
         layout: {
             improvedLayout: true,
-            hierarchical: false
+            hierarchical: false,
+            randomSeed: 2  // Consistent layout on each load
         },
         physics: {
             enabled: true,
             barnesHut: {
-                gravitationalConstant: -800,
-                centralGravity: 0.3,
-                springLength: 120,
-                springConstant: 0.04,
-                damping: 0.2,
-                avoidOverlap: 0.1
+                gravitationalConstant: -2000,  // Much stronger repulsion for wider spread
+                centralGravity: 0.05,  // Very weak center pull - allows horizontal spread
+                springLength: 250,  // Even longer edges for more spacing
+                springConstant: 0.015,  // Lower stiffness for less pull
+                damping: 0.35,  // Higher damping for stability
+                avoidOverlap: 0.3  // Strong overlap avoidance
             },
             stabilization: {
-                iterations: 250,
+                iterations: 300,  // More iterations for better settling
                 updateInterval: 25
+            }
+        },
+        edges: {
+            smooth: {
+                type: 'dynamic',
+                forceDirection: 'horizontal'  // Encourage horizontal spread
+            },
+            endPointOffset: {
+                from: 0,
+                to: 15  // Offset arrow from node edge
             }
         },
         interaction: {
@@ -611,7 +623,8 @@ async function sendMessage() {
         addMessage({
             role: 'assistant',
             content: data.answer || data.response || 'I received your question but had trouble generating an answer.',
-            sources: data.sources || []
+            sources: data.sources || [],
+            log_doc_id: data.log_doc_id  // Include log_doc_id for rating
         });
 
     } catch (error) {
@@ -686,6 +699,28 @@ function addMessage(message) {
         content.appendChild(sourcesDiv);
     }
 
+    // Add rating buttons for bot messages
+    if (message.role === 'assistant' && message.log_doc_id) {
+        const ratingDiv = document.createElement('div');
+        ratingDiv.className = 'message-rating';
+        
+        const likeBtn = document.createElement('button');
+        likeBtn.className = 'rating-btn like-btn';
+        likeBtn.innerHTML = '👍';
+        likeBtn.title = 'Helpful';
+        likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
+        
+        const dislikeBtn = document.createElement('button');
+        dislikeBtn.className = 'rating-btn dislike-btn';
+        dislikeBtn.innerHTML = '👎';
+        dislikeBtn.title = 'Not helpful';
+        dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
+        
+        ratingDiv.appendChild(likeBtn);
+        ratingDiv.appendChild(dislikeBtn);
+        content.appendChild(ratingDiv);
+    }
+
     messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
 
@@ -716,6 +751,35 @@ async function downloadSource(gcsUri, filename) {
     } catch (error) {
         console.error('Error downloading source:', error);
         alert(`Failed to download ${filename}. Please try again.`);
+    }
+}
+
+/**
+ * Rate an AI response as helpful or not helpful
+ */
+async function rateAnswer(logDocId, rating, ratingDiv) {
+    try {
+        const response = await fetch('/api/rate-answer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                log_doc_id: logDocId,
+                rating: rating
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to submit rating');
+        }
+
+        // Show feedback and disable buttons
+        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback! ${rating === 'helpful' ? '👍' : '👎'}</span>`;
+        
+    } catch (error) {
+        console.error('Error rating answer:', error);
+        alert('Failed to submit rating. Please try again.');
     }
 }
 

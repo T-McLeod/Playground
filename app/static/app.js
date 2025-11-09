@@ -114,7 +114,7 @@ async function startAutoGeneration() {
                 course_id: COURSE_ID
                 // No topics - backend will auto-extract
             })
-            });
+            })
             
             const result = await response.json();
             
@@ -122,15 +122,8 @@ async function startAutoGeneration() {
             throw new Error(result.error || 'Generation failed');
         }
         
-        // Hide loading, show editor with generated KG
-        const googleLoader = document.getElementById('google-loader');
-        if (googleLoader) googleLoader.style.display = 'none';
-        document.getElementById('init-editor').style.display = 'block';
-        
-        // Convert KG nodes to topics format for editing
-        const topicsData = convertGraphToTopics(result);
-        renderTopicEditor(topicsData);
-        setupTopicEditorHandlers();
+        // Course initialization successful - redirect to launch endpoint
+        window.location.href = `/launch?course_id=${COURSE_ID}&user_id=${USER_ID || ''}&role=${USER_ROLES || ''}`;
         
     } catch (error) {
         console.error('Auto-generation failed:', error);

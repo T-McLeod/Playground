@@ -239,10 +239,8 @@ def initialize_course():
             shutil.rmtree(local_dir)
             logger.info(f"Deleted local directory: {local_dir}")
         
-        # Step 7: Clean up GCS files (optional - comment out if you want to keep them)
-        logger.info("Step 7: Cleaning up GCS files...")
-        gcs_service.delete_course_files(course_id)
-        logger.info("GCS files deleted")
+        # Step 7: Keep GCS files for future use (no cleanup)
+        logger.info("Step 7: GCS files retained for source downloads")
         
         # Step 8: Finalize Firestore document with all data
         logger.info("Step 8: Finalizing Firestore document...")

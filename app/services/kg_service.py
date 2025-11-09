@@ -136,7 +136,13 @@ def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tupl
             
             # Extract unique source file IDs
             source_files = []
-            for source_name in source_names:
+            for source in source_names:
+                # Handle both old string format and new dict format
+                if isinstance(source, dict):
+                    source_name = source.get('filename', '')
+                else:
+                    source_name = source
+                
                 # Match source name to file IDs
                 for file_name, fid in file_name_to_id.items():
                     if file_name in source_name or source_name in file_name:
@@ -147,7 +153,7 @@ def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tupl
             # Store topic data
             kg_data[topic_id] = {
                 'summary': summary,
-                'sources': list(set(source_names))  # Remove duplicates
+                'sources': source_names  # Keep the full source objects (with filename and source_uri)
             }
             
             # Create edges from topic to relevant files
