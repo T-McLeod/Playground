@@ -1,6 +1,6 @@
 /**
  * STUDENT VIEW JAVASCRIPT
- * Interactive Knowledge Graph Exploration
+ * Interactive Knowledge Graph Exploration with Cards and Graph Views
  */
 
 // Global state
@@ -9,6 +9,7 @@ let currentTopic = null;
 let chatMessages = [];
 let network = null; // vis-network instance
 let currentView = 'cards'; // 'cards' or 'graph'
+let isChatExpanded = false;
 
 // DOM Elements
 const topicsGrid = document.getElementById('topics-grid');
@@ -24,8 +25,12 @@ const modalIcon = document.getElementById('modal-topic-icon');
 const modalSummary = document.getElementById('modal-topic-summary');
 const resourceList = document.getElementById('resource-list');
 const modalClose = document.getElementById('modal-close');
+const chatPrompt = document.getElementById('chat-prompt');
+const promptInput = document.getElementById('prompt-input');
+const chatExpandFab = document.getElementById('chat-expand-fab');
 const chatContainer = document.getElementById('chat-container');
-const chatToggleBtn = document.getElementById('chat-toggle');
+const chatCollapseBtn = document.getElementById('chat-collapse');
+const chatHeader = document.querySelector('.chat-header');
 const chatMessagesContainer = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
@@ -67,13 +72,33 @@ function initializeEventListeners() {
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            if (!topicModal.classList.contains('hidden')) closeModal();
+            if (isChatExpanded) {
+                collapseChat();
+            } else if (!topicModal.classList.contains('hidden')) {
+                closeModal();
+            }
         }
     });
 
-    // Chat toggle
-    chatToggleBtn.addEventListener('click', toggleChat);
-    document.querySelector('.chat-header').addEventListener('click', toggleChat);
+    // Prompt input - focus expands the prompt, Enter sends message
+    promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && promptInput.value.trim()) {
+            e.preventDefault();
+            const query = promptInput.value.trim();
+            chatInput.value = query;
+            promptInput.value = '';
+            sendMessage();
+        }
+    });
+
+    // Floating expand button
+    chatExpandFab.addEventListener('click', expandChat);
+
+    // Chat collapse/expand toggle
+    chatCollapseBtn.addEventListener('click', toggleChat);
+    if (chatHeader) {
+        chatHeader.addEventListener('click', toggleChat);
+    }
 
     // Chat input handlers
     sendBtn.addEventListener('click', sendMessage);
@@ -114,6 +139,8 @@ async function loadKnowledgeGraph() {
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
+        
+        // Render both views (only one will be visible)
         renderTopicCards();
         renderGraph();
     } catch (error) {
@@ -132,25 +159,113 @@ function switchView(view) {
     currentView = view;
     
     if (view === 'cards') {
-        cardsViewBtn.classList.add('active');
-        graphViewBtn.classList.remove('active');
         topicsGrid.classList.add('view-active');
         topicsGrid.classList.remove('view-hidden');
         graphContainer.classList.add('view-hidden');
         graphContainer.classList.remove('view-active');
+        
+        cardsViewBtn.classList.add('active');
+        graphViewBtn.classList.remove('active');
     } else {
-        graphViewBtn.classList.add('active');
-        cardsViewBtn.classList.remove('active');
         graphContainer.classList.add('view-active');
         graphContainer.classList.remove('view-hidden');
         topicsGrid.classList.add('view-hidden');
         topicsGrid.classList.remove('view-active');
         
-        // Fit graph when switching to graph view
+        graphViewBtn.classList.add('active');
+        cardsViewBtn.classList.remove('active');
+        
+        // Fit graph when switching to it
         if (network) {
             setTimeout(() => network.fit(), 100);
         }
     }
+}
+
+// ===========================
+// TOPIC CARDS RENDERING
+// ===========================
+
+function renderTopicCards() {
+    if (!knowledgeGraph || !knowledgeGraph.kg_nodes) {
+        console.warn('No graph data to render cards');
+        return;
+    }
+
+    const topicNodes = knowledgeGraph.kg_nodes.filter(node => node.group === 'topic');
+    topicsGrid.innerHTML = '';
+
+    topicNodes.forEach(topic => {
+        const card = document.createElement('div');
+        card.className = 'topic-card';
+        
+        // Count connections (related resources)
+        const connections = knowledgeGraph.kg_edges.filter(
+            edge => edge.from === topic.id || edge.to === topic.id
+        ).length;
+
+        card.innerHTML = `
+            <div class="topic-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <h3 class="topic-title">${topic.label}</h3>
+            <p class="topic-summary">${topic.summary || 'Click to explore this topic'}</p>
+            <div class="topic-meta">
+                <span><i class="fas fa-link"></i> ${connections} connections</span>
+            </div>
+        `;
+
+        card.addEventListener('click', () => openTopicModal(topic));
+        topicsGrid.appendChild(card);
+    });
+}
+
+// ===========================
+// CHAT INTERFACE
+// ===========================
+
+function toggleChat() {
+    if (isChatExpanded) {
+        collapseChat();
+    } else {
+        expandChat();
+    }
+}
+
+function expandChat() {
+    isChatExpanded = true;
+    chatContainer.classList.remove('collapsed');
+    chatContainer.classList.add('expanded');
+    
+    // Hide floating button when chat is expanded
+    chatExpandFab.classList.remove('visible');
+    
+    // Rotate arrow
+    const collapseIcon = document.getElementById('collapse-icon');
+    if (collapseIcon) {
+        collapseIcon.style.transform = 'rotate(180deg)';
+    }
+    
+    collapseIcon.onclick = collapseChat;
+    
+    // Focus on chat input
+    setTimeout(() => chatInput.focus(), 300);
+}
+
+function collapseChat() {
+    isChatExpanded = false;
+    chatContainer.classList.remove('expanded');
+    chatContainer.classList.add('collapsed');
+    
+    // Show floating button when chat is collapsed
+    chatExpandFab.classList.add('visible');
+    
+    // Rotate arrow back
+    const collapseIcon = document.getElementById('collapse-icon');
+    if (collapseIcon) {
+        collapseIcon.style.transform = 'rotate(0deg)';
+    }
+    collapseIcon.onclick = expandChat;
 }
 
 // ===========================
@@ -283,75 +398,6 @@ function renderGraph() {
 }
 
 // ===========================
-// TOPIC CARDS
-// ===========================
-
-
-function renderTopicCards() {
-    if (!knowledgeGraph || !knowledgeGraph.kg_nodes) {
-        topicsGrid.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1;">No topics available yet.</p>';
-        return;
-    }
-
-    // Filter for topic nodes only
-    const topics = knowledgeGraph.kg_nodes.filter(node => node.group === 'topic');
-
-    if (topics.length === 0) {
-        topicsGrid.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1;">No topics available yet.</p>';
-        return;
-    }
-
-    topicsGrid.innerHTML = '';
-
-    topics.forEach((topic, index) => {
-        const card = createTopicCard(topic, index);
-        topicsGrid.appendChild(card);
-    });
-}
-
-function createTopicCard(topic, index) {
-    const card = document.createElement('div');
-    card.className = 'topic-card';
-    card.dataset.topicId = topic.id;
-
-    // Get topic data from kg_data if available
-    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id] 
-        ? knowledgeGraph.kg_data[topic.id] 
-        : {};
-
-    const summary = topicData.summary || 'Click to explore this topic and learn more about it.';
-    const icon = getTopicIcon(index);
-    
-    // Count related resources (edges connected to this topic)
-    const resourceCount = knowledgeGraph.kg_edges 
-        ? knowledgeGraph.kg_edges.filter(edge => edge.from === topic.id || edge.to === topic.id).length 
-        : 0;
-
-    card.innerHTML = `
-        <div class="topic-card-header">
-            <span class="topic-icon">${icon}</span>
-            <h3 class="topic-card-title">${topic.label}</h3>
-        </div>
-        <p class="topic-card-summary">${summary}</p>
-        <div class="topic-card-footer">
-            <span class="explore-btn">
-                Explore →
-            </span>
-            <span class="resource-count">${resourceCount} connections</span>
-        </div>
-    `;
-
-    card.addEventListener('click', () => openTopicModal(topic));
-
-    return card;
-}
-
-function getTopicIcon(index) {
-    const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
-    return icons[index % icons.length];
-}
-
-// ===========================
 // MODAL FUNCTIONALITY
 // ===========================
 
@@ -364,7 +410,11 @@ async function openTopicModal(topic) {
         : {};
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
-    const icon = document.querySelector(`[data-topic-id="${topic.id}"] .topic-icon`).textContent;
+    
+    // Get icon based on topic index
+    const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
+    const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
+    const icon = icons[topicIndex % icons.length];
 
     // Update modal content
     modalTitle.textContent = topic.label;
@@ -447,18 +497,14 @@ function openResource(resource) {
 // CHAT FUNCTIONALITY
 // ===========================
 
-function toggleChat() {
-    chatContainer.classList.toggle('collapsed');
-    
-    // Auto-focus input when opening
-    if (!chatContainer.classList.contains('collapsed')) {
-        setTimeout(() => chatInput.focus(), 300);
-    }
-}
-
 async function sendMessage() {
     const query = chatInput.value.trim();
     if (!query) return;
+
+    // Expand chat if not already expanded
+    if (!isChatExpanded) {
+        expandChat();
+    }
 
     // Disable input while sending
     chatInput.disabled = true;

@@ -40,7 +40,7 @@ body {
    =========================== */
 
 .exploration-container {
-    padding-bottom: 100px; /* Space for chat */
+    padding-bottom: 100px; /* Space for chat prompt */
     min-height: 100vh;
 }
 
@@ -464,22 +464,122 @@ body {
 }
 
 /* ===========================
-   CHAT CONTAINER
+   CHAT PROMPT (Minimal Overlay)
    =========================== */
+
+.chat-prompt {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 3rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    max-width: 600px;
+    width: calc(100% - 4rem);
+}
+
+.chat-prompt:hover {
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+    transform: translateX(-50%) translateY(-2px);
+}
+
+.chat-prompt.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(20px);
+}
+
+.prompt-avatar {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.prompt-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.prompt-input::placeholder {
+    color: var(--text-secondary);
+}
+
+/* ===========================
+   CHAT CONTAINER (Full Interface)
+   =========================== */
+
+/* Floating expand button - visible when chat is collapsed */
+.chat-expand-fab {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.chat-expand-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+
+.chat-expand-fab.visible {
+    opacity: 1;
+    pointer-events: all;
+}
 
 .chat-container {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    height: 75vh;
     background: white;
-    box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.1);
-    z-index: 999;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(100%); /* Completely hidden when collapsed */
+}
+
+.chat-container.expanded {
+    transform: translateY(0);
 }
 
 .chat-container.collapsed {
-    transform: translateY(calc(100% - 60px));
+    transform: translateY(100%); /* Completely hidden */
 }
 
 .chat-header {
@@ -489,6 +589,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
     cursor: pointer;
     user-select: none;
 }
@@ -503,41 +604,42 @@ body {
 
 .chat-icon {
     font-size: 1.5rem;
-    animation: bounce 2s infinite;
 }
 
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
-}
-
-.chat-toggle-btn {
+.chat-collapse-btn {
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    width: 2rem;
-    height: 2rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.25rem;
 }
 
-.chat-toggle-btn:hover {
+.chat-collapse-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
 }
 
-.chat-container.collapsed .chat-toggle-btn {
+.chat-container.expanded .chat-collapse-btn #collapse-icon {
     transform: rotate(180deg);
 }
 
+#collapse-icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
 .chat-body {
-    height: 400px;
+    flex: 1;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .chat-messages {

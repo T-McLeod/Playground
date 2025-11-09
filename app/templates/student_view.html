@@ -34,9 +34,11 @@
             <!-- Topic cards will be dynamically inserted here -->
         </div>
 
-        <!-- Graph Visualization Container -->
+        <!-- Graph Visualization Container (Full Screen) -->
         <div id="graph-container" class="graph-container view-hidden">
             <div id="network-canvas" class="network-canvas"></div>
+            
+            <!-- Graph Controls -->
             <div class="graph-controls">
                 <button id="fit-graph-btn" class="control-btn" title="Fit to screen">
                     🔍 Fit
@@ -66,15 +68,31 @@
         </div>
     </div>
 
-    <!-- Chat Interface (Fixed at Bottom) -->
-    <div id="chat-container" class="chat-container">
+    <!-- Minimal Chat Prompt (Overlay) -->
+    <div id="chat-prompt" class="chat-prompt">
+        <div class="prompt-avatar">🤖</div>
+        <input 
+            type="text" 
+            id="prompt-input" 
+            class="prompt-input" 
+            placeholder="Ask me anything about your course..."
+        />
+    </div>
+
+    <!-- Floating expand button (visible when chat is collapsed) -->
+    <button id="chat-expand-fab" class="chat-expand-fab visible">
+        <span>💬</span>
+    </button>
+
+    <!-- Full Chat Interface (Slides up from bottom when message sent) -->
+    <div id="chat-container" class="chat-container collapsed">
         <div class="chat-header">
             <div class="chat-title">
                 <span class="chat-icon">💬</span>
-                <span>Ask me anything!</span>
+                <span>Course Assistant</span>
             </div>
-            <button id="chat-toggle" class="chat-toggle-btn">
-                <span id="toggle-icon">▼</span>
+            <button id="chat-collapse" class="chat-collapse-btn">
+                <span id="collapse-icon">▼</span>
             </button>
         </div>
         
@@ -87,7 +105,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="chat-input-area">
                 <div class="typing-indicator hidden" id="typing-indicator">
                     <span></span><span></span><span></span>
