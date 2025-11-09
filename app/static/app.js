@@ -111,26 +111,6 @@ async function startAutoGeneration() {
     let lastLogCount = 0;
     let logPollInterval = null;
     
-    function pollInitLogs() {
-        fetch(`/api/init-logs/${COURSE_ID}`)
-            .then(response => response.json())
-            .then(data => {
-                const logs = data.logs || [];
-                
-                // Only add new logs
-                if (logs.length > lastLogCount) {
-                    const newLogs = logs.slice(lastLogCount);
-                    newLogs.forEach(log => {
-                        addLogLine(log.message, log.level || 'info');
-                    });
-                    lastLogCount = logs.length;
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching logs:', error);
-            });
-    }
-    
     function addLogLine(message, level = 'info') {
         if (!initLogsContainer) return;
         
@@ -147,9 +127,6 @@ async function startAutoGeneration() {
             initLogsContainer.scrollTop = initLogsContainer.scrollHeight;
         }, 100);
     }
-    
-    // Start polling every 500ms
-    logPollInterval = setInterval(pollInitLogs, 500);
     
     // Clear logs container
     if (initLogsContainer) {
