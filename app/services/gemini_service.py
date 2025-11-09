@@ -178,7 +178,7 @@ def generate_answer_with_context(
         # Step 2: Construct prompt with context
         combined_context = "\n\n".join(context_texts)
         
-        prompt = f"""You are a helpful teaching assistant for a course. Answer the student's question using ONLY the provided course materials.
+        prompt = f"""You are a helpful teaching assistant for a course. Answer the student's in a helpful manner and use the sources provided when relevant.
 
 Course Materials Context:
 {combined_context}
@@ -186,8 +186,8 @@ Course Materials Context:
 Student Question: {query}
 
 Instructions:
-1. Answer based ONLY on the provided context above
-2. Be clear, concise, and educational
+1. Try your best to answer based on the provided context above
+2. Be clear, concise, and educational without giving away answers to explicit homework questions
 3. If the context doesn't contain enough information to fully answer the question, say so
 4. Cite specific sources when possible (e.g., "According to Chapter 1...")
 5. Use a friendly, professional teaching tone

@@ -718,6 +718,157 @@ body {
     line-height: 1.6;
 }
 
+/* Markdown styling in messages and modal */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+    margin: 0.5rem 0 0.25rem 0;
+    line-height: 1.4;
+}
+
+.message-content h1 { font-size: 1.5rem; }
+.message-content h2 { font-size: 1.3rem; }
+.message-content h3 { font-size: 1.1rem; }
+
+.message-content ul,
+.message-content ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.message-content li {
+    margin: 0.25rem 0;
+}
+
+.message-content code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.user-message .message-content code {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.message-content pre {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+.user-message .message-content pre {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.message-content pre code {
+    background: transparent;
+    padding: 0;
+}
+
+.message-content blockquote {
+    border-left: 3px solid var(--primary-color);
+    margin: 0.5rem 0;
+    padding-left: 1rem;
+    opacity: 0.9;
+}
+
+.user-message .message-content blockquote {
+    border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+.message-content a {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+.user-message .message-content a {
+    color: white;
+    text-decoration: underline;
+}
+
+.message-content strong {
+    font-weight: 600;
+}
+
+.message-content em {
+    font-style: italic;
+}
+
+/* Modal summary markdown styling */
+#modal-topic-summary h1,
+#modal-topic-summary h2,
+#modal-topic-summary h3,
+#modal-topic-summary h4,
+#modal-topic-summary h5,
+#modal-topic-summary h6 {
+    margin: 0.75rem 0 0.5rem 0;
+    line-height: 1.4;
+    color: var(--text-primary);
+}
+
+#modal-topic-summary h1 { font-size: 1.5rem; }
+#modal-topic-summary h2 { font-size: 1.3rem; }
+#modal-topic-summary h3 { font-size: 1.1rem; }
+
+#modal-topic-summary ul,
+#modal-topic-summary ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+#modal-topic-summary li {
+    margin: 0.25rem 0;
+}
+
+#modal-topic-summary code {
+    background: var(--bg-secondary);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9em;
+    color: var(--primary-dark);
+}
+
+#modal-topic-summary pre {
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+}
+
+#modal-topic-summary pre code {
+    background: transparent;
+    padding: 0;
+}
+
+#modal-topic-summary blockquote {
+    border-left: 3px solid var(--primary-color);
+    margin: 0.75rem 0;
+    padding-left: 1rem;
+    color: var(--text-secondary);
+}
+
+#modal-topic-summary a {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+#modal-topic-summary strong {
+    font-weight: 600;
+}
+
+#modal-topic-summary em {
+    font-style: italic;
+}
+
 .message-sources {
     margin-top: 0.75rem;
     padding-top: 0.75rem;

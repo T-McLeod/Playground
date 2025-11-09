@@ -38,6 +38,35 @@ const typingIndicator = document.getElementById('typing-indicator');
 const loadingOverlay = document.getElementById('loading-overlay');
 
 // ===========================
+// MARKDOWN & MATH RENDERING
+// ===========================
+
+/**
+ * Render markdown with LaTeX math support
+ * Supports inline math: $...$  and display math: $$...$$
+ */
+function renderMarkdownWithMath(content) {
+    // First, render markdown
+    let html = marked.parse(content);
+    
+    // Create a temporary div to manipulate the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Render all math expressions using KaTeX
+    renderMathInElement(tempDiv, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ],
+        throwOnError: false,
+        trust: true
+    });
+    
+    return tempDiv.innerHTML;
+}
+
+// ===========================
 // INITIALIZATION
 // ===========================
 
@@ -456,7 +485,7 @@ async function openTopicModal(topic) {
     // Update modal content
     modalTitle.textContent = topic.label;
     modalIcon.textContent = icon;
-    modalSummary.textContent = summary;
+    modalSummary.innerHTML = renderMarkdownWithMath(summary);
 
     // Get related resources
     const relatedResources = getRelatedResources(topic.id);
@@ -613,8 +642,13 @@ function addMessage(message) {
     const content = document.createElement('div');
     content.className = 'message-content';
 
-    const text = document.createElement('p');
-    text.textContent = message.content;
+    const text = document.createElement('div');
+    // Render markdown with math for assistant messages, plain text for user messages
+    if (message.role === 'user') {
+        text.textContent = message.content;
+    } else {
+        text.innerHTML = renderMarkdownWithMath(message.content);
+    }
     content.appendChild(text);
 
     // Add sources if available
