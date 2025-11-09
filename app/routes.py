@@ -175,11 +175,9 @@ def initialize_course():
         # Step 1: Create Firestore doc with status: GENERATING
         logger.info("Step 1: Creating Firestore document...")
         firestore_service.create_course_doc(course_id)
-        firestore_service.add_init_log(course_id, "Step 1: Creating Firestore document...", 'info')
         
         # Step 2: Download course files from Canvas (downloads to local storage)
         logger.info("Step 2: Fetching course files from Canvas...")
-        firestore_service.add_init_log(course_id, "Step 2: Fetching course files from Canvas...", 'info')
         files, indexed_files_map = canvas_service.get_course_files(
             course_id=course_id,
             token=CANVAS_TOKEN,
@@ -188,33 +186,26 @@ def initialize_course():
         
         if not files:
             logger.warning(f"No files found for course {course_id}")
-            firestore_service.add_init_log(course_id, "Warning: No course files found", 'warning')
             return jsonify({"error": "No course files found"}), 404
         
         logger.info(f"Retrieved {len(files)} files from Canvas")
-        firestore_service.add_init_log(course_id, f"Retrieved {len(files)} files from Canvas", 'success')
         
         # Step 3: Upload files to Google Cloud Storage (GCS)
         logger.info("Step 3: Uploading files to Google Cloud Storage...")
-        firestore_service.add_init_log(course_id, "Step 3: Uploading files to Google Cloud Storage...", 'info')
         files = gcs_service.upload_course_files(files, course_id)
         
         # Count successful uploads
         successful_uploads = sum(1 for f in files if f.get('gcs_uri'))
         logger.info(f"Uploaded {successful_uploads}/{len(files)} files to GCS")
-        firestore_service.add_init_log(course_id, f"Uploaded {successful_uploads}/{len(files)} files to GCS", 'success')
         
         # Step 4: Create RAG corpus and import files from GCS
         logger.info("Step 4: Creating RAG corpus and importing files...")
-        firestore_service.add_init_log(course_id, "Step 4: Creating RAG corpus and importing files...", 'info')
         corpus_id = rag_service.create_and_provision_corpus(
             files=files,
             corpus_name_suffix=f"Course {course_id}"
         )
         logger.info(f"Created corpus: {corpus_id}")
-        firestore_service.add_init_log(course_id, f"Created corpus: {corpus_id}", 'success')
         # Step 4.3: Summarize all files included:
-        firestore_service.add_init_log(course_id, f"Summarizing {len(files)} files...", 'info')
         file_to_summary = {}
         files_processed = 0
 
@@ -225,10 +216,8 @@ def initialize_course():
             # Skip if no local path
             if not local_path:
                 logger.info(f"Could not locate file path for {display_name}")
-                firestore_service.add_init_log(course_id, f"Skipping {display_name} (no local path)", 'warning')
                 continue
 
-            firestore_service.add_init_log(course_id, f"Summarizing: {display_name}...", 'info')
             summary = gemini_service.summarize_file(
                 file_path=local_path,
                 prompt="Summarize this file in one paragraph. Describe what is covered."
@@ -237,50 +226,39 @@ def initialize_course():
             file_to_summary[display_name] = summary
             files_processed += 1
             logger.info(f"File Name: {display_name}\nSummary: {summary}")
-            firestore_service.add_init_log(course_id, f"Completed: {display_name} ({files_processed}/{len(files)})", 'success')
 
 
         # Step 4.5: Extract Topics from summaries, autogenerate topics if not provided:
         summaries = file_to_summary.values()
         logger.info(f"topics: {topics}")
-        firestore_service.add_init_log(course_id, "Extracting topics from file summaries...", 'info')
         if not topics or not any(t.strip() for t in topics.split(",")):
             logger.info("No topics provided, auto-extracting generating topics from files")
-            firestore_service.add_init_log(course_id, "No topics provided, auto-extracting from files...", 'info')
             topics = kg_service.extract_topics_from_summaries(summaries)
             logger.info(f"Auto-extracted topics: {topics}")
-            firestore_service.add_init_log(course_id, f"Auto-extracted {len(topics)} topics", 'success')
         else:
             topics = topics.split(",")
-            firestore_service.add_init_log(course_id, f"Using {len(topics)} provided topics", 'success')
         
         # Step 5: Build knowledge graph
         logger.info("Step 5: Building knowledge graph...")
-        firestore_service.add_init_log(course_id, "Step 5: Building knowledge graph...", 'info')
         kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
             topic_list=topics,
             corpus_id=corpus_id,
             files=files
         )
         logger.info("Knowledge graph built successfully")
-        firestore_service.add_init_log(course_id, "Knowledge graph built successfully", 'success')
         
         # Step 6: Clean up local files
         logger.info("Step 6: Cleaning up local files...")
-        firestore_service.add_init_log(course_id, "Step 6: Cleaning up local files...", 'info')
         local_dir = os.path.join('app', 'data', 'courses', course_id)
         if os.path.exists(local_dir):
             shutil.rmtree(local_dir)
             logger.info(f"Deleted local directory: {local_dir}")
-            firestore_service.add_init_log(course_id, f"Deleted local directory: {local_dir}", 'success')
         
         # Step 7: Keep GCS files for future use (no cleanup)
         logger.info("Step 7: GCS files retained for source downloads")
-        firestore_service.add_init_log(course_id, "Step 7: GCS files retained for source downloads", 'info')
         
         # Step 8: Finalize Firestore document with all data
         logger.info("Step 8: Finalizing Firestore document...")
-        firestore_service.add_init_log(course_id, "Step 8: Finalizing Firestore document...", 'info')
         update_payload = {
             'corpus_id': corpus_id,
             'indexed_files': indexed_files_map,
@@ -291,7 +269,6 @@ def initialize_course():
         firestore_service.finalize_course_doc(course_id, update_payload)
         
         logger.info(f"Course {course_id} initialization complete!")
-        firestore_service.add_init_log(course_id, f"Course {course_id} initialization complete!", 'success')
         
         return jsonify({
             "status": "complete",
@@ -306,12 +283,6 @@ def initialize_course():
     except Exception as e:
         logger.error(f"Error initializing course {course_id or 'unknown'}: {str(e)}", exc_info=True)
         
-        # Log error to Firestore
-        if course_id:
-            try:
-                firestore_service.add_init_log(course_id, f"Error: {str(e)}", 'error')
-            except:
-                pass
         
         # Try to update Firestore with error status
         try:
