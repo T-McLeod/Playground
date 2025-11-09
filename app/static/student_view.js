@@ -186,7 +186,8 @@ async function loadKnowledgeGraph() {
         knowledgeGraph = {
             kg_nodes: JSON.parse(data.nodes),
             kg_edges: JSON.parse(data.edges),
-            kg_data: JSON.parse(data.data)
+            kg_data: JSON.parse(data.data),
+            indexed_files: data.indexed_files || {}  // File metadata with gcs_uri
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
@@ -342,7 +343,7 @@ function renderGraph() {
             label: node.label,
             title: node.label, // Tooltip
             group: node.group,
-            // Swap colors: topics darker/richer, sources lighter
+            // Swap colors: topics darker/richer, sources lavender with grey text
             color: isTopicNode ? {
                 background: '#7c3aed',  // Rich purple for topics
                 border: '#6d28d9',
@@ -359,15 +360,15 @@ function renderGraph() {
                 }
             },
             font: {
-                color: '#ffffff',
-                // Topics bigger, sources smaller
-                size: isTopicNode ? 20 : 13,
+                color: isTopicNode ? '#ffffff' : '#4b5563',  // White for topics, grey for sources
+                // Topics bigger, sources slightly bigger too
+                size: isTopicNode ? 20 : 15,
                 face: 'Arial',
                 bold: isTopicNode ? true : false
             },
             shape: isTopicNode ? 'box' : 'ellipse',
-            // Topics larger, sources smaller
-            size: isTopicNode ? 30 : 15,
+            // Topics larger, sources slightly bigger
+            size: isTopicNode ? 30 : 20,
             borderWidth: 2,
             shadow: true,
             margin: isTopicNode ? 18 : 8
@@ -492,21 +493,28 @@ function renderGraph() {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
             
+            console.log('Node clicked:', nodeId, node);
+            
             if (node) {
                 if (node.group === 'topic') {
                     // Open topic modal
                     openTopicModal(node);
-                } else if (node.group === 'file') {
-                    // Open source file - get the file's GCS URI and download
-                    const topicData = knowledgeGraph.kg_data[nodeId];
-                    if (topicData && topicData.file_id) {
-                        // Find the file in the graph data
-                        const fileIds = Object.keys(knowledgeGraph.kg_data).filter(id => id.startsWith('file_'));
-                        const fileData = knowledgeGraph.kg_data[topicData.file_id] || knowledgeGraph.kg_data[nodeId];
+                } else if (node.group === 'file_pdf' || node.group === 'file') {
+                    // Open source file - get the file's GCS URI from indexed_files
+                    console.log('File node clicked, indexed_files:', knowledgeGraph.indexed_files);
+                    console.log('Looking for file ID:', nodeId);
+                    
+                    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[nodeId]) {
+                        const fileData = knowledgeGraph.indexed_files[nodeId];
+                        console.log('File data found:', fileData);
                         
-                        if (fileData && fileData.gcs_uri) {
-                            downloadSource(fileData.gcs_uri);
+                        if (fileData.gcs_uri) {
+                            downloadSource(fileData.gcs_uri, fileData.display_name || node.label);
+                        } else {
+                            console.error('No gcs_uri in file data');
                         }
+                    } else {
+                        console.error('File not found in indexed_files');
                     }
                 }
             }
@@ -580,11 +588,11 @@ function getRelatedResources(topicId) {
         if (edge.to === topicId) relatedNodeIds.add(edge.from);
     });
 
-    // Get node details
+    // Get node details - look for file nodes (group 'file_pdf' or 'file')
     const resources = [];
     relatedNodeIds.forEach(nodeId => {
         const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-        if (node && node.group === 'resource') {
+        if (node && (node.group === 'file_pdf' || node.group === 'file' || node.group === 'resource')) {
             resources.push(node);
         }
     });
@@ -609,16 +617,19 @@ function renderRelatedResources(resources) {
 }
 
 function openResource(resource) {
-    // Get resource data
-    const resourceData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[resource.id] 
-        ? knowledgeGraph.kg_data[resource.id] 
-        : {};
-
-    if (resourceData.url) {
-        window.open(resourceData.url, '_blank');
-    } else {
-        alert(`Resource: ${resource.label}\n\nNo URL available for this resource.`);
+    // For file nodes, get the file's GCS URI from indexed_files and download
+    const fileId = resource.id;
+    
+    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[fileId]) {
+        const fileData = knowledgeGraph.indexed_files[fileId];
+        if (fileData.gcs_uri) {
+            downloadSource(fileData.gcs_uri, fileData.display_name || resource.label);
+            return;
+        }
     }
+    
+    console.error('Could not find GCS URI for file:', resource);
+    alert(`Could not open ${resource.label}. File may not be available.`);
 }
 
 // ===========================
@@ -987,7 +998,7 @@ async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
                 node_id: nodeId,
                 node_label: nodeLabel,
                 node_type: nodeType,
-                user_id: USER_ID,
+                user_id: '',
                 timestamp: new Date().toISOString()
             })
         });

@@ -181,6 +181,13 @@ def initialize_course():
         logger.info("Step 3: Uploading files to Google Cloud Storage...")
         files = gcs_service.upload_course_files(files, course_id)
         
+        # Update indexed_files_map with GCS URIs
+        for file in files:
+            file_id = str(file.get('id'))
+            if file_id in indexed_files_map and file.get('gcs_uri'):
+                indexed_files_map[file_id]['gcs_uri'] = file.get('gcs_uri')
+                indexed_files_map[file_id]['display_name'] = file.get('display_name')
+        
         # Count successful uploads
         successful_uploads = sum(1 for f in files if f.get('gcs_uri'))
         logger.info(f"Uploaded {successful_uploads}/{len(files)} files to GCS")
@@ -343,7 +350,8 @@ def get_graph():
     return jsonify({
         "nodes": course_data.get("kg_nodes"),
         "edges": course_data.get("kg_edges"),
-        "data": course_data.get("kg_data")
+        "data": course_data.get("kg_data"),
+        "indexed_files": course_data.get("indexed_files")  # Include file metadata with gcs_uri
     })
 
 
