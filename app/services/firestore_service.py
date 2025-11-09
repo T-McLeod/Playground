@@ -395,3 +395,25 @@ if __name__ == "__main__":
     course_data = get_course_data(test_course_id)
     print(f"\nFinal Course Document Data for {test_course_id}:")
     print(course_data.to_dict())
+    
+    # ------------------------------------------------------------------
+    # Cleanup: remove any analytics chat events with query_text == 'hello'
+    # This helps keep test data clean when running the module as a script.
+    # ------------------------------------------------------------------
+    try:
+        print("\nSearching for analytics chat events with query_text == 'hello'...")
+        hello_docs = db.collection(ANALYTICS_COLLECTION) \
+            .where('course_id', '==', test_course_id) \
+            .where('type', '==', 'chat') \
+            .where('query_text', '==', 'hello') \
+            .stream()
+
+        deleted_count = 0
+        for doc in hello_docs:
+            print(f"Deleting analytics doc: {doc.id} -> {doc.to_dict()}")
+            db.collection(ANALYTICS_COLLECTION).document(doc.id).delete()
+            deleted_count += 1
+
+        print(f"Deleted {deleted_count} analytics documents with query_text == 'hello' for course {test_course_id}.")
+    except Exception as e:
+        logger.error(f"Failed to remove 'hello' chat analytics: {e}", exc_info=True)

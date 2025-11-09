@@ -329,12 +329,12 @@ def chat():
         course_id=course_id,
         query_text=query,
         answer_text=answer,
-        sources=[source for source in sources if source['distance'] <= CITE_THRESHOLD].sort(key=lambda x: x['distance'])
+        sources=sources
     )
 
     return jsonify({
         "answer": answer,
-        "sources": sources,
+        "sources": [source for source in sources if source['distance'] <= CITE_THRESHOLD].sort(key=lambda x: x['distance']),
         "log_doc_id": doc_id,
         "response": answer 
     })

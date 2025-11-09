@@ -189,20 +189,35 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
         
         # Step 3: Cluster the vectors
         logger.info(f"Clustering into {n_clusters} groups...")
-        cluster_labels = _perform_clustering(vectors, n_clusters)
+        cluster_labels, cluster_centers = _perform_clustering(vectors, n_clusters)
         
         # Step 4: Group doc IDs by cluster and label each cluster
         logger.info("Labeling clusters...")
         clusters = {}
         
+        import numpy as np
+        
         for cluster_id in range(n_clusters):
-            # Get all doc IDs for this cluster
-            cluster_doc_ids = [doc_ids[i] for i, label in enumerate(cluster_labels) if label == cluster_id]
+            # Get all indices for this cluster
+            cluster_indices = [i for i, label in enumerate(cluster_labels) if label == cluster_id]
             
-            if not cluster_doc_ids:
+            if not cluster_indices:
                 continue
             
-            # Get ALL events for this cluster (for rating counts)
+            # Get the centroid for this cluster
+            centroid = cluster_centers[cluster_id]
+            
+            # Calculate distances from centroid for all vectors in this cluster
+            cluster_vectors = vectors[cluster_indices]
+            distances = np.linalg.norm(cluster_vectors - centroid, axis=1)
+            
+            # Sort indices by distance (closest to centroid first)
+            sorted_cluster_indices = [cluster_indices[i] for i in np.argsort(distances)]
+            
+            # Get doc IDs in sorted order (closest to centroid first)
+            cluster_doc_ids = [doc_ids[i] for i in sorted_cluster_indices]
+            
+            # Get ALL events for this cluster (already sorted by distance to centroid)
             all_cluster_events = firestore_service.get_analytics_events_by_ids(cluster_doc_ids)
             
             # Count ratings
@@ -210,10 +225,10 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
             bad_count = sum(1 for event in all_cluster_events if event.get('rating') == 'not_helpful')
             none_count = sum(1 for event in all_cluster_events if not event.get('rating'))
             
-            # Get top 10 for labeling and samples
+            # Get top 10 for labeling (already sorted by distance to centroid)
             cluster_events = all_cluster_events[:10]
             
-            # Extract query texts
+            # Extract query texts (most representative queries first)
             query_texts = [event.get('query_text', '') for event in cluster_events if event.get('query_text')]
             
             # Generate AI label for this cluster
@@ -222,7 +237,7 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
             # Store cluster info with ratings
             clusters[cluster_label] = {
                 'count': len(cluster_doc_ids),
-                'sample_queries': query_texts[:3],  # Include 3 sample queries
+                'sample_queries': query_texts[:3],  # Include 3 most representative queries
                 'ratings': {
                     'good': good_count,
                     'bad': bad_count,
@@ -319,7 +334,9 @@ def _perform_clustering(vectors, n_clusters: int = 5):
         n_clusters: Number of clusters to create
         
     Returns:
-        Cluster labels array
+        Tuple of (cluster_labels, cluster_centers)
+        - cluster_labels: Array of cluster assignments for each vector
+        - cluster_centers: Array of cluster centroid vectors
     """
     try:
         from sklearn.cluster import MiniBatchKMeans
@@ -330,7 +347,7 @@ def _perform_clustering(vectors, n_clusters: int = 5):
         
         logger.info(f"Clustering complete. Cluster distribution: {dict(zip(*[range(n_clusters), [sum(labels == i) for i in range(n_clusters)]]))}") 
         
-        return labels
+        return labels, kmeans.cluster_centers_
         
     except ImportError:
         logger.error("scikit-learn not installed. Please run: pip install scikit-learn")
