@@ -6,11 +6,9 @@
     <title>Canvas TA-Bot</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-    <!-- <script src="{{ url_for('static', filename='vis-network.min.js') }}"></script> -->
 </head>
 <body>
-    <!-- ROLE 1: Frontend Developer - Build all UI states here -->
-    
+
     <!-- Inject server-side data -->
     <script>
         const COURSE_ID = "{{ course_id }}";
@@ -20,20 +18,36 @@
 
     <!-- STATE: NEEDS_INIT - Professor initializes course -->
     <div id="init-page" class="page-state">
-        
-        <!-- Landing Screen: Welcome page with Generate button -->
+
+        <!-- Landing Screen -->
         <div id="landing-screen">
             <div class="landing-content">
                 <h1 class="landing-title">Welcome to Playground AI</h1>
-                <p class="landing-subtitle">Help your students succeed by creating<br>your own AI learning environment</p>
-                
-                <button id="generate-now-btn" class="generate-now-button">
-                    Generate Now!
-                </button>
-                <p class="landing-hint">we'll analyze your course syllabus and create intelligent topic summaries</p>
+                <p class="landing-subtitle">
+                    Help your students succeed by creating<br>your own AI learning environment
+                </p>
+
+                <!-- ✅ CONDITIONAL CONTENT -->
+                {% if app_state == "NEEDS_INIT" %}
+                    {% if "student" in user_roles|lower %}
+                        <!-- Students only: see message -->
+                        <p class="student-hint">
+                            Ask your teacher to Generate the Course!
+                        </p>
+                    {% else %}
+                        <!-- Teachers only: see button -->
+                        <button id="generate-now-btn" class="generate-now-button">
+                            Generate Now!
+                        </button>
+                    {% endif %}
+                {% endif %}
+
+                <p class="landing-hint">
+                    We'll analyze your Canvas Course and create intelligent topic summaries
+                </p>
             </div>
-            
-            <!-- Google-style Loading Animation (hidden by default) -->
+
+            <!-- Loading UI -->
             <div id="google-loader" class="google-loader-container" style="display: none;">
                 <p class="loading-text">
                     <span class="loading-line-1">Analyzing & Generating...</span><br>
@@ -44,15 +58,12 @@
                     <span class="loader-three"></span>
                     <span class="loader-four"></span>
                 </div>
-                <!-- Log Display Area -->
-                <div id="init-logs" class="init-logs-container">
-                    <!-- Logs will be dynamically added here -->
-                </div>
+
+                <div id="init-logs" class="init-logs-container"></div>
             </div>
-            
-            <!-- Decorative elements -->
+
+            <!-- Decorative shapes -->
             <div class="decorative-shapes">
-                <!-- Circles/Dots -->
                 <div class="shape shape-circle shape-1"></div>
                 <div class="shape shape-circle shape-2"></div>
                 <div class="shape shape-circle shape-3"></div>
@@ -61,8 +72,7 @@
                 <div class="shape shape-circle shape-6"></div>
                 <div class="shape shape-circle shape-7"></div>
                 <div class="shape shape-circle shape-8"></div>
-                
-                <!-- Triangles -->
+
                 <div class="shape shape-triangle tri-1"></div>
                 <div class="shape shape-triangle tri-2"></div>
                 <div class="shape shape-triangle tri-3"></div>
@@ -71,66 +81,48 @@
                 <div class="shape shape-triangle tri-6"></div>
             </div>
         </div>
-        
-        <!-- Loading State: Shown while AI generates topics -->
+
+        <!-- Loading State -->
         <div id="init-loading" style="display:none;">
             <p>Analyzing & generating...</p>
             <div class="pill-spinner">
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
-                <div class="pill-segment"></div>
+                {% for i in range(12) %}
+                    <div class="pill-segment"></div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
-    <!-- STATE: NOT_READY - Student sees this when course not initialized -->
+    <!-- STATE: NOT_READY -->
     <div id="not-ready-page" class="page-state" style="display:none;">
         <h1>Knowledge Base Not Available</h1>
         <p>This tool is not yet enabled for your course. Please contact your instructor.</p>
     </div>
 
-    <!-- STATE: GENERATING - Shows loading spinner -->
+    <!-- STATE: GENERATING -->
     <div id="loading-page" class="page-state" style="display:none;">
         <h1>Building Knowledge Base...</h1>
         <p>Please wait while we index your course materials and build the knowledge graph.</p>
         <div class="pill-spinner">
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
-            <div class="pill-segment"></div>
+            {% for i in range(12) %}
+                <div class="pill-segment"></div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- STATE: ACTIVE - Main application interface -->
+    <!-- STATE: ACTIVE -->
     <div id="app-page" class="page-state" style="display:none;">
-        <!-- Full-screen Knowledge Graph Visualization -->
         <div id="graph-network-active"></div>
-        
-        <!-- Collapsible Chat Interface (Bottom) -->
+
         <div id="chat-interface-active" class="chat-interface">
             <button id="chat-toggle-btn-active" class="chat-toggle">
                 <span class="arrow-icon">▼</span>
             </button>
+
             <div id="chat-messages-container-active">
                 <div id="chat-messages-active"></div>
             </div>
+
             <div id="chat-input-container-active">
                 <button id="back-to-edit-btn-active" class="back-to-edit-btn" title="Edit Topics">
                     <span class="edit-icon">✏️</span>

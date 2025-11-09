@@ -44,6 +44,23 @@ h1 {
     background: white;
 }
 
+
+.student-hint {
+    margin-top: 10px;
+    font-size: 2rem;
+    font-weight: 500;
+    color: #d90202ca;           /* text color */
+    
+    /* background: #ffffffcc; 
+    padding: 16px 24px;    
+    border-radius: 12px;   
+    border: 1px solid #ddd; 
+    
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: inline-block; */
+}
+
+
 /* Init Page */
 #topics-input {
     width: 100%;
