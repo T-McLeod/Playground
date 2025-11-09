@@ -111,26 +111,6 @@ async function startAutoGeneration() {
     let lastLogCount = 0;
     let logPollInterval = null;
     
-    function pollInitLogs() {
-        fetch(`/api/init-logs/${COURSE_ID}`)
-            .then(response => response.json())
-            .then(data => {
-                const logs = data.logs || [];
-                
-                // Only add new logs
-                if (logs.length > lastLogCount) {
-                    const newLogs = logs.slice(lastLogCount);
-                    newLogs.forEach(log => {
-                        addLogLine(log.message, log.level || 'info');
-                    });
-                    lastLogCount = logs.length;
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching logs:', error);
-            });
-    }
-    
     function addLogLine(message, level = 'info') {
         if (!initLogsContainer) return;
         
@@ -147,9 +127,6 @@ async function startAutoGeneration() {
             initLogsContainer.scrollTop = initLogsContainer.scrollHeight;
         }, 100);
     }
-    
-    // Start polling every 500ms
-    logPollInterval = setInterval(pollInitLogs, 500);
     
     // Clear logs container
     if (initLogsContainer) {
@@ -173,7 +150,7 @@ async function startAutoGeneration() {
         }
         
         // Course initialization successful - redirect to launch endpoint
-        window.location.href = `/launch?course_id=${COURSE_ID}&user_id=${USER_ID || ''}&role=${USER_ROLES || ''}`;
+        window.location.href = `/launch?course_id=${COURSE_ID}&user_id=${'12'}&role=${USER_ROLES || ''}`;
         
     } catch (error) {
         console.error('Auto-generation failed:', error);

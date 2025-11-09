@@ -998,7 +998,7 @@ async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
                 node_id: nodeId,
                 node_label: nodeLabel,
                 node_type: nodeType,
-                user_id: USER_ID,
+                user_id: '',
                 timestamp: new Date().toISOString()
             })
         });
