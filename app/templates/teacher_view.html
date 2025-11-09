@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher View - {{ course_id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='student_view.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="{{ url_for('static', filename='vis-network.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+    <!-- Knowledge Graph Exploration Area -->
+    <div class="exploration-container">
+        <div class="header-bar">
+            <h1 class="course-title">🎓 Teacher View</h1>
+            
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button id="graph-view-btn" class="view-btn active">
+                    <span>🕸️</span> Graph
+                </button>
+                <button id="cards-view-btn" class="view-btn">
+                    <span>📱</span> Cards
+                </button>
+            </div>
+            
+            <div class="user-info">
+                <a href="/analytics/{{ course_id }}" class="analytics-toggle-btn" title="View Analytics">
+                    <span>📊</span> Analytics
+                </a>
+                <span class="user-name">{{ user_id }}</span>
+                <span class="role-badge">Teacher</span>
+            </div>
+        </div>
+
+        <!-- Topic Cards Container -->
+        <div id="topics-grid" class="topics-grid view-hidden">
+            <!-- Topic cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Graph Visualization Container (Full Screen) -->
+        <div id="graph-container" class="graph-container view-active">
+            <div id="network-canvas" class="network-canvas"></div>
+            
+            <!-- Graph Controls -->
+            <div class="graph-controls">
+                <button id="fit-graph-btn" class="control-btn" title="Fit to screen">
+                    🔍 Fit
+                </button>
+                <button id="reset-zoom-btn" class="control-btn" title="Reset zoom">
+                    ↺ Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Topic Detail Modal -->
+        <div id="topic-modal" class="topic-modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" id="modal-close">&times;</button>
+                <div class="modal-header">
+                    <h2 id="modal-topic-title" class="modal-title"></h2>
+                    <div class="topic-icon" id="modal-topic-icon">📚</div>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-topic-summary" class="modal-summary"></p>
+                    <div class="related-resources" id="modal-resources">
+                        <h3>📎 Related Resources</h3>
+                        <ul id="resource-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minimal Chat Prompt (Overlay) -->
+    <div id="chat-prompt" class="chat-prompt">
+        <div class="prompt-avatar">🤖</div>
+        <input 
+            type="text" 
+            id="prompt-input" 
+            class="prompt-input" 
+            placeholder="Ask me anything about your course..."
+        />
+    </div>
+
+    <!-- Floating expand button (visible when chat is collapsed) -->
+    <button id="chat-expand-fab" class="chat-expand-fab visible">
+        <span>💬</span>
+    </button>
+
+    <!-- Full Chat Interface (Slides up from bottom when message sent) -->
+    <div id="chat-container" class="chat-container collapsed">
+        <div class="chat-header">
+            <div class="chat-title">
+                <span class="chat-icon">💬</span>
+                <span>Course Assistant</span>
+            </div>
+            <button id="chat-collapse" class="chat-collapse-btn">
+                <span id="collapse-icon">▼</span>
+            </button>
+        </div>
+        
+        <div id="chat-body" class="chat-body">
+            <div id="chat-messages" class="chat-messages">
+                <div class="message bot-message welcome-message">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>Hi there! 👋 I'm your AI teaching assistant. Click on any topic card above to explore, or ask me a question below!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <div class="typing-indicator hidden" id="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="input-container">
+                    <textarea 
+                        id="chat-input" 
+                        class="chat-input" 
+                        placeholder="Ask a question about your course..."
+                        rows="1"
+                    ></textarea>
+                    <button id="send-btn" class="send-btn">
+                        <span class="send-icon">📤</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p>Loading course content...</p>
+    </div>
+
+    <!-- Inject course data -->
+    <script>
+        const COURSE_ID = "{{ course_id }}";
+        const USER_ID = "{{ user_id }}";
+    </script>
+    <script src="{{ url_for('static', filename='student_view.js') }}"></script>
+</body>
+</html>
+

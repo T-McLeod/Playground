@@ -18,10 +18,16 @@
         <header class="dashboard-header">
             <h1>Course Analytics Dashboard</h1>
             <p class="course-id">Course ID: <span>{{ course_id }}</span></p>
-            <button id="regenerate-button" class="btn-primary">
-                <span class="btn-icon">🔄</span>
-                <span class="btn-text">Regenerate Report</span>
-            </button>
+            <div class="header-actions">
+                <a href="/launch?course_id={{ course_id }}&role=teacher" class="btn-explorer">
+                    <span class="btn-icon">🗺️</span>
+                    <span class="btn-text">Main View</span>
+                </a>
+                <button id="regenerate-button" class="btn-primary">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Regenerate Report</span>
+                </button>
+            </div>
         </header>
 
         <!-- Loading State -->
