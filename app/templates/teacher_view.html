@@ -70,45 +70,10 @@
                         <h3>📎 Related Resources</h3>
                         <ul id="resource-list"></ul>
                     </div>
-                    
-                    <!-- Chat Input Section within Modal -->
-                    <div class="modal-chat-section">
-                        <h3>💬 Ask about this topic</h3>
-                        <div class="modal-chat-input-container">
-                            <textarea 
-                                id="modal-chat-input" 
-                                class="modal-chat-input" 
-                                placeholder="Ask a question about this topic..."
-                                rows="2"
-                            ></textarea>
-                            <button id="modal-send-btn" class="modal-send-btn">
-                                <span class="send-icon">📤</span>
-                            </button>
-                        </div>
-                        <div class="modal-chat-messages" id="modal-chat-messages">
-                            <!-- Typing indicator will be inserted here -->
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Minimal Chat Prompt (Overlay) -->
-    <div id="chat-prompt" class="chat-prompt">
-        <div class="prompt-avatar">🤖</div>
-        <input 
-            type="text" 
-            id="prompt-input" 
-            class="prompt-input" 
-            placeholder="Ask me anything about your course..."
-        />
-    </div>
-
-    <!-- Floating expand button (visible when chat is collapsed) -->
-    <button id="chat-expand-fab" class="chat-expand-fab visible">
-        <span>💬</span>
-    </button>
 
     <!-- Full Chat Interface (Slides up from bottom when message sent) -->
     <div id="chat-container" class="chat-container collapsed">

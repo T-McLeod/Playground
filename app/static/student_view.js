@@ -112,20 +112,23 @@ function initializeEventListeners() {
             }
         }
     });
-
-    // Prompt input - focus expands the prompt, Enter sends message
-    promptInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && promptInput.value.trim()) {
-            e.preventDefault();
-            const query = promptInput.value.trim();
-            chatInput.value = query;
-            promptInput.value = '';
-            sendMessage();
-        }
-    });
+    if (promptInput) {
+        promptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && promptInput.value.trim()) {
+                e.preventDefault();
+                const query = promptInput.value.trim();
+                chatInput.value = query;
+                promptInput.value = '';
+                sendMessage();
+            }
+        });
+    }
 
     // Floating expand button
-    chatExpandFab.addEventListener('click', expandChat);
+    if (chatExpandFab) {
+        chatExpandFab.addEventListener('click', expandChat);
+    }
+
 
     // Chat collapse/expand toggle
     chatCollapseBtn.addEventListener('click', toggleChat);
@@ -286,8 +289,9 @@ function expandChat() {
     chatContainer.classList.add('expanded');
     
     // Hide floating button when chat is expanded
-    chatExpandFab.classList.remove('visible');
-    
+    if (chatExpandFab) {
+        chatExpandFab.classList.remove('visible');
+    }    
     // Rotate arrow
     const collapseIcon = document.getElementById('collapse-icon');
     if (collapseIcon) {
@@ -306,7 +310,10 @@ function collapseChat() {
     chatContainer.classList.add('collapsed');
     
     // Show floating button when chat is collapsed
-    chatExpandFab.classList.add('visible');
+    if (chatExpandFab) {
+        chatExpandFab.classList.add('visible');
+    }
+
     
     // Rotate arrow back
     const collapseIcon = document.getElementById('collapse-icon');
