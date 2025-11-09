@@ -34,16 +34,27 @@ def launch():
     
     # When course is ACTIVE, route based on role
     if state == 'ACTIVE':
-        # Students get the fun exploration interface
-        if role and 'student' in role.lower():
-            return render_template(
-                'student_view.html',
-                course_id=course_id,
-                user_id=user_id,
-                role=role
-            )
+        # Route based on role
+        if role:
+            role_lower = role.lower()
+            # Students get the student exploration interface
+            if 'student' in role_lower:
+                return render_template(
+                    'student_view.html',
+                    course_id=course_id,
+                    user_id=user_id,
+                    role=role
+                )
+            # Teachers get the teacher view
+            elif 'teacher' in role_lower or 'instructor' in role_lower or 'professor' in role_lower:
+                return render_template(
+                    'teacher_view.html',
+                    course_id=course_id,
+                    user_id=user_id,
+                    role=role
+                )
         
-        # Professors/instructors get the editor
+        # Default fallback: Professors/instructors get the editor
         return render_template(
             'editor.html',
             course_id=course_id,

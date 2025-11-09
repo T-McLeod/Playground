@@ -2184,10 +2184,44 @@ button:hover {
     color: #007bff;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 #regenerate-button {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.btn-explorer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-explorer:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
+}
+
+.btn-explorer:active {
+    transform: translateY(0);
 }
 
 .btn-icon {
