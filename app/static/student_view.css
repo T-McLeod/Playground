@@ -49,7 +49,7 @@ body {
 }
 
 .header-bar {
-    background: rgba(255, 255, 255, 0.95);
+    background: linear-gradient(135deg, #e8b4d4 0%, #b8c8f0 50%, #d0b8e8 100%);
     backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     box-shadow: var(--shadow-md);
@@ -64,7 +64,7 @@ body {
 .course-title {
     font-size: 1.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary-purple), var(--accent-pink));
+    background: linear-gradient(135deg, #d946a6 0%, #9333ea 50%, #6366f1 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -79,11 +79,11 @@ body {
 
 .user-name {
     font-weight: 500;
-    color: var(--text-secondary);
+    color: #6b21a8;
 }
 
 .role-badge {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
@@ -98,7 +98,7 @@ body {
 .view-toggle {
     display: flex;
     gap: 0.5rem;
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.6);
     padding: 0.25rem;
     border-radius: 0.75rem;
 }
@@ -115,16 +115,16 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--text-secondary);
+    color: #6b21a8;
 }
 
 .view-btn:hover {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--primary-color);
+    background: rgba(147, 51, 234, 0.15);
+    color: #7c3aed;
 }
 
 .view-btn.active {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
     box-shadow: var(--shadow-sm);
 }
@@ -185,7 +185,7 @@ body {
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, #9333ea, #d946a6);
     transform: scaleX(0);
     transform-origin: left;
     transition: transform 0.3s ease;
@@ -194,7 +194,7 @@ body {
 .topic-card:hover {
     transform: translateY(-8px);
     box-shadow: var(--shadow-xl);
-    border-color: var(--primary-color);
+    border-color: #9333ea;
 }
 
 .topic-card:hover::before {
@@ -241,7 +241,7 @@ body {
 }
 
 .explore-btn {
-    color: var(--primary-color);
+    color: #9333ea;
     font-weight: 600;
     font-size: 0.875rem;
     display: flex;
@@ -291,8 +291,8 @@ body {
 
 .control-btn {
     background: white;
-    border: 2px solid var(--primary-color);
-    color: var(--primary-color);
+    border: 2px solid #9333ea;
+    color: #9333ea;
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
     cursor: pointer;
@@ -306,10 +306,11 @@ body {
 }
 
 .control-btn:hover {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+    border-color: transparent;
 }
 
 .control-btn:active {
@@ -396,7 +397,7 @@ body {
 }
 
 .modal-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(135deg, #9333ea 0%, #d946a6 100%);
     padding: 2rem;
     color: white;
     display: flex;
@@ -434,7 +435,7 @@ body {
     background: var(--bg-primary);
     padding: 1.5rem;
     border-radius: 1rem;
-    border-left: 4px solid var(--primary-color);
+    border-left: 4px solid #9333ea;
 }
 
 .related-resources h3 {
@@ -543,13 +544,13 @@ body {
     right: 3rem;  /* Moved left from 2rem */
     width: 3.5rem;
     height: 3.5rem;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     border: none;
     border-radius: 50%;
     color: white;
     font-size: 1.5rem;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -561,7 +562,7 @@ body {
 
 .chat-expand-fab:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    box-shadow: 0 6px 16px rgba(147, 51, 234, 0.5);
 }
 
 .chat-expand-fab.visible {
@@ -593,7 +594,7 @@ body {
 }
 
 .chat-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
     padding: 1rem 1.5rem;
     display: flex;
@@ -911,7 +912,7 @@ body {
 }
 
 .source-link:hover {
-    background: var(--primary-color);
+    background: #9333ea;
     color: white;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -1051,7 +1052,7 @@ body {
 
 .chat-input:focus {
     outline: none;
-    border-color: var(--primary-color);
+    border-color: #9333ea;
 }
 
 .send-btn {
@@ -1059,7 +1060,7 @@ body {
     height: 3rem;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
     cursor: pointer;
     transition: all 0.3s ease;

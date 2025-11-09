@@ -489,14 +489,8 @@ async function openTopicModal(topic) {
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
     
-    // Get icon based on topic index
-    const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
-    const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
-    const icon = icons[topicIndex % icons.length];
-
     // Update modal content
     modalTitle.textContent = topic.label;
-    modalIcon.textContent = icon;
     modalSummary.innerHTML = renderMarkdownWithMath(summary);
 
     // Get related resources
