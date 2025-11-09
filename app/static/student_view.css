@@ -483,18 +483,20 @@ body {
     z-index: 999;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    background: white;
-    padding: 0.5rem 1.5rem;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.3);  /* Translucent by default */
+    padding: 0.4rem 1.25rem;  /* Reduced vertical padding for less height */
     border-radius: 3rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
-    max-width: 1000px;
+    max-width: 850px;
     width: calc(100% - 4rem);
 }
 
-.chat-prompt:hover {
+.chat-prompt:hover,
+.chat-prompt:focus-within {
+    background: rgba(255, 255, 255, 1);  /* Opaque on hover or focus */
     box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
     transform: translateX(-50%) translateY(-2px);
 }
@@ -537,8 +539,8 @@ body {
 /* Floating expand button - visible when chat is collapsed */
 .chat-expand-fab {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
+    bottom: 2.5rem;  /* Moved up from 2rem */
+    right: 3rem;  /* Moved left from 2rem */
     width: 3.5rem;
     height: 3.5rem;
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));

@@ -353,7 +353,7 @@ function renderGraph() {
         arrows: {
             to: {
                 enabled: true,
-                scaleFactor: 1,
+                scaleFactor: 0.8,  // Smaller arrow heads
                 type: 'arrow'
             }
         },
@@ -366,7 +366,8 @@ function renderGraph() {
             enabled: true,
             type: 'dynamic',
             roundness: 0.5
-        }
+        },
+        length: 200  // Longer edges to increase spacing between nodes
     }));
 
     // Create network
@@ -378,21 +379,32 @@ function renderGraph() {
     const options = {
         layout: {
             improvedLayout: true,
-            hierarchical: false
+            hierarchical: false,
+            randomSeed: 2  // Consistent layout on each load
         },
         physics: {
             enabled: true,
             barnesHut: {
-                gravitationalConstant: -800,
-                centralGravity: 0.3,
-                springLength: 120,
-                springConstant: 0.04,
-                damping: 0.2,
-                avoidOverlap: 0.1
+                gravitationalConstant: -2000,  // Much stronger repulsion for wider spread
+                centralGravity: 0.05,  // Very weak center pull - allows horizontal spread
+                springLength: 250,  // Even longer edges for more spacing
+                springConstant: 0.015,  // Lower stiffness for less pull
+                damping: 0.35,  // Higher damping for stability
+                avoidOverlap: 0.3  // Strong overlap avoidance
             },
             stabilization: {
-                iterations: 250,
+                iterations: 300,  // More iterations for better settling
                 updateInterval: 25
+            }
+        },
+        edges: {
+            smooth: {
+                type: 'dynamic',
+                forceDirection: 'horizontal'  // Encourage horizontal spread
+            },
+            endPointOffset: {
+                from: 0,
+                to: 15  // Offset arrow from node edge
             }
         },
         interaction: {
