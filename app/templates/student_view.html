@@ -59,12 +59,11 @@
                 <button class="modal-close" id="modal-close">&times;</button>
                 <div class="modal-header">
                     <h2 id="modal-topic-title" class="modal-title"></h2>
-                    <div class="topic-icon" id="modal-topic-icon">📚</div>
                 </div>
                 <div class="modal-body">
                     <p id="modal-topic-summary" class="modal-summary"></p>
                     <div class="related-resources" id="modal-resources">
-                        <h3>📎 Related Resources</h3>
+                        <h3>Related Resources</h3>
                         <ul id="resource-list"></ul>
                     </div>
                 </div>
@@ -85,14 +84,13 @@
 
     <!-- Floating expand button (visible when chat is collapsed) -->
     <button id="chat-expand-fab" class="chat-expand-fab visible">
-        <span>💬</span>
+        Chat
     </button>
 
     <!-- Full Chat Interface (Slides up from bottom when message sent) -->
     <div id="chat-container" class="chat-container collapsed">
         <div class="chat-header">
             <div class="chat-title">
-                <span class="chat-icon">💬</span>
                 <span>Course Assistant</span>
             </div>
             <button id="chat-collapse" class="chat-collapse-btn">
@@ -103,9 +101,8 @@
         <div id="chat-body" class="chat-body">
             <div id="chat-messages" class="chat-messages">
                 <div class="message bot-message welcome-message">
-                    <div class="message-avatar">🤖</div>
                     <div class="message-content">
-                        <p>Hi there! 👋 I'm your AI teaching assistant. Click on any topic card above to explore, or ask me a question below!</p>
+                        <p>Hi there! I'm your AI teaching assistant. Click on any topic to explore, or ask me a question below!</p>
                     </div>
                 </div>
             </div>
@@ -121,7 +118,7 @@
                         rows="1"
                     ></textarea>
                     <button id="send-btn" class="send-btn">
-                        <span class="send-icon">📤</span>
+                        Send
                     </button>
                 </div>
             </div>

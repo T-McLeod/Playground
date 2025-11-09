@@ -317,32 +317,35 @@ function renderGraph() {
             label: node.label,
             title: node.label, // Tooltip
             group: node.group,
+            // Swap colors: topics darker/richer, sources lighter
             color: isTopicNode ? {
-                background: '#6366f1',
-                border: '#4f46e5',
+                background: '#7c3aed',  // Rich purple for topics
+                border: '#6d28d9',
                 highlight: {
-                    background: '#818cf8',
-                    border: '#6366f1'
+                    background: '#8b5cf6',
+                    border: '#7c3aed'
                 }
             } : {
-                background: '#10b981',
-                border: '#059669',
+                background: '#d4c5f9',  // Light lavender for sources
+                border: '#c4b5fd',
                 highlight: {
-                    background: '#34d399',
-                    border: '#10b981'
+                    background: '#e9d5ff',
+                    border: '#d8b4fe'
                 }
             },
             font: {
                 color: '#ffffff',
-                size: isTopicNode ? 18 : 15,
+                // Topics bigger, sources smaller
+                size: isTopicNode ? 20 : 13,
                 face: 'Arial',
                 bold: isTopicNode ? true : false
             },
             shape: isTopicNode ? 'box' : 'ellipse',
-            size: isTopicNode ? 25 : 20,
+            // Topics larger, sources smaller
+            size: isTopicNode ? 30 : 15,
             borderWidth: 2,
             shadow: true,
-            margin: isTopicNode ? 15 : 10
+            margin: isTopicNode ? 18 : 8
         };
     });
 
@@ -385,22 +388,23 @@ function renderGraph() {
         physics: {
             enabled: true,
             barnesHut: {
-                gravitationalConstant: -2000,  // Much stronger repulsion for wider spread
-                centralGravity: 0.05,  // Very weak center pull - allows horizontal spread
-                springLength: 250,  // Even longer edges for more spacing
-                springConstant: 0.015,  // Lower stiffness for less pull
-                damping: 0.35,  // Higher damping for stability
-                avoidOverlap: 0.3  // Strong overlap avoidance
+                gravitationalConstant: -1200,  // Reduced repulsion (was -2000)
+                centralGravity: 0.05,
+                springLength: 250,
+                springConstant: 0.005,  // Much lower stiffness for flexible, flowing edges (was 0.015)
+                damping: 0.25,  // Lower damping for more liveliness (was 0.35)
+                avoidOverlap: 0.2  // Slightly reduced to allow more natural overlap (was 0.3)
             },
             stabilization: {
-                iterations: 300,  // More iterations for better settling
+                iterations: 300,
                 updateInterval: 25
             }
         },
         edges: {
             smooth: {
                 type: 'dynamic',
-                forceDirection: 'horizontal'  // Encourage horizontal spread
+                forceDirection: 'horizontal',
+                roundness: 0.5  // Smoother curves
             },
             endPointOffset: {
                 from: 0,
@@ -458,13 +462,28 @@ function renderGraph() {
 
     // Handle node clicks - only if not dragging
     network.on('click', function(params) {
-        // Only open modal if we didn't drag and clicked on a topic node
+        // Only open modal/link if we didn't drag and clicked on a node
         if (!isDragging && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
             
-            if (node && node.group === 'topic') {
-                openTopicModal(node);
+            if (node) {
+                if (node.group === 'topic') {
+                    // Open topic modal
+                    openTopicModal(node);
+                } else if (node.group === 'file') {
+                    // Open source file - get the file's GCS URI and download
+                    const topicData = knowledgeGraph.kg_data[nodeId];
+                    if (topicData && topicData.file_id) {
+                        // Find the file in the graph data
+                        const fileIds = Object.keys(knowledgeGraph.kg_data).filter(id => id.startsWith('file_'));
+                        const fileData = knowledgeGraph.kg_data[topicData.file_id] || knowledgeGraph.kg_data[nodeId];
+                        
+                        if (fileData && fileData.gcs_uri) {
+                            downloadSource(fileData.gcs_uri);
+                        }
+                    }
+                }
             }
         }
     });
@@ -642,10 +661,6 @@ function addMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${message.role === 'user' ? 'user-message' : 'bot-message'}`;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
-
     const content = document.createElement('div');
     content.className = 'message-content';
 
@@ -700,13 +715,13 @@ function addMessage(message) {
         
         const likeBtn = document.createElement('button');
         likeBtn.className = 'rating-btn like-btn';
-        likeBtn.innerHTML = '👍';
+        likeBtn.textContent = 'Helpful';
         likeBtn.title = 'Helpful';
         likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
         
         const dislikeBtn = document.createElement('button');
         dislikeBtn.className = 'rating-btn dislike-btn';
-        dislikeBtn.innerHTML = '👎';
+        dislikeBtn.textContent = 'Not Helpful';
         dislikeBtn.title = 'Not helpful';
         dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
         
@@ -715,7 +730,6 @@ function addMessage(message) {
         content.appendChild(ratingDiv);
     }
 
-    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
 
     chatMessagesContainer.appendChild(messageDiv);
@@ -769,7 +783,7 @@ async function rateAnswer(logDocId, rating, ratingDiv) {
         }
 
         // Show feedback and disable buttons
-        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback! ${rating === 'helpful' ? '👍' : '👎'}</span>`;
+        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback!</span>`;
         
     } catch (error) {
         console.error('Error rating answer:', error);

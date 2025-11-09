@@ -413,11 +413,6 @@ body {
     flex: 1;
 }
 
-.modal-header .topic-icon {
-    font-size: 3rem;
-    opacity: 0.9;
-}
-
 .modal-body {
     padding: 2rem;
     overflow-y: auto;
@@ -467,11 +462,6 @@ body {
     color: white;
 }
 
-#resource-list li::before {
-    content: '📄';
-    font-size: 1.25rem;
-}
-
 /* ===========================
    CHAT PROMPT (Minimal Overlay)
    =========================== */
@@ -508,17 +498,6 @@ body {
     transform: translateX(-50%) translateY(20px);
 }
 
-.prompt-avatar {
-    font-size: 2.5rem;
-    flex-shrink: 0;
-    animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-}
-
 .prompt-input {
     flex: 1;
     border: none;
@@ -540,15 +519,15 @@ body {
 /* Floating expand button - visible when chat is collapsed */
 .chat-expand-fab {
     position: fixed;
-    bottom: 2.5rem;  /* Moved up from 2rem */
-    right: 3rem;  /* Moved left from 2rem */
-    width: 3.5rem;
-    height: 3.5rem;
+    bottom: 2.5rem;
+    right: 3rem;
+    padding: 0.75rem 1.5rem;
     background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     border: none;
-    border-radius: 50%;
+    border-radius: 2rem;
     color: white;
-    font-size: 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(147, 51, 234, 0.4);
     display: flex;
@@ -561,7 +540,7 @@ body {
 }
 
 .chat-expand-fab:hover {
-    transform: scale(1.1);
+    transform: scale(1.05);
     box-shadow: 0 6px 16px rgba(147, 51, 234, 0.5);
 }
 
@@ -920,19 +899,6 @@ body {
     text-decoration-skip-ink: auto;
 }
 
-.source-link::before {
-    content: '📄 ';
-    margin-right: 0.25rem;
-    text-decoration: none;
-}
-
-.source-link:hover::after {
-    content: ' ⬇';
-    margin-left: 0.25rem;
-    animation: bounce 0.5s ease infinite;
-    text-decoration: none;
-}
-
 @keyframes bounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-2px); }
@@ -1056,9 +1022,8 @@ body {
 }
 
 .send-btn {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
     border: none;
     background: linear-gradient(135deg, #9333ea 0%, #6366f1 100%);
     color: white;
@@ -1068,25 +1033,23 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow-md);
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .send-btn:hover {
-    transform: scale(1.1);
+    transform: translateY(-1px);
     box-shadow: var(--shadow-lg);
 }
 
 .send-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.98);
 }
 
 .send-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: scale(1);
-}
-
-.send-icon {
-    font-size: 1.25rem;
 }
 
 /* ===========================
