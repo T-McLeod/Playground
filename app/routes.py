@@ -3,7 +3,7 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service
+from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
 import os
 import logging
 import shutil
@@ -32,8 +32,18 @@ def launch():
     # Determine application state
     state = firestore_service.get_course_state(course_id)
     
-    # Render editor template when course is ACTIVE
+    # When course is ACTIVE, route based on role
     if state == 'ACTIVE':
+        # Students get the fun exploration interface
+        if role and 'student' in role.lower():
+            return render_template(
+                'student_view.html',
+                course_id=course_id,
+                user_id=user_id,
+                role=role
+            )
+        
+        # Professors/instructors get the editor
         return render_template(
             'editor.html',
             course_id=course_id,
@@ -49,6 +59,64 @@ def launch():
         user_roles=role,
         user_id = user_id,
         app_state=state
+    )
+
+
+@app.route('/analytics/<course_id>', methods=['GET'])
+def analytics_dashboard(course_id):
+    """
+    Analytics Dashboard - Professor-only page to view course analytics.
+    
+    This page shows:
+    - Cluster analysis of student queries
+    - Topic distribution charts (pie and bar)
+    - Sample queries for each cluster
+    - Ability to regenerate reports
+    """
+    
+    # Render the analytics dashboard
+    return render_template(
+        'analytics.html',
+        course_id=course_id,
+    )
+
+
+@app.route('/student/<course_id>', methods=['GET'])
+def student_view(course_id):
+    """
+    Student View - Interactive knowledge graph exploration interface.
+    
+    Provides a fun, engaging UI for students to:
+    - Browse topics in a card-based grid layout
+    - Click topics to see detailed summaries in a modal
+    - Chat with the AI assistant about course content
+    - Access related resources for each topic
+    
+    This route should be used when the course is ACTIVE and the user is a student.
+    """
+    # Get user info from session
+    user_id = session.get('user_id', 'unknown')
+    role = session.get('role', 'student')
+    
+    # Verify course is active
+    state = firestore_service.get_course_state(course_id)
+    
+    if state != 'ACTIVE':
+        # Redirect to main launch if course is not active
+        return render_template(
+            'index.html',
+            course_id=course_id,
+            user_roles=role,
+            user_id=user_id,
+            app_state=state
+        )
+    
+    # Render the student view
+    return render_template(
+        'student_view.html',
+        course_id=course_id,
+        user_id=user_id,
+        role=role
     )
 
 
@@ -276,6 +344,25 @@ def get_graph():
         "edges": course_data.get("kg_edges"),
         "data": course_data.get("kg_data")
     })
+
+
+@app.route('/api/download-source', methods=['GET'])
+def download_source():
+    """
+    Generates a signed URL for downloading a file from GCS.
+    """
+    gcs_uri = request.args.get('gcs_uri')
+    
+    if not gcs_uri or not gcs_uri.startswith('gs://'):
+        return jsonify({"error": "Invalid GCS URI"}), 400
+    
+    try:
+        # Generate a signed URL that expires in 1 hour
+        signed_url = gcs_service.generate_signed_url(gcs_uri, expiration_minutes=60)
+        return jsonify({"download_url": signed_url})
+    except Exception as e:
+        logger.error(f"Failed to generate signed URL: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/rate-answer', methods=['POST'])

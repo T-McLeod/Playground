@@ -46,9 +46,65 @@ function setupInitPage() {
 
 // Start the automatic course generation pipeline
 async function startAutoGeneration() {
-    // Hide landing, show loading
-    document.getElementById('landing-screen').style.display = 'none';
-    document.getElementById('init-loading').style.display = 'block';
+    const generateBtn = document.getElementById('generate-now-btn');
+    const landingContent = document.querySelector('.landing-content');
+    const googleLoader = document.getElementById('google-loader');
+    const landingHint = document.querySelector('.landing-hint');
+    
+    if (!generateBtn || !googleLoader) return;
+    
+    // Get button position and dimensions
+    const btnRect = generateBtn.getBoundingClientRect();
+    const landingRect = document.getElementById('landing-screen').getBoundingClientRect();
+    
+    // Calculate relative position within landing screen
+    const relativeTop = btnRect.top - landingRect.top + btnRect.height / 2;
+    const relativeLeft = btnRect.left - landingRect.left + btnRect.width / 2;
+    
+    // Position loader at button location
+    googleLoader.style.top = relativeTop + 'px';
+    googleLoader.style.left = relativeLeft + 'px';
+    googleLoader.style.transform = 'translate(-50%, -50%)';
+    googleLoader.style.position = 'absolute';
+    
+    // Hide hint text
+    if (landingHint) landingHint.style.opacity = '0';
+    
+    // Animate decorative shapes flying out
+    const decorativeShapes = document.querySelectorAll('.shape');
+    decorativeShapes.forEach((shape, index) => {
+        const randomAngle = Math.random() * 360;
+        const randomDistance = 200 + Math.random() * 300;
+        const randomX = Math.cos(randomAngle * Math.PI / 180) * randomDistance;
+        const randomY = Math.sin(randomAngle * Math.PI / 180) * randomDistance;
+        
+        shape.style.transition = `all 1s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.05}s`;
+        shape.style.transform = `translate(${randomX}px, ${randomY}px) scale(0)`;
+        shape.style.opacity = '0';
+    });
+    
+    // Animate button collapse
+    generateBtn.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    generateBtn.style.transform = 'scale(0)';
+    generateBtn.style.opacity = '0';
+    
+    // Show loader after button starts collapsing
+    setTimeout(() => {
+        googleLoader.style.display = 'block';
+        googleLoader.style.opacity = '0';
+        googleLoader.style.transition = 'opacity 0.5s ease-in';
+        
+        // Fade in loader
+        requestAnimationFrame(() => {
+            googleLoader.style.opacity = '1';
+        });
+        
+        // Hide other landing content
+        if (landingContent) {
+            landingContent.querySelector('.landing-title').style.opacity = '0';
+            landingContent.querySelector('.landing-subtitle').style.opacity = '0';
+        }
+    }, 250);
     
         try {
             const response = await fetch('/api/initialize-course', {
@@ -67,7 +123,8 @@ async function startAutoGeneration() {
         }
         
         // Hide loading, show editor with generated KG
-        document.getElementById('init-loading').style.display = 'none';
+        const googleLoader = document.getElementById('google-loader');
+        if (googleLoader) googleLoader.style.display = 'none';
         document.getElementById('init-editor').style.display = 'block';
         
         // Convert KG nodes to topics format for editing

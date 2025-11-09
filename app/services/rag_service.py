@@ -163,18 +163,23 @@ def retrieve_context(corpus_id: str, query: str, top_k: int = 10, threshold: flo
         context_texts = [context.text for context in contexts]
         
         # Extract unique source files from source URI
-        source_names = []
+        source_names = set()
+        sources = []
         for context in contexts:
             if hasattr(context, 'source_uri') and context.source_uri:
                 # Source is in format like "gs://bucket/corpus/file.pdf"
                 source_path = context.source_uri
                 filename = source_path.split('/')[-1] if '/' in source_path else source_path
                 if filename and filename not in source_names:
-                    source_names.append(filename)
+                    source_names.add(filename)
+                    sources.append({
+                        'filename': filename,
+                        'source_uri': context.source_uri
+                    })
         
-        logger.info(f"Retrieved {len(context_texts)} context chunks from {len(source_names)} sources")
+        logger.info(f"Retrieved {len(context_texts)} context chunks from {len(sources)} sources")
         
-        return (context_texts, source_names)
+        return (context_texts, sources)
         
     except Exception as e:
         logger.error(f"Failed to retrieve context from RAG corpus: {str(e)}")

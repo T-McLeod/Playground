@@ -34,6 +34,19 @@
                 <p class="landing-hint">We'll analyze your course syllabus and create intelligent topic summaries</p>
             </div>
             
+            <!-- Google-style Loading Animation (hidden by default) -->
+            <div id="google-loader" class="google-loader-container" style="display: none;">
+                <p class="loading-text">
+                    <span class="loading-line-1">Analyzing & Generating...</span><br>
+                </p>
+                <div class="google-loader">
+                    <span class="loader-one"></span>
+                    <span class="loader-two"></span>
+                    <span class="loader-three"></span>
+                    <span class="loader-four"></span>
+                </div>
+            </div>
+            
             <!-- Decorative elements -->
             <div class="decorative-shapes">
                 <!-- Circles/Dots -->
@@ -58,8 +71,21 @@
         
         <!-- Loading State: Shown while AI generates topics -->
         <div id="init-loading" style="display:none;">
-            <p>Analyzing course syllabus and generating suggested topics...</p>
-            <div class="spinner"></div>
+            <p>Analyzing & generating...</p>
+            <div class="pill-spinner">
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+                <div class="pill-segment"></div>
+            </div>
         </div>
     </div>
 
@@ -73,7 +99,20 @@
     <div id="loading-page" class="page-state" style="display:none;">
         <h1>Building Knowledge Base...</h1>
         <p>Please wait while we index your course materials and build the knowledge graph.</p>
-        <div class="spinner"></div>
+        <div class="pill-spinner">
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+            <div class="pill-segment"></div>
+        </div>
     </div>
 
     <!-- STATE: ACTIVE - Main application interface -->

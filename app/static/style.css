@@ -40,6 +40,10 @@ h1 {
     overflow: hidden;
 }
 
+#loading-page {
+    background: white;
+}
+
 /* Init Page */
 #topics-input {
     width: 100%;
@@ -66,27 +70,88 @@ button:hover {
     background: #5568d3;
 }
 
-/* Loading Spinner - Circular Design */
-.spinner {
-    border: 8px solid #e0e7ff;
-    border-top: 8px solid #667eea;
-    border-right: 8px solid #8b5cf6;
-    border-bottom: 8px solid #667eea;
-    border-left: 8px solid #e0e7ff;
-    border-radius: 50%;
-    width: 80px;
-    height: 80px;
-    animation: spin 1.2s ease-in-out infinite;
-    margin: 30px auto;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+/* Google-style Loading Animation */
+.google-loader-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 20;
+    width: auto;
+    opacity: 0;
 }
 
-@keyframes spin {
-    0% { 
-        transform: rotate(0deg);
+.google-loader-container .loading-text {
+    font-size: 62px;
+    font-weight: 900;
+    color: #1a1a1a;
+    margin-bottom: 75px;
+    text-transform: none;
+    letter-spacing: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.google-loader {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+}
+
+/* Common styles for all loader elements */
+.google-loader span {
+    position: absolute;
+    display: block;
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    animation: google-speed 2s infinite ease-in-out;
+}
+
+/* Individual colors for each loader element (matching background shapes theme) */
+.google-loader .loader-one {
+    background: linear-gradient(135deg, #4dabf7, #1c7ed6); /* Blue - matches shape-4 */
+    animation-delay: 1.5s;
+}
+
+.google-loader .loader-two {
+    background: linear-gradient(135deg, #ff6b6b, #ff8787); /* Red/Pink - matches shape-1 */
+    animation-delay: 1s;
+}
+
+.google-loader .loader-three {
+    background: linear-gradient(135deg, #ffd43b, #fab005); /* Yellow - matches shape-3 */
+    animation-delay: 0.5s;
+}
+
+.google-loader .loader-four {
+    background: linear-gradient(135deg, #51cf66, #37b24d); /* Green - matches shape-2 */
+    animation-delay: 0s;
+}
+
+/* Keyframe animation for the moving shapes */
+@keyframes google-speed {
+    0% {
+        transform: translate(0%);
+        border-radius: 50%;
     }
-    100% { 
-        transform: rotate(360deg);
+    25% {
+        transform: translate(150%) scale(0.5);
+        border-radius: 0%;
+    }
+    50% {
+        transform: translate(150%, 150%);
+        border-radius: 50%;
+    }
+    75% {
+        transform: translate(0, 150%) scale(0.5);
+        border-radius: 0%;
+    }
+    100% {
+        transform: translate(0%);
+        border-radius: 50%;
     }
 }
 
@@ -357,6 +422,7 @@ button:hover {
     text-transform: uppercase;
     letter-spacing: 2px;
     line-height: 1.2;
+    transition: opacity 0.5s ease;
 }
 
 .landing-subtitle {
@@ -364,6 +430,7 @@ button:hover {
     color: #333;
     margin-bottom: 40px;
     line-height: 1.6;
+    transition: opacity 0.5s ease;
 }
 
 .generate-now-button {
@@ -378,6 +445,7 @@ button:hover {
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
     transition: all 0.3s ease;
     text-transform: capitalize;
+    transform-origin: center center;
 }
 
 .generate-now-button:hover {
@@ -394,6 +462,7 @@ button:hover {
     font-size: 14px;
     color: #666;
     font-style: italic;
+    transition: opacity 0.5s ease;
 }
 
 /* Decorative Shapes */
@@ -564,7 +633,7 @@ button:hover {
     justify-content: center;
     text-align: center;
     padding: 40px 20px;
-    background: linear-gradient(135deg, #fef3f0 0%, #ffeef0 50%, #f0f3fe 100%);
+    background: white;
     position: relative;
     overflow: hidden;
 }
@@ -576,7 +645,7 @@ button:hover {
 }
 
 #init-loading p {
-    font-size: 18px;
+    font-size: 38px;
     color: #555;
     margin-bottom: 20px;
 }
