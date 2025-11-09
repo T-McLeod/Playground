@@ -123,7 +123,7 @@ async function startAutoGeneration() {
         }
         
         // Course initialization successful - redirect to launch endpoint
-        window.location.href = `/launch?course_id=${COURSE_ID}&user_id=${USER_ID || ''}&role=${USER_ROLES || ''}`;
+        window.location.href = `/launch?course_id=${COURSE_ID}&user_id=${'12'}&role=${USER_ROLES || ''}`;
         
     } catch (error) {
         console.error('Auto-generation failed:', error);

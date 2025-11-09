@@ -116,7 +116,7 @@ def create_and_provision_corpus(files: List[Dict], corpus_name_suffix: str = "")
         raise
 
 
-def retrieve_context(corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], List[str]]:
+def retrieve_context(corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], Dict]:
     """
     Retrieves relevant context chunks from the RAG corpus using vector similarity search.
     Does NOT generate answers - only returns raw context for use by other services.
@@ -174,7 +174,8 @@ def retrieve_context(corpus_id: str, query: str, top_k: int = 10, threshold: flo
                     source_names.add(filename)
                     sources.append({
                         'filename': filename,
-                        'source_uri': context.source_uri
+                        'source_uri': context.source_uri,
+                        'distance': context.distance
                     })
         
         logger.info(f"Retrieved {len(context_texts)} context chunks from {len(sources)} sources")

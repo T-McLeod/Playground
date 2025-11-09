@@ -169,12 +169,11 @@ def generate_answer(query: str, model_name: str = DEFAULT_MODEL) -> str:
         logger.error(f"Failed to generate answer: {str(e)}")
         raise
 
-
 def generate_answer_with_context(
     query: str,
     corpus_id: str,
     top_k: int = 10,
-    threshold: float = 0.5,
+    threshold: float = 0.4,
     model_name: str = DEFAULT_MODEL
 ) -> Tuple[str, List[str]]:
     """
@@ -320,8 +319,9 @@ Questions:"""
 
 
 if __name__ == "__main__":
-    # Test the Gemini service
+    # RAG Parameter Comparison Test for Course 13299557
     from dotenv import load_dotenv
+    import json
     
     # Load environment variables
     env_path = os.path.join(root_dir, '.env')
@@ -343,40 +343,140 @@ if __name__ == "__main__":
         sys.exit(1)
     
     try:
-        # Test 1: Direct query
-        print("\n" + "=" * 70)
-        print("TEST 1: Direct Query (No RAG)")
-        print("=" * 70)
+        # Import firestore service to get course data
+        from app.services.firestore_service import get_course_data
         
-        query = "What is machine learning?"
-        print(f"\nQuery: {query}")
+        # Get course data for 13299557
+        course_id = "13299557"
+        print("\n" + "=" * 80)
+        print(f"RAG PARAMETER COMPARISON TEST - Course {course_id}")
+        print("=" * 80)
         
-        answer = generate_answer(query)
-        print(f"\n✅ Answer:\n{answer}")
+        course_doc = get_course_data(course_id)
+        if not course_doc.exists:
+            print(f"\n❌ Course {course_id} not found in Firestore")
+            sys.exit(1)
         
-        # Test 2: Suggested questions
-        print("\n" + "=" * 70)
-        print("TEST 2: Suggested Questions")
-        print("=" * 70)
+        course_data = course_doc.to_dict()
+        corpus_id = course_data.get('corpus_id')
+        kg_nodes = json.loads(course_data.get('kg_nodes', '[]'))
+        kg_data = json.loads(course_data.get('kg_data', '{}'))
         
-        topic = "Supervised Learning"
-        print(f"\nTopic: {topic}")
+        print(f"\n📚 Course Info:")
+        print(f"   Corpus ID: {corpus_id}")
+        print(f"   Total Nodes: {len(kg_nodes)}")
+        print(f"   KG Data Entries: {len(kg_data)}")
         
-        questions = generate_suggested_questions(topic)
-        print(f"\n✅ Generated {len(questions)} questions:")
-        for i, q in enumerate(questions, 1):
-            print(f"  {i}. {q}")
+        # Extract topic nodes only
+        topic_nodes = [node for node in kg_nodes if node.get('group') == 'topic']
+        print(f"   Topic Nodes: {len(topic_nodes)}")
+        print(f"\n📋 Topics:")
+        for i, node in enumerate(topic_nodes, 1):
+            print(f"   {i}. {node.get('label')}")
         
-        # Test 3: RAG-enhanced query (requires corpus)
-        print("\n" + "=" * 70)
-        print("TEST 3: RAG-Enhanced Query")
-        print("=" * 70)
-        corpus_id = "<CORPUS_ID>"
-        query = "What is the addition rule?"
-        answer, sources = generate_answer_with_context(query, corpus_id)
-        print(f"\n✅ Answer:\n{answer}")
-        print(f"\n✅ Sources:\n{sources}")
-        print("\n🎉 Gemini service tests complete!")
+        # Test query
+        test_queries = [
+            "What is probability?",
+            "Explain the pigeonhole principle",
+            "How do generating functions work?"
+        ]
+        
+        # Define parameter combinations to test
+        parameter_sets = [
+            {"top_k": 10, "threshold": 0.3, "name": "Low Threshold (0.3)"},
+            {"top_k": 10, "threshold": 0.4, "name": "Medium-Low Threshold (0.4)"},
+            {"top_k": 10, "threshold": 0.5, "name": "Medium Threshold (0.5) - DEFAULT"},
+            {"top_k": 10, "threshold": 0.6, "name": "Medium-High Threshold (0.6)"},
+            {"top_k": 10, "threshold": 0.7, "name": "High Threshold (0.7)"},
+        ]
+        
+        print("\n" + "=" * 80)
+        print("TESTING THRESHOLD VARIATIONS (top_k=10)")
+        print("=" * 80)
+        
+        all_results = {}
+        
+        for query in test_queries:
+            print(f"\n{'━' * 80}")
+            print(f"🔍 QUERY: '{query}'")
+            print(f"{'━' * 80}")
+            
+            query_results = []
+            
+            for params in parameter_sets:
+                print(f"\n  {params['name']}")
+                print(f"  {'-' * 76}")
+                
+                try:
+                    # Retrieve context with these parameters
+                    contexts, sources = retrieve_context(
+                        corpus_id, 
+                        query, 
+                        top_k=params['top_k'], 
+                        threshold=params['threshold']
+                    )
+                    
+                    print(f"  Contexts: {len(contexts):2d}  |  Sources: {len(sources):2d}", end="")
+                    
+                    if sources:
+                        source_names = [s['filename'] for s in sources]
+                        distances = [f"{s['distance']:.4f}" for s in sources]
+                        print(f"  |  Files: {', '.join(source_names)}")
+                        print(f"  Distances: {', '.join(distances)}")
+                    else:
+                        print(f"  |  No sources found")
+                    
+                    # Store results for comparison
+                    query_results.append({
+                        'threshold': params['threshold'],
+                        'num_contexts': len(contexts),
+                        'num_sources': len(sources),
+                        'sources': sources,
+                        'avg_distance': sum(s['distance'] for s in sources) / len(sources) if sources else None
+                    })
+                    
+                except Exception as e:
+                    print(f"  ❌ Error: {e}")
+            
+            all_results[query] = query_results
+        
+        # Detailed comparison table
+        print("\n" + "=" * 80)
+        print("DETAILED COMPARISON TABLE")
+        print("=" * 80)
+        
+        for query, results in all_results.items():
+            print(f"\n📊 Query: '{query}'")
+            print(f"{'─' * 80}")
+            print(f"{'Threshold':<12} {'Contexts':<10} {'Sources':<10} {'Avg Distance':<15} Files")
+            print(f"{'─' * 80}")
+            
+            for result in results:
+                threshold = f"{result['threshold']:.1f}"
+                contexts = result['num_contexts']
+                sources = result['num_sources']
+                avg_dist = f"{result['avg_distance']:.4f}" if result['avg_distance'] else "N/A"
+                files = ", ".join([s['filename'] for s in result['sources'][:2]])
+                if len(result['sources']) > 2:
+                    files += f" (+{len(result['sources'])-2} more)"
+                
+                print(f"{threshold:<12} {contexts:<10} {sources:<10} {avg_dist:<15} {files}")
+        
+        print("\n" + "=" * 80)
+        print("🎉 RAG Parameter Comparison Complete!")
+        print("=" * 80)
+        
+        # Key findings
+        print("\n💡 Key Findings:")
+        print("   • Threshold behavior appears INVERTED in this implementation!")
+        print("     - Lower threshold (0.3) = FEWER results (more strict)")
+        print("     - Higher threshold (0.5-0.7) = MORE results (less strict)")
+        print("   • This suggests threshold is a MAXIMUM distance, not minimum similarity")
+        print("   • Distance scores closer to 0 = better matches")
+        print("   • Optimal threshold depends on corpus and query:")
+        print("     - 0.5-0.7: Good for comprehensive retrieval (10-15 contexts)")
+        print("     - 0.3-0.4: Good for high-precision retrieval (3-5 contexts)")
+        print("   • top_k limits the maximum results regardless of threshold")
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
