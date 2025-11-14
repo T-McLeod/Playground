@@ -91,7 +91,7 @@ jobs:
         with:
           project_id: '${{ env.PROJECT_ID }}'
           cluster_name: '${{ env.GKE_CLUSTER }}'
-          GKE_ZONE: '${{ env.GKE_LOCATION }}'
+          location: '${{ env.GKE_LOCATION }}'
 
       # Build the Docker image
       - name: 'Build and push Docker container'
