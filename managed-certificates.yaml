@@ -1,0 +1,10 @@
+# This tells Google Cloud to automatically provision and manage
+# an SSL certificate for your domain.
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: playground-web-certificate # A name for this certificate
+spec:
+  domains:
+    - playground-learning.space        # <-- IMPORTANT: Change this
+    - www.playground-learning.space   # <-- IMPORTANT: And this

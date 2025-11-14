@@ -1,0 +1,49 @@
+# This file defines your web application deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playground-web
+  labels:
+    app: playground-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: playground-web
+  template:
+    metadata:
+      labels:
+        app: playground-web
+    spec:
+      containers:
+        - name: web-app-container
+          image: web-app
+          ports:
+            - containerPort: 5000
+
+          livenessProbe:
+            httpGet:
+              path: /health # <-- You must add a '/health' route to your Flask app that returns a 200 OK
+              port: 5000
+            initialDelaySeconds: 15 # Wait 15s after start before probing
+            periodSeconds: 20     # Check every 20s
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # Readiness probe: "Is the app ready to accept traffic?" If this fails, Kubernetes stops sending traffic to it.
+          readinessProbe:
+            httpGet:
+              path: /health # You can use the same health check
+              port: 5000
+            initialDelaySeconds: 5  # Wait 5s
+            periodSeconds: 10   # Check every 10s
+            timeoutSeconds: 2
+            failureThreshold: 2
+          
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'

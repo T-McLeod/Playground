@@ -1,0 +1,17 @@
+# This file creates a network Load Balancer to expose your app.
+apiVersion: v1
+kind: Service
+metadata:
+  name: playground-web-service
+  labels:
+    app: playground-web
+  annotations:
+    cloud.google.com/backend-config: '{"default": "playground-web-backendconfig"}'
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+  selector:
+    app: playground-web
