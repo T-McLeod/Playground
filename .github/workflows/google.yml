@@ -49,7 +49,7 @@ env:
   DEPLOYMENT_NAME: 'playground-web'
   REPOSITORY: 'playground-ai'
   IMAGE: 'web-app'
-  WORKLOAD_IDENTITY_PROVIDER: '//iam.googleapis.com/projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider'
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider'
 
 jobs:
   setup-build-publish-deploy:
