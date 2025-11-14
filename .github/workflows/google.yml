@@ -47,7 +47,7 @@ env:
   GKE_ZONE: 'us-east1-b'
   GKE_CLUSTER: 'autopilot-cluster-1'
   DEPLOYMENT_NAME: 'playground-web'
-  REPOSITORY: 'playground-ai'
+  REPOSITORY: 'playground'
   IMAGE: 'web-app'
   WORKLOAD_IDENTITY_PROVIDER: 'projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider'
 
