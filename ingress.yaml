@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   name: playground-web-ingress
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: "playground-static-ip"
+    kubernetes.io/ingress.global-static-ip-name: "playground-ai"
 
     networking.gke.io/managed-certificates: "playground-web-certificate"
     kubernetes.io/ingress.allow-http: "false"
