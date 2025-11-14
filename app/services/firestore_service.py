@@ -51,17 +51,24 @@ def get_course_state(course_id: str) -> str:
         One of: 'NEEDS_INIT', 'GENERATING', 'ACTIVE'
     """
     _ensure_db()
-    doc = db.collection(COURSES_COLLECTION).document(course_id).get()
-    
-    if not doc.exists:
+    try:
+        doc = db.collection(COURSES_COLLECTION).document(course_id).get()
+        
+        if not doc.exists:
+            return 'NEEDS_INIT'
+        status = doc.get('status')
+        if status == 'GENERATING':
+            return 'GENERATING'
+        elif status == 'ACTIVE':
+            return 'ACTIVE'
+        else:
+            return 'NOT_READY'
+    except Exception as e:
+        logger.error(f"Error accessing Firestore database: {e}")
+        if "Missing or insufficient permissions" in str(e):
+            logger.error("Service account lacks Firestore permissions. Please grant 'Cloud Datastore User' role.")
+        # If database doesn't exist or other error, return NEEDS_INIT
         return 'NEEDS_INIT'
-    status = doc.get('status')
-    if status == 'GENERATING':
-        return 'GENERATING'
-    elif status == 'ACTIVE':
-        return 'ACTIVE'
-    else:
-        return 'NOT_READY'
 
 
 

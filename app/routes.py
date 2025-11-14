@@ -15,6 +15,18 @@ logger = logging.getLogger(__name__)
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for container orchestration.
+    Returns 200 OK if the application is running.
+    """
+    return jsonify({
+        'status': 'healthy',
+        'service': 'canvas-ta-bot'
+    }), 200
+
+
 @app.route('/launch', methods=['GET', 'POST'])
 def launch():
     """

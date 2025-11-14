@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+tests/
+test_*.py
+pytest_cache/
+
+# Documentation
+*.md
+!README.md
+
+# Local development
+localhost.pem
+localhost-key.pem
+playground-service-account.json
+service-account.json
+
+# Data
+app/data/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

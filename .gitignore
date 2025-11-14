@@ -28,7 +28,7 @@ instance/
 .webassets-cache
 
 # GCP Credentials
-service-account.json
+*service-account.json
 Google Keys
 
 # Environment variables
