@@ -44,7 +44,7 @@ on:
 env:
   PROJECT_ID: 'playground-ai-478208'
   GAR_LOCATION: 'us-east1'
-  GKE_ZONE: 'us-east1-a'
+  GKE_ZONE: 'us-east1-b'
   GKE_CLUSTER: 'autopilot-cluster-1'
   DEPLOYMENT_NAME: 'playground-web'
   REPOSITORY: 'playground-ai'
