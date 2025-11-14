@@ -1,0 +1,16 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: playground-web-backendconfig
+  labels:
+    app: playground-web
+  # This annotation links the Service to the BackendConfig
+  annotations:
+    cloud.google.com/backend-config: '{"default": "playground-web-backendconfig"}'
+spec:
+  healthCheck:
+    # This must match the /health route in your Flask app
+    requestPath: /health
+    # This must match the targetPort in your service.yaml
+    port: 5000
+    type: HTTP

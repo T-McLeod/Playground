@@ -3,6 +3,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: playground-web-service
+  labels:
+    app: playground-web
+  annotations:
+    cloud.google.com/backend-config: '{"default": "playground-web-backendconfig"}'
 spec:
   type: NodePort
   ports:
