@@ -208,9 +208,14 @@ def main():
         print("="*60)
         print(f"Course ID:        {results['course_id']}")
         print(f"Total Queries:    {results['total_queries']}")
-        print(f"Helpful:          {results['helpful']} ({results['helpful']/results['total_queries']*100:.1f}%)" if results['total_queries'] > 0 else "Helpful:          0")
-        print(f"Not Helpful:      {results['not_helpful']} ({results['not_helpful']/results['total_queries']*100:.1f}%)" if results['total_queries'] > 0 else "Not Helpful:      0")
-        print(f"No Rating:        {results['none']} ({results['none']/results['total_queries']*100:.1f}%)" if results['total_queries'] > 0 else "No Rating:        0")
+        if results['total_queries'] > 0:
+            print(f"Helpful:          {results['helpful']} ({results['helpful']/results['total_queries']*100:.1f}%)")
+            print(f"Not Helpful:      {results['not_helpful']} ({results['not_helpful']/results['total_queries']*100:.1f}%)")
+            print(f"No Rating:        {results['none']} ({results['none']/results['total_queries']*100:.1f}%)")
+        else:
+            print("Helpful:          0")
+            print("Not Helpful:      0")
+            print("No Rating:        0")
         
         if args.dry_run:
             print("\nNOTE: This was a dry run. No changes were made to the database.")
