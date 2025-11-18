@@ -132,14 +132,14 @@ function renderDashboard(data) {
         document.getElementById('report-date').textContent = date.toLocaleDateString();
     }
 
-    // Convert clusters object to array format for charts
-    const clustersArray = convertClustersToArray(data.clusters || {});
+    // Convert clusters object to array format - GET ALL CLUSTERS
+    const allClusters = convertClustersToArray(data.clusters || {});
 
-    // Render charts
-    renderCharts(clustersArray);
+    // Render charts with all clusters
+    renderCharts(allClusters);
 
-    // Render topic details
-    renderTopicDetails(clustersArray);
+    // Render topic details with all clusters
+    renderTopicDetails(allClusters);
 }
 
 // Convert clusters object to array format
@@ -158,16 +158,22 @@ function convertClustersToArray(clustersObj) {
     // Sort by count (descending)
     clustersArray.sort((a, b) => b.query_count - a.query_count);
     
-    // Return top 5 for the chart
-    return clustersArray.slice(0, 5);
+    // Return ALL clusters (not just top 5)
+    return clustersArray;
 }
 
 // Render pie and bar charts
 function renderCharts(clusters) {
-    // Prepare data for charts
-    const labels = clusters.map(cluster => cluster.label || 'Unknown Topic');
-    const counts = clusters.map(cluster => cluster.query_count || 0);
-    const colors = generateColors(clusters.length);
+    // Prepare data for PIE CHART - show ALL topics
+    const allLabels = clusters.map(cluster => cluster.label || 'Unknown Topic');
+    const allCounts = clusters.map(cluster => cluster.query_count || 0);
+    const allColors = generateColors(clusters.length);
+
+    // Prepare data for BAR CHART - show top 5 only
+    const top5Clusters = clusters.slice(0, 5);
+    const top5Labels = top5Clusters.map(cluster => cluster.label || 'Unknown Topic');
+    const top5Counts = top5Clusters.map(cluster => cluster.query_count || 0);
+    const top5Colors = generateColors(top5Clusters.length);
 
     // Destroy existing charts if they exist
     if (pieChart) {
@@ -177,15 +183,15 @@ function renderCharts(clusters) {
         barChart.destroy();
     }
 
-    // Pie Chart
+    // Pie Chart - ALL TOPICS
     const pieCtx = document.getElementById('topic-pie-chart').getContext('2d');
     pieChart = new Chart(pieCtx, {
         type: 'pie',
         data: {
-            labels: labels,
+            labels: allLabels,
             datasets: [{
-                data: counts,
-                backgroundColor: colors,
+                data: allCounts,
+                backgroundColor: allColors,
                 borderWidth: 2,
                 borderColor: '#fff'
             }]
@@ -218,23 +224,23 @@ function renderCharts(clusters) {
         }
     });
 
-    // Bar Chart (Stacked)
+    // Bar Chart (Stacked) - TOP 5 ONLY
     const barCtx = document.getElementById('topic-bar-chart').getContext('2d');
     barChart = new Chart(barCtx, {
         type: 'bar',
         data: {
-            labels: labels,
+            labels: top5Labels,
             datasets: [
                 {
                     label: 'Not Helpful',
-                    data: clusters.map(c => c.ratings.bad),
+                    data: top5Clusters.map(c => c.ratings.bad),
                     backgroundColor: '#F44336', // Red
                     borderColor: '#D32F2F',
                     borderWidth: 1
                 },
                 {
                     label: 'Helpful',
-                    data: clusters.map(c => c.ratings.good),
+                    data: top5Clusters.map(c => c.ratings.good),
                     backgroundColor: '#4CAF50', // Green
                     borderColor: '#388E3C',
                     borderWidth: 1
@@ -288,7 +294,7 @@ function renderCharts(clusters) {
                         footer: function(context) {
                             // Calculate total for this bar
                             const index = context[0].dataIndex;
-                            const total = clusters[index].query_count;
+                            const total = top5Clusters[index].query_count;
                             return `Total: ${total} queries`;
                         }
                     }
