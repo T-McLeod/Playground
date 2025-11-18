@@ -348,21 +348,28 @@ def get_analytics_report(course_id: str) -> dict:
         return {}
 
 
-def rate_analytics_event(doc_id: str, rating: str) -> None:
+def rate_analytics_event(doc_id: str, rating: str = None) -> None:
     """
     Updates the rating field of an analytics event.
     
     Args:
         doc_id: The Firestore document ID of the analytics event
-        rating: The rating value (e.g., 'helpful', 'not_helpful', 'good', 'bad')
+        rating: The rating value (e.g., 'helpful', 'not_helpful')
+                If None, removes the rating field from the document
     """
     _ensure_db()
     
-    db.collection(ANALYTICS_COLLECTION).document(doc_id).update({
-        'rating': rating
-    })
-    
-    logger.info(f"Updated rating for analytics event {doc_id}: {rating}")
+    if rating is None:
+        # Remove the rating field
+        db.collection(ANALYTICS_COLLECTION).document(doc_id).update({
+            'rating': firestore.DELETE_FIELD
+        })
+        logger.info(f"Removed rating for analytics event {doc_id}")
+    else:
+        db.collection(ANALYTICS_COLLECTION).document(doc_id).update({
+            'rating': rating
+        })
+        logger.info(f"Updated rating for analytics event {doc_id}: {rating}")
 
 if __name__ == "__main__":
     # Test Firestore credentials and connection
