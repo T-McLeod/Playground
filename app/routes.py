@@ -448,38 +448,56 @@ def generate_quiz():
     Generates a quiz based on the provided topic and number of questions.
     Request body:
         {
-            "topic": "abc123",
-            "num_questions": 5,
-            "file_gcs_uris": ["gs://bucket/file1.pdf", "gs://bucket/file2.pdf"],
-            "special_instructions": "optional instructions",
-        }   
+            "question_groups": [
+                {
+                    "topic": "abc123",
+                    "num_questions": 1,
+                    "file_gcs_uris": ["gs://bucket/file1.pdf", "gs://bucket/file2.pdf"],
+                    "special_instructions": "optional instructions",
+                },
+            ]
+        }
     """
     data = request.json
-    topic = data.get('topic')
-    num_questions = data.get('num_questions')
-    files = data.get('files', None)
-    special_instructions = data.get('special_instructions', "")
-
-    file_objs = []
-    for file_uri in files:
-        file_obj = gcs_service.get_file_obj(file_uri)
-        file_objs.append(file_obj)
-
-    if not topic or not num_questions or not files:
+    question_groups = data.get('question_groups')
+    if not question_groups:
         return jsonify({
-            "error": "Missing required fields: topic, num_questions, and files"
+            "error": "Missing required field: question_groups"
         }), 400
     
-    try:
-        quiz_data = dukegpt_service.generate_quiz_questions(topic, num_questions, special_instructions, file_objs)
-        return jsonify(quiz_data)
-    except Exception as e:
-        logger.error(f"Failed to generate quiz: {e}", exc_info=True)
-        return jsonify({
-            "error": "Failed to generate quiz",
-            "message": str(e)
-        }), 500
+    generated_question_groups = [] 
+    for group in question_groups:
+        topic = group.get('topic')
+        num_questions = group.get('num_questions')
+        files = group.get('file_gcs_uris', None)
+        special_instructions = group.get('special_instructions', "")
+        file_objs = []
+        for file_uri in files:
+            file_obj = gcs_service.get_file_obj(file_uri)
+            file_objs.append(file_obj)
 
+        if not topic or not num_questions or not files:
+            return jsonify({
+                "error": "Missing required fields: topic, num_questions, and files"
+            }), 400
+        
+        try:
+            quiz_data = dukegpt_service.generate_quiz_questions(topic, num_questions, special_instructions, file_objs)
+        except Exception as e:
+            logger.error(f"Failed to generate quiz: {e}", exc_info=True)
+            return jsonify({
+                "error": "Failed to generate quiz",
+                "message": str(e)
+            }), 500
+        quiz_data['topic'] = topic
+        quiz_data['num_questions'] = num_questions
+        quiz_data['special_instructions'] = special_instructions
+
+        generated_question_groups.append(quiz_data)
+
+    return jsonify({
+        "question_groups": generated_question_groups
+    })
 
 @app.route('/api/remove-topic', methods=['POST'])
 def remove_topic():

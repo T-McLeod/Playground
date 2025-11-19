@@ -62,7 +62,7 @@ def generate_quiz_questions(topic: str, num_questions: int, special_instructions
     for file_content in files:
         files_content.append(parse_file_content(file_content))
 
-    prompt = f"Generate {num_questions} quiz questions for the topic {topic} based on the following content:\n" + "--NEW FILE--\n".join(files_content)
+    prompt = f"Generate {num_questions} quiz questions for the topic {topic} with special instructions '{special_instructions}' based on the following content:\n" + "--NEW FILE--\n".join(files_content)
     
     resp = get_llm_response(
         req=prompt,
