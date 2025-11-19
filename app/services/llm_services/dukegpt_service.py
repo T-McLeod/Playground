@@ -1,6 +1,7 @@
 from io import BytesIO
 import os
 from typing import List
+from flask import json
 from openai import OpenAI
 from pypdf import PdfReader
 import sys
@@ -70,7 +71,12 @@ def generate_quiz_questions(topic: str, num_questions: int, special_instructions
         temperature=0.5
     )
 
-    return resp
+    try:
+        json_output = json.loads(resp)
+    except Exception as e:
+        return f"Error parsing JSON response: {e}\nResponse was: {resp}"
+
+    return json_output
 
 
 def get_llm_response(req: str, system_msg: str = "", temperature: float = 0.7) -> str:
