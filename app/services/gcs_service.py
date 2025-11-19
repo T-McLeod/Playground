@@ -10,6 +10,7 @@ This service provides functions to:
 
 All files are organized by course_id for easy management.
 """
+import io
 from google.cloud import storage
 import os
 import logging
@@ -248,6 +249,39 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
     except Exception as e:
         logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
         return None
+    
+def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
+    """
+    Retrieves the Blob object for a given GCS URI.
+    
+    Args:
+        gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
+    """
+    # Parse GCS URI
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name = parts[0]
+    blob_path = parts[1] if len(parts) > 1 else ''
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        if not blob.exists():
+            return None
+        
+        file_bites = blob.download_as_bytes()
+
+        file_obj = io.BytesIO(file_bites)
+        file_obj.name = blob_path
+
+        return file_obj
+    except Exception as e:
+        logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
+        return None
 
 
 def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
@@ -320,19 +354,6 @@ if __name__ == "__main__":
     if not PROJECT_ID:
         print("\n⚠️  Please set GOOGLE_CLOUD_PROJECT in .env")
         sys.exit(1)
-
-    mock_file = {
-        'id': '319580865',
-        'display_name': 'Lec 1.pdf',
-        'filename': 'Lec+1.pdf',
-        'url': 'https://canvas.instructure.com/files/319580865/download?download_frd=1&verifier=hPXvy0owVxSkEZ7paw1TVZLD5mrXWcTBvGF4KK1A',
-        'html_url': 'https://canvas.instructure.com/files/319580865/download?download_frd=1&verifier=hPXvy0owVxSkEZ7paw1TVZLD5mrXWcTBvGF4KK1A',
-        'content_type': 'application/pdf',
-        'size': 153935,
-        'created_at': '2025-11-07T05:39:33Z',
-        'updated_at': '2025-11-07T05:39:33Z',
-        'local_path': os.path.join(os.getcwd(), 'app', 'data', 'courses', '13299557', 'Lec 1.pdf')
-    }
     
     try:
         # Test bucket creation/verification
@@ -344,18 +365,14 @@ if __name__ == "__main__":
         print(f"\nTesting file listing...")
         test_course_id = "13299557"
         files = list_course_files(test_course_id, BUCKET_NAME)
-        print(f"✅ Found {len(files)} files for course '{test_course_id}'")
-
-        # Test file upload
-        print(f"\nTesting file upload...")
-        files = upload_course_files([mock_file], test_course_id, BUCKET_NAME)
-        print(f"✅ Uploaded file to: {files}")
-
-        files = list_course_files(test_course_id, BUCKET_NAME)
-        print(f"✅ Found {len(files)} files for course '{test_course_id}'")
-
-        print("\n🎉 GCS service test complete!")
         
+        test_file = files[0]
+        get_file_obj_result = get_file_obj(test_file)
+        if get_file_obj_result:
+            print(f"✅ Retrieved file object for: {test_file} (size: {len(get_file_obj_result.getvalue())} bytes)")
+        else:
+            print(f"❌ Failed to retrieve file object for: {test_file}")
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
