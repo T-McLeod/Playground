@@ -61,7 +61,6 @@ def generate_quiz_questions(topic: str, num_questions: int, special_instructions
     files_content = []
     for file_content in files:
         files_content.append(parse_file_content(file_content))
-    print(files_content)
 
     prompt = f"Generate {num_questions} quiz questions for the topic {topic} based on the following content:\n" + "--NEW FILE--\n".join(files_content)
     

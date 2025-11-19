@@ -4,6 +4,7 @@ Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
 from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
+from .services.llm_services import dukegpt_service
 import os
 import logging
 import shutil
@@ -437,6 +438,45 @@ def rate_answer():
         logger.error(f"Failed to rate answer: {e}", exc_info=True)
         return jsonify({
             "error": "Failed to rate answer",
+            "message": str(e)
+        }), 500
+    
+
+@app.route('/api/generate-quiz-questions', methods=['POST'])
+def generate_quiz():
+    """
+    Generates a quiz based on the provided topic and number of questions.
+    Request body:
+        {
+            "topic": "abc123",
+            "num_questions": 5,
+            "file_gcs_uris": ["gs://bucket/file1.pdf", "gs://bucket/file2.pdf"],
+            "special_instructions": "optional instructions",
+        }   
+    """
+    data = request.json
+    topic = data.get('topic')
+    num_questions = data.get('num_questions')
+    files = data.get('files', None)
+    special_instructions = data.get('special_instructions', "")
+
+    file_objs = []
+    for file_uri in files:
+        file_obj = gcs_service.get_file_obj(file_uri)
+        file_objs.append(file_obj)
+
+    if not topic or not num_questions or not files:
+        return jsonify({
+            "error": "Missing required fields: topic, num_questions, and files"
+        }), 400
+    
+    try:
+        quiz_data = dukegpt_service.generate_quiz_questions(topic, num_questions, special_instructions, file_objs)
+        return jsonify(quiz_data)
+    except Exception as e:
+        logger.error(f"Failed to generate quiz: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to generate quiz",
             "message": str(e)
         }), 500
 
