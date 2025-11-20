@@ -3,6 +3,8 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
+
+from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
 from .services.llm_services import dukegpt_service
 import os
@@ -498,6 +500,68 @@ def generate_quiz():
     return jsonify({
         "question_groups": generated_question_groups
     })
+
+
+@app.route('/api/create-quiz', methods=['POST'])
+def create_quiz():
+    """
+    Creates a quiz in Canvas based on the provided quiz data.
+    
+    Request body:
+        {
+            "course_id": "12345",
+            "quiz_title": "Sample Quiz",
+            "question_groups": {
+                // Quiz data structure from /generate-quiz-questions
+            }
+        }
+    """
+    data = request.json
+    course_id = data.get('course_id')
+    quiz_title = data.get('quiz_title')
+    question_groups = data.get('question_groups')
+
+    if not course_id or not quiz_title or not question_groups:
+        return jsonify({
+            "error": "Missing required fields: course_id, quiz_title, and question_groups"
+        }), 400
+
+    quiz_questions = []
+    for question_group in question_groups:
+        questions = question_group.get('questions', [])
+        for question in questions:
+            quiz_question = Quiz_Question(
+                question_type="multiple_choice_question",
+                question_text=question.get('question'),
+                points_possible=1.0,
+                answers=[
+                    Quiz_Answer(
+                        text=option,
+                        weight=100 if idx == question.get('correct_answer') else 0
+                    ) for idx, option in enumerate(question.get('options', []))
+                ]
+            )
+            quiz_questions.append(quiz_question)
+
+    
+    try:
+        quiz_info = canvas_service.create_quiz_draft(
+            course_id=course_id,
+            title=quiz_title,
+            questions=quiz_questions,
+            token=CANVAS_TOKEN
+        )
+        
+        return jsonify({
+            "success": True,
+            "quiz_info": quiz_info
+        })
+    except Exception as e:
+        logger.error(f"Failed to create Canvas quiz: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to create Canvas quiz",
+            "message": str(e)
+        }), 500
 
 @app.route('/api/remove-topic', methods=['POST'])
 def remove_topic():
