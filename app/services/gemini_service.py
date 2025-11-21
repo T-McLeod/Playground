@@ -125,7 +125,7 @@ def summarize_file(file_path: str, prompt: str = SUMMARIZE_PROMPT, model_name: s
         model = GenerativeModel(model_name)
 
         response = model.generate_content(
-            [file_part, {"text": prompt}]
+            [file_part, prompt]
         )
 
         return response.text
