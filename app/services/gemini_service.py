@@ -10,7 +10,7 @@ This service provides functions to:
 
 This service handles all LLM prompting and response formatting.
 """
-from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel, Part
 # from google.generativeai import GenerativeModel
 import mimetypes
 import os
@@ -119,10 +119,7 @@ def summarize_file(file_path: str, prompt: str = SUMMARIZE_PROMPT, model_name: s
         file_bytes = f.read()
 
     # Create a Gemini Part
-    file_part = {
-        "mime_type": mime_type,
-        "data": file_bytes
-    }
+    file_part = Part.from_data(data=file_bytes, mime_type=mime_type)
 
     try:
         model = GenerativeModel(model_name)
