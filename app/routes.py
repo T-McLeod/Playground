@@ -307,7 +307,7 @@ def initialize_course():
         }), 500
 
 
-CITE_THRESHOLD = 0.3
+CITE_THRESHOLD = 0.4
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """
@@ -346,7 +346,7 @@ def chat():
 
     return jsonify({
         "answer": answer,
-        "sources": [source for source in sources if source['distance'] <= CITE_THRESHOLD].sort(key=lambda x: x['distance']),
+        "sources": sorted([source for source in sources if source['distance'] <= CITE_THRESHOLD], key=lambda x: x['distance']),
         "log_doc_id": doc_id,
         "response": answer 
     })
