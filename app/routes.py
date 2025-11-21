@@ -307,7 +307,7 @@ def initialize_course():
         }), 500
 
 
-CITE_THRESHOLD = 0.3
+CITE_THRESHOLD = 0.4
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """
