@@ -12,6 +12,14 @@ import requests
 from typing import Tuple, Dict, List
 import logging
 import os
+from canvasapi import Canvas
+import sys
+
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
+from app.models.canvas_models import Quiz_Answer, Quiz_Question
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Canvas API configuration from environment variables
 CANVAS_API_BASE = os.environ.get('CANVAS_BASE_URL', 'https://canvas.instructure.com/api/v1')
+API_KEY = os.environ.get('CANVAS_API_TOKEN')
 ALLOWED_FILE_TYPES = ['.pdf', '.txt', '.md', '.doc', '.docx']
-
 
 def get_course_files(course_id: str, token: str, download: bool = True, output_dir: str = None) -> Tuple[List[Dict], Dict]:
     """
@@ -276,6 +284,61 @@ def get_course_info(course_id: str, token: str) -> Dict:
         raise Exception(f"Failed to fetch course info: {str(e)}")
 
 
+def create_quiz_draft(course_id: str, token: str, title: str, questions: List[Quiz_Question]) -> Dict:
+    """
+    Creates a quiz draft in the specified Canvas course.
+    
+    Args:
+        course_id: The Canvas course ID
+        token: Canvas API access token
+        title: The title of the quiz
+        questions: List of question dictionaries
+    """
+    URL = f"{CANVAS_API_BASE}/courses/{course_id}/quizzes"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
+    quiz_data = {
+        "quiz": {
+            "title": title,
+            "quiz_type": "practice_quiz",
+            "published": False,
+        }
+    }
+
+    logger.info(f"Creating quiz draft in course {course_id}...")
+
+    try:
+        response = requests.post(URL, headers=headers, json=quiz_data)
+        response.raise_for_status()
+
+        quiz_response = response.json()
+        logger.info(f"Successfully created quiz draft with ID {quiz_response.get('id')}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error creating quiz draft: {str(e)}")
+        raise Exception(f"Failed to create quiz draft: {str(e)}")
+    
+    quiz_id = quiz_response.get('id')
+    question_url = f"{CANVAS_API_BASE}/courses/{course_id}/quizzes/{quiz_id}/questions"
+    for question in questions:
+        question_data = {
+            "question": {
+                "question_type": question.question_type,
+                "question_text": question.question_text,
+                "points_possible": question.points_possible,
+                "answers": [answer.as_json() for answer in question.answers]
+            }
+        }
+        
+        try:
+            q_response = requests.post(question_url, headers=headers, json=question_data)
+            q_response.raise_for_status()
+            logger.info(f"Added question ID {q_response.json().get('id')} to quiz")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error adding question to quiz: {str(e)}")
+            raise Exception(f"Failed to add question to quiz: {str(e)}")
+
 if __name__ == "__main__":
     # Load environment variables from root .env file
     from dotenv import load_dotenv
@@ -299,15 +362,20 @@ if __name__ == "__main__":
         print("\n⚠️  Please set CANVAS_TEST_COURSE_ID and CANVAS_API_TOKEN in .env")
         sys.exit(1)
     
+    question = Quiz_Question(
+        question_type="multiple_choice_question",
+        question_text="What is 2 + 2?",
+        points_possible=1.0,
+        answers=[
+            Quiz_Answer(text="3", weight=0),
+            Quiz_Answer(text="2", weight=0),
+            Quiz_Answer(text="4", weight=100),
+            Quiz_Answer(text="5", weight=0)
+        ]
+    )
+    
     try:
-        print(f"\nTesting get_course_files() for course {course_id}...")
-        files, indexed = get_course_files(course_id, token)
-        print(f"✅ Retrieved {len(files)} files")
-        if files:
-            print(f"\nFirst file:\n{files[0]}\n")
-            print(f"  Name: {files[0]['display_name']}")
-            print(f"  URL: {files[0]['url']}")
-            print(f"  Local path: {files[0].get('local_path', 'N/A')}")
+        create_quiz_draft(course_id, token, "Sample Quiz", [question])
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
