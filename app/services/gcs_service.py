@@ -15,6 +15,8 @@ import os
 import logging
 from typing import List, Dict, Optional
 import google.auth
+from google.auth import impersonated_credentials
+from google.auth.transport.requests import Request
 
 
 # Configure logging
@@ -282,15 +284,23 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
     blob_path = parts[1] if len(parts) > 1 else ''
     
     try:
-        client = get_storage_client()
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(blob_path)
-
         credentials, _ = google.auth.default()
 
         logger.info(f"Generating signed URL for {credentials.service_account_email}")
 
-        
+        impersonated_creds = impersonated_credentials.Credentials(
+            source_credentials=credentials,
+            target_principal=credentials.service_account_email,
+            target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            lifetime=3600
+        )
+
+        impersonated_creds.refresh(Request())
+
+        client = storage.Client(project=PROJECT_ID, credentials=impersonated_creds)
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+
         # Generate signed URL with expiration
         url = blob.generate_signed_url(
             version="v4",
