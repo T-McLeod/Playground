@@ -155,6 +155,34 @@ def add_files(course_id: str, data: dict) -> None:
     }, merge=True)
 
 
+def update_status(course_id: str, status: str) -> None:
+    """
+    Updates the course document with provided data.
+    
+    Args:
+        course_id: The Canvas course ID
+        data: Dictionary of fields to update
+    """
+    _ensure_db()
+    db.collection(COURSES_COLLECTION).document(course_id).update({
+        'status': status
+    })
+
+
+def add_corpus_id(course_id: str, corpus_id: str) -> None:
+    """
+    Adds the corpus_id field to the course document.
+    
+    Args:
+        course_id: The Canvas course ID
+        corpus_id: The RAG corpus ID
+    """
+    _ensure_db()
+    db.collection(COURSES_COLLECTION).document(course_id).set({
+        'corpus_id': corpus_id
+    }, merge=True)
+
+
 # call with dictionary of:
 # corpus_id, indexed_files, kg_nodes, kg_edges, kg_data
 def finalize_course_doc(course_id: str, data: dict) -> None:
@@ -168,8 +196,6 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
     _ensure_db()
     db.collection(COURSES_COLLECTION).document(course_id).update({
         'status': 'ACTIVE',
-        'corpus_id': data.get('corpus_id'),
-        'indexed_files': data.get('indexed_files'),
         'kg_nodes': data.get('kg_nodes'),
         'kg_edges': data.get('kg_edges'),
         'kg_data': data.get('kg_data')

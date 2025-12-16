@@ -75,7 +75,7 @@ class GeminiService(LLMInterface):
             raise
 
 
-    def summarize_file(self, file_path: str, model_name: str = "") -> str:
+    def summarize_file(self, file_path: str, model_name: str = DEFAULT_MODEL) -> str:
         """
         Summarize a local file using Gemini.
 
@@ -86,21 +86,13 @@ class GeminiService(LLMInterface):
         Returns:
             Summary text
         """
-
-        # Determine MIME type (e.g. application/pdf)
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if mime_type is None:
-            mime_type = "application/octet-stream" # default to binary if unknown
-
-        # Load file bytes
-        with open(file_path, "rb") as f:
-            file_bytes = f.read()
-
         # Create a Gemini Part
-        file_part = Part.from_data(data=file_bytes, mime_type=mime_type)
+        file_part = Part.from_uri(
+            uri=file_path,
+            mime_type="application/pdf",
+        )
 
         prompt = prompts.render("summarize_file")
-
         try:
             model = GenerativeModel(model_name)
 
@@ -109,7 +101,6 @@ class GeminiService(LLMInterface):
             )
 
             return response.text
-
         except Exception as e:
             logger.error(f"Failed to summarize {file_path}: {str(e)}")
             raise

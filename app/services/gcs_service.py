@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # GCS configuration from environment variables
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
 BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
+LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-east1')
 
 
 def get_storage_client() -> storage.Client:
@@ -61,7 +61,7 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
         return bucket
 
 
-def stream_files_to_gcs(files: List[Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
+def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
     """
     Streams file-like objects to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}
@@ -74,8 +74,7 @@ def stream_files_to_gcs(files: List[Dict], course_id: str, bucket_name: str = BU
     Returns:
         Updated list of file objects with 'gcs_uri' property added"""
     bucket = ensure_bucket_exists(bucket_name)
-    for file in files:
-        file_id = file.get('id')
+    for file_id, file in files.items():
         display_name = file.get('display_name', f"file_{file_id}")
         download_url = file.get('url')
 
@@ -384,7 +383,7 @@ if __name__ == "__main__":
 
     PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
     BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-    LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
+    LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-east1')
     
     print(f"Loaded environment from: {env_path}")
     print(f"GOOGLE_CLOUD_PROJECT: {os.getenv('GOOGLE_CLOUD_PROJECT')}")

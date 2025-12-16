@@ -30,7 +30,7 @@ CANVAS_API_BASE = os.environ.get('CANVAS_BASE_URL', 'https://canvas.instructure.
 API_KEY = os.environ.get('CANVAS_API_TOKEN')
 ALLOWED_FILE_TYPES = ['.pdf', '.txt', '.md', '.doc', '.docx']
 
-def get_course_files(course_id: str, token: str, download: bool = True, output_dir: str = None) -> Tuple[List[Dict], Dict]:
+def get_course_files(course_id: str, token: str, download: bool = True, output_dir: str = None) -> Dict:
     """
     Fetches all files from a Canvas course with pagination support.
     Filters for allowed file types, optionally downloads them, and adds local paths to file objects.
