@@ -5,7 +5,9 @@ Handles all HTTP endpoints and connects frontend to core services.
 from flask import request, render_template, jsonify, session, current_app as app
 
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
+from .services.llm_services import get_llm_service
+from .services.rag_services import get_rag_service
+from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, analytics_reporting_service
 from .services.llm_services import dukegpt_service
 import os
 import logging
@@ -17,6 +19,9 @@ logger = logging.getLogger(__name__)
 # Get Canvas API token from environment
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 
+
+llm_service = get_llm_service()
+rag_service = get_rag_service()
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -229,7 +234,7 @@ def initialize_course():
                 logger.info(f"Could not locate file path for {display_name}")
                 continue
 
-            summary = gemini_service.summarize_file(
+            summary = llm_service.summarize_file(
                 file_path=local_path,
             )
 
@@ -326,9 +331,15 @@ def chat():
         # Convert DocumentSnapshot to dict
         data_dict = course_data.to_dict()
         corpus_id = data_dict.get('corpus_id')
-        answer, sources  = gemini_service.generate_answer_with_context(
-            query=query,
+        
+        context = rag_service.retrieve_context(
             corpus_id=corpus_id,
+            query=query
+        )
+
+        answer, sources  = llm_service.generate_answer(
+            query=query,
+            context=context
         )
     except Exception as e:
         print(f"[CHAT ERROR] {str(e)}")

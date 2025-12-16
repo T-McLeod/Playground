@@ -21,18 +21,23 @@ from datetime import datetime, timezone
 from typing import List
 import sys
 import os
+from sklearn.cluster import MiniBatchKMeans
+import numpy as np
+
+from .llm_services import get_llm_service
 
 # Handle imports for both module use and standalone testing
 if __name__ == "__main__":
     # Running as standalone script
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    from app.services import firestore_service, gemini_service
+    from app.services import firestore_service
 else:
     # Imported as a module
-    from . import firestore_service, gemini_service
+    from . import firestore_service
 
 logger = logging.getLogger(__name__)
 
+llm_service = get_llm_service() 
 
 # ============================================================================
 # MAIN ANALYTICS PIPELINE
@@ -58,8 +63,6 @@ def determine_optimal_clusters(vectors, max_clusters: int = 10) -> int:
         # Returns: 5 (if that's the elbow point)
     """
     try:
-        from sklearn.cluster import MiniBatchKMeans
-        import numpy as np
         
         n_samples = len(vectors)
         
@@ -339,8 +342,6 @@ def _perform_clustering(vectors, n_clusters: int = 5):
         - cluster_centers: Array of cluster centroid vectors
     """
     try:
-        from sklearn.cluster import MiniBatchKMeans
-        
         logger.info(f"Performing MiniBatchKMeans clustering with {n_clusters} clusters")
         kmeans = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, batch_size=100)
         labels = kmeans.fit_predict(vectors)
@@ -380,7 +381,7 @@ def _label_cluster(query_texts: List[str]) -> str:
             f"Only return the category label, nothing else."
         )
         
-        label = gemini_service.generate_answer(prompt)
+        label = llm_service.generate_text(prompt)
         
         # Clean up the label (remove quotes, extra whitespace)
         label = label.strip().strip('"').strip("'").strip()
