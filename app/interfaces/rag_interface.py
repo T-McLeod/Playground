@@ -7,7 +7,7 @@ class RAGInterface:
         raise NotImplementedError("This method should be overridden by subclasses.")
     
 
-    def get_embedding(self, text, model_name: str = "", task_type: str = ""):
+    def get_query_embedding(self, text, model_name: str = "", task_type: str = ""):
         raise NotImplementedError("This method should be overridden by subclasses.")
     
 

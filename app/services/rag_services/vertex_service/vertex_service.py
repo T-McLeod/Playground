@@ -1,6 +1,7 @@
 import vertexai
 from vertexai.preview import rag
 from vertexai.generative_models import GenerativeModel
+from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 import os
 import logging
 from typing import List, Tuple, Dict
@@ -126,9 +127,37 @@ class VertexRAGService(RAGInterface):
         return (context_texts, sources)
     
 
-    def get_embedding(self, text: str, model_name: str = "", task_type: str = "") -> list:
-        raise NotImplementedError("RAGInterface.get_embedding is not implemented in VertexRAGService.")     #TODO: Implement if needed
-    
+    # Initialize the embedding model
+    embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
+    def get_query_embedding(self, text: str) -> list:
+        """
+        Generates aquery retrieval embedding vector for text using Vertex AI's text-embedding model.
+        
+        Args:
+            text: The text to embed
+            model_name: The embedding model to use (default: text-embedding-004)
+            
+        Returns:
+            List of floats representing the embedding vector (768 dimensions for text-embedding-004)
+        """
+        try:
+            logger.info(f"Generating embedding for text: {text[:50]}...")
+            
+            # Create embedding input with task type
+            embedding_input = TextEmbeddingInput(
+                text=text,
+                task_type="RETRIEVAL_QUERY"
+            )
+            
+            embeddings = self.embedding_model.get_embeddings([embedding_input])
+            vector = embeddings[0].values
+            
+            logger.info(f"Generated embedding vector with {len(vector)} dimensions")
+            return vector
+            
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}", exc_info=True)
+            raise
 
     def add_files_to_corpus(self, corpus_id: str, files: List[Dict]):
         raise NotImplementedError("RAGInterface.add_files_to_corpus is not implemented in VertexRAGService.")  #TODO: Implement if needed

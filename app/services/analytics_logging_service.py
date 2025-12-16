@@ -3,7 +3,7 @@ from google.cloud import firestore
 import sys
 import os
 
-from .llm_services import get_llm_service
+from .rag_services import get_rag_service
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 if root_dir not in sys.path:
@@ -12,7 +12,7 @@ from app.services import firestore_service
 
 logger = logging.getLogger(__name__)
 
-llm_service = get_llm_service()
+rag_service = get_rag_service()
 
 
 # ============================================================================
@@ -37,10 +37,8 @@ def get_query_vector(query_text: str) -> list:
         logger.info(f"Generating embedding for query: {query_text[:50]}...")
         
         # Use Gemini's text-embedding model for query embeddings
-        vector = llm_service.get_embedding(
-            text=query_text,
-            model_name="text-embedding-004",
-            task_type="RETRIEVAL_QUERY"
+        vector = rag_service.get_query_embedding(
+            text=query_text
         )
         
         return vector
