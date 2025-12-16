@@ -40,7 +40,7 @@ class GeminiService(LLMInterface):
     def generate_text(self, prompt: str) -> str:
         return generate_answer(prompt)
 
-    def generate_answer(self, query: list, context: Tuple[List[str], List[str]] = ([], []), model_name: str = "") -> Tuple[str, List[str]]:
+    def generate_answer(self, query: list, context: Tuple[List[str], List[str]] = ([], []), model_name: str = DEFAULT_MODEL) -> Tuple[str, List[str]]:
         try:
             logger.info(f"Generating RAG-enhanced answer for: {query[:100]}...") 
 
