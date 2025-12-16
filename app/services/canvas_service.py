@@ -64,8 +64,7 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
         'Content-Type': 'application/json'
     }
     
-    files_list = []
-    indexed_files = {}
+    files_list = {}
     
     # Initial API endpoint
     url = f"{CANVAS_API_BASE}/courses/{course_id}/files"
@@ -101,16 +100,7 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
                         'updated_at': file.get('updated_at')
                     }
                     
-                    # Determine hash (prefer md5, fallback to uuid)
-                    file_hash = file.get('md5') or file.get('uuid') or file.get('id')
-                    
-                    files_list.append(file_obj)
-                    
-                    # Create indexed entry
-                    indexed_files[str(file.get('id'))] = {
-                        'hash': file_hash,
-                        'url': file.get('url')
-                    }
+                    files_list[file_obj['id']] = file_obj
             
             # Handle pagination via Link header
             url = None
@@ -131,7 +121,7 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
         if download:
             _download_files(files_list, token, course_id, output_dir)
         
-        return files_list, indexed_files
+        return files_list
         
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching course files: {str(e)}")

@@ -30,11 +30,11 @@ class VertexRAGService(RAGInterface):
     """
     Service for managing RAG corpora and retrieving context using Vertex AI.
     """
-    def create_and_provision_corpus(self, files, corpus_name_suffix):
+    def create_and_provision_corpus(self, corpus_name_suffix):
         try:
             # Create a new RAG corpus
             logger.info("Creating new RAG corpus...")
-            corpus_display_name = f"Canvas Course Corpus - {len(files)} files"
+            corpus_display_name = f"Canvas Course Corpus {corpus_name_suffix}"
             if corpus_name_suffix:
                 corpus_display_name += f" ({corpus_name_suffix})"
             
@@ -44,35 +44,7 @@ class VertexRAGService(RAGInterface):
         except Exception as e:
             logger.error(f"Failed to create and provision corpus: {str(e)}")
             raise
-            
-        # Upload each file to the corpus from GCS
-        upload_count = 0
-        for file in files:
-            gcs_uri = file.get('gcs_uri', None)
-            file_id = file.get('id', None)
-            display_name = file.get('display_name', 'unknown')
-            
-            # Skip files that weren't uploaded to GCS
-            if not gcs_uri or not gcs_uri.startswith('gs://'):
-                logger.warning(f"Invalid GCS URI for file {display_name}: {gcs_uri}, skipping")
-                continue
 
-            logger.info(f"Importing file from GCS: {display_name} (ID: {file_id})")
-            logger.info(f"  GCS URI: {gcs_uri}")
-            try:
-                rag.import_files(
-                    corpus_name=corpus_name,
-                    paths=[gcs_uri],  # Use GCS URI instead of local path
-                    chunk_size=512,  # Optimal chunk size for retrieval
-                    chunk_overlap=100  # Overlap for context continuity
-                )
-                
-                upload_count += 1
-            except Exception as e:
-                logger.error(f"Failed to import file {display_name} (ID: {file_id}, GCS URI: {gcs_uri}): {str(e)}")
-                continue
-        
-        logger.info(f"Corpus provisioning complete: {corpus_name} ({upload_count}/{len(files)} files uploaded)")
         return corpus_name
     
 
@@ -160,8 +132,34 @@ class VertexRAGService(RAGInterface):
             raise
 
     def add_files_to_corpus(self, corpus_id: str, files: List[Dict]):
-        raise NotImplementedError("RAGInterface.add_files_to_corpus is not implemented in VertexRAGService.")  #TODO: Implement if needed
+        upload_count = 0
+        for file in files:
+            gcs_uri = file.get('gcs_uri', None)
+            file_id = file.get('id', None)
+            display_name = file.get('display_name', 'unknown')
+            
+            # Skip files that weren't uploaded to GCS
+            if not gcs_uri or not gcs_uri.startswith('gs://'):
+                logger.warning(f"Invalid GCS URI for file {display_name}: {gcs_uri}, skipping")
+                continue
 
+            logger.info(f"Importing file from GCS: {display_name} (ID: {file_id})")
+            logger.info(f"  GCS URI: {gcs_uri}")
+            try:
+                rag.import_files(
+                    corpus_name=corpus_id,
+                    paths=[gcs_uri],  # Use GCS URI instead of local path
+                    chunk_size=512,  # Optimal chunk size for retrieval
+                    chunk_overlap=100  # Overlap for context continuity
+                )
+                
+                upload_count += 1
+            except Exception as e:
+                logger.error(f"Failed to import file {display_name} (ID: {file_id}, GCS URI: {gcs_uri}): {str(e)}")
+                continue
+        
+        logger.info(f"Corpus provisioning complete: {corpus_id} ({upload_count}/{len(files)} files uploaded)")
+        return corpus_id
 
     def remove_files_from_corpus(self, corpus_id: str, file_ids: List[str]):
         raise NotImplementedError("RAGInterface.remove_files_from_corpus is not implemented in VertexRAGService.")  #TODO: Implement if needed

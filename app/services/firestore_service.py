@@ -141,6 +141,18 @@ def get_course_data(course_id: str):
     return db.collection(COURSES_COLLECTION).document(course_id).get()
 
 
+def add_files(course_id: str, data: dict) -> None:
+    """
+    Adds or updates the indexed_files field in the course document.
+    
+    Args:
+        course_id: The Canvas course ID
+        data: Dictionary of indexed files to add/update
+    """
+    _ensure_db()
+    db.collection(COURSES_COLLECTION).document(course_id).set({
+        'indexed_files': data
+    }, merge=True)
 
 
 # call with dictionary of:

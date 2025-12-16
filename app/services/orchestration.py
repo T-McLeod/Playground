@@ -20,50 +20,44 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     
     Pipeline:
     1. Create Firestore doc with status: GENERATING
-    2. Download files from Canvas to local storage
-    3. Upload files to Google Cloud Storage (GCS)
-    4. Create RAG corpus and import files from GCS
-    5. Build knowledge graph using RAG context
-    6. Clean up local and GCS files
-    7. Finalize Firestore doc with status: ACTIVE
+    2. Create RAG corpus
+    3. Fetch files from Canvas to download url
+    4. Upload files to Google Cloud Storage (GCS)
+    5. Import files from GCS to RAG corpus
+    6. Summarize each file using LLM
+    7. Extract topics from summaries (if not provided)
+    8. Build knowledge graph using RAG context
+    9. Finalize Firestore doc with status: ACTIVE
     
     Returns:
         JSON response with status and corpus info
     """
     logger.info(f"Starting initialization for course {course_id}")
+    rollback_actions = []
+
     # Step 1: Create Firestore doc with status: GENERATING
     logger.debug("Step 1: Creating Firestore document...")
     firestore_service.create_course_doc(course_id)
     logger.info(f"Firestore document created for course {course_id}")
-    
-    # Step 2: Download course files from Canvas (downloads to local storage)
-    logger.debug("Step 2: Fetching course files from Canvas...")
+
+    logger.debug("Step 2: Provisioning RAG corpus...")
+    corpus_id = rag_service.create_and_provision_corpus(course_id)
+    logger.info(f"RAG corpus provisioned for course {course_id}")
+
     files, indexed_files_map = canvas_service.get_course_files(
         course_id=course_id,
         token=CANVAS_TOKEN,
         download=False
     )
     logger.info(f"Retrieved {len(files)} files from Canvas")
-    
-    # Step 3: Upload files to Google Cloud Storage (GCS)
-    logger.debug("Step 3: Uploading files to Google Cloud Storage...")
-    files = gcs_service.stream_files_to_gcs(files, course_id)
-    for file in files:
-        file_id = str(file.get('id'))
-        if file_id in indexed_files_map and file.get('gcs_uri'):
-            indexed_files_map[file_id]['gcs_uri'] = file.get('gcs_uri')
-            indexed_files_map[file_id]['display_name'] = file.get('display_name')
-    # Count successful uploads
-    successful_uploads = sum(1 for f in files if f.get('gcs_uri'))
-    logger.info(f"Uploaded {successful_uploads}/{len(files)} files to GCS")
-    
-    # Step 4: Create RAG corpus and import files from GCS
-    logger.debug("Step 4: Creating RAG corpus and importing files...")
-    corpus_id = rag_service.create_and_provision_corpus(
-        files=files,
-        corpus_name_suffix=f"Course_{course_id}"
-    )
-    logger.info(f"Created corpus: {corpus_id}")
+
+    logger.debug("Initialize corpus")
+
+    try:
+        _intake_files_from_canvas(course_id, corpus_id)
+    except Exception as e:
+        logger.error(f"Failed to intake files from Canvas: {str(e)}")
+        raise
 
     # Step 4.3: Summarize all files included:
     file_to_summary = {}
@@ -87,56 +81,91 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
         logger.info(f"File Name: {display_name}\nSummary: {summary}")
 
 
-    # Step 4.5: Extract Topics from summaries, autogenerate topics if not provided:
-    summaries = file_to_summary.values()
-    logger.info(f"topics: {topics}")
-    if not topics or not any(t.strip() for t in topics.split(",")):
-        logger.info("No topics provided, auto-extracting generating topics from files")
-        topics = kg_service.extract_topics_from_summaries(summaries)
-        logger.info(f"Auto-extracted topics: {topics}")
-    else:
-        topics = topics.split(",")
+        # Step 4.5: Extract Topics from summaries, autogenerate topics if not provided:
+        summaries = file_to_summary.values()
+        logger.info(f"topics: {topics}")
+        if not topics or not any(t.strip() for t in topics.split(",")):
+            logger.info("No topics provided, auto-extracting generating topics from files")
+            topics = kg_service.extract_topics_from_summaries(summaries)
+            logger.info(f"Auto-extracted topics: {topics}")
+        else:
+            topics = topics.split(",")
+        
+        # Step 5: Build knowledge graph
+        logger.info("Step 5: Building knowledge graph...")
+        kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
+            topic_list=topics,
+            corpus_id=corpus_id,
+            files=files
+        )
+        logger.info("Knowledge graph built successfully")
+        
+        # Step 6: Clean up local files
+        logger.info("Step 6: Cleaning up local files...")
+        local_dir = os.path.join('app', 'data', 'courses', course_id)
+        if os.path.exists(local_dir):
+            shutil.rmtree(local_dir)
+            logger.info(f"Deleted local directory: {local_dir}")
+        
+        # Step 7: Keep GCS files for future use (no cleanup)
+        logger.info("Step 7: GCS files retained for source downloads")
+        
+        # Step 8: Finalize Firestore document with all data
+        logger.info("Step 8: Finalizing Firestore document...")
+        update_payload = {
+            'corpus_id': corpus_id,
+            'indexed_files': indexed_files_map,
+            'kg_nodes': kg_nodes,
+            'kg_edges': kg_edges,
+            'kg_data': kg_data
+        }
+        firestore_service.finalize_course_doc(course_id, update_payload)
+        
+        logger.info(f"Course {course_id} initialization complete!")
+        
+        return {
+            "status": "complete",
+            "corpus_id": corpus_id,
+            "files_count": len(files),
+            "uploaded_count": successful_uploads,
+            "kg_nodes": kg_nodes,
+            "kg_edges": kg_edges,
+            "kg_data": kg_data
+        }
     
-    # Step 5: Build knowledge graph
-    logger.info("Step 5: Building knowledge graph...")
-    kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
-        topic_list=topics,
-        corpus_id=corpus_id,
-        files=files
-    )
-    logger.info("Knowledge graph built successfully")
-    
-    # Step 6: Clean up local files
-    logger.info("Step 6: Cleaning up local files...")
-    local_dir = os.path.join('app', 'data', 'courses', course_id)
-    if os.path.exists(local_dir):
-        shutil.rmtree(local_dir)
-        logger.info(f"Deleted local directory: {local_dir}")
-    
-    # Step 7: Keep GCS files for future use (no cleanup)
-    logger.info("Step 7: GCS files retained for source downloads")
-    
-    # Step 8: Finalize Firestore document with all data
-    logger.info("Step 8: Finalizing Firestore document...")
-    update_payload = {
-        'corpus_id': corpus_id,
-        'indexed_files': indexed_files_map,
-        'kg_nodes': kg_nodes,
-        'kg_edges': kg_edges,
-        'kg_data': kg_data
-    }
-    firestore_service.finalize_course_doc(course_id, update_payload)
-    
-    logger.info(f"Course {course_id} initialization complete!")
-    
-    return {
-        "status": "complete",
-        "corpus_id": corpus_id,
-        "files_count": len(files),
-        "uploaded_count": successful_uploads,
-        "kg_nodes": kg_nodes,
-        "kg_edges": kg_edges,
-        "kg_data": kg_data
-    }
 
+def _intake_files_from_canvas(course_id: str, corpus_id: str) -> list[Dict]:
+    """
+    Intake files from Canvas, upload to GCS, and return updated file objects with GCS URIs.
     
+    Args:
+        course_id: The Canvas course ID
+        files: List of file objects from Canvas API
+
+    Returns:
+        List of file objects with 'gcs_uri' property added
+    """
+    logger.debug("Step 3: Fetching course files from Canvas...")
+    files = canvas_service.get_course_files(
+        course_id=course_id,
+        token=CANVAS_TOKEN,
+        download=False
+    )
+    logger.info(f"Retrieved {len(files)} files from Canvas")
+
+    logger.debug("Step 4: Uploading files to GCS...")
+    files = gcs_service.stream_files_to_gcs(files, course_id)
+    for file_id, file in files.items():
+        if file.get('gcs_uri'):
+            files[file_id]['gcs_uri'] = file.get('gcs_uri')
+            files[file_id]['display_name'] = file.get('display_name')
+    logger.info(f"Uploaded {len(files)} files to GCS")
+    
+    logger.debug("Step 5: Importing files from GCS to RAG corpus...")
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=files,
+    )
+    logger.info(f"Uploaded files to corpus: {corpus_id}")
+
+    firestore_service.add_files(course_id, files)

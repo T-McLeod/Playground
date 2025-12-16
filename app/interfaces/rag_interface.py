@@ -1,5 +1,5 @@
 class RAGInterface:
-    def create_and_provision_corpus(self, files, corpus_name_suffix):
+    def create_and_provision_corpus(self, corpus_name_suffix):
         raise NotImplementedError("This method should be overridden by subclasses.")
     
 
