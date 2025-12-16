@@ -15,6 +15,7 @@ from google.cloud import storage
 import os
 import logging
 from typing import List, Dict, Optional
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +59,44 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
         bucket = client.create_bucket(bucket_name, location=LOCATION)
         logger.info(f"Bucket '{bucket_name}' created successfully")
         return bucket
+
+
+def stream_files_to_gcs(files: List[Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
+    """
+    Streams file-like objects to Google Cloud Storage and updates file objects with GCS URIs.
+    Files are organized in the bucket as: courses/{course_id}/{filename}
+    
+    Args:
+        files: List of file objects with 'file_obj' (file-like object) and 'display_name' properties
+        course_id: Canvas course ID for organizing files
+        bucket_name: GCS bucket name (default from env)
+        
+    Returns:
+        Updated list of file objects with 'gcs_uri' property added"""
+    bucket = ensure_bucket_exists(bucket_name)
+    for file in files:
+        file_id = file.get('id')
+        display_name = file.get('display_name', f"file_{file_id}")
+        download_url = file.get('url')
+
+        logger.debug("Starting upload for file:", display_name)
+        logger.debug(file)
+        with requests.get(download_url, stream=True) as response:
+            response.raise_for_status()
+            
+            blob_path = f"courses/{course_id}/{display_name}"
+            blob = bucket.blob(blob_path)
+            gcs_uri = f"gs://{bucket_name}/{blob_path}"
+
+            logger.debug(f"Starting stream for {blob_path}...")
+            blob.upload_from_file(
+                response.raw, 
+                content_type=response.headers.get('Content-Type')
+            )
+            file['gcs_uri'] = gcs_uri
+            logger.info(f"Successfully uploaded {blob_path}")
+
+    return files
 
 
 def upload_course_files(files: List[Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:

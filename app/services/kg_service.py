@@ -101,7 +101,6 @@ def add_topic_to_graph(topic_name: str, corpus_id: str, existing_nodes: list, ex
         else:
             summary, source_names = llm_service.generate_answer(
                 query=SUMMARY_QUERY_TEMPLATE.format(topic=topic_name),
-                corpus_id=corpus_id,
             )
             
             # Extract unique source file IDs
@@ -301,7 +300,6 @@ def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tupl
             # Use rag_service to retrieve context
             summary, source_names = llm_service.generate_answer(
                 query=SUMMARY_QUERY_TEMPLATE.format(topic=topic),
-                corpus_id=corpus_id,
             )
             
             # Extract unique source file IDs

@@ -24,7 +24,6 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from app.interfaces.llm_interface import LLMInterface
-from app.services.rag_service import retrieve_context
 from app.prompt_loader import PromptManager
 
 logger = logging.getLogger(__name__)

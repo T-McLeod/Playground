@@ -41,13 +41,13 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     files, indexed_files_map = canvas_service.get_course_files(
         course_id=course_id,
         token=CANVAS_TOKEN,
-        download=True  # Downloads files locally and adds local_path
+        download=False
     )
     logger.info(f"Retrieved {len(files)} files from Canvas")
     
     # Step 3: Upload files to Google Cloud Storage (GCS)
     logger.debug("Step 3: Uploading files to Google Cloud Storage...")
-    files = gcs_service.upload_course_files(files, course_id)
+    files = gcs_service.stream_files_to_gcs(files, course_id)
     for file in files:
         file_id = str(file.get('id'))
         if file_id in indexed_files_map and file.get('gcs_uri'):
