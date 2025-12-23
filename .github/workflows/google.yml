@@ -73,8 +73,56 @@ jobs:
         run: |
           TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}-backend-repo/playground-backend:${{ github.sha }}"
           docker build -t $TAG .
-          docker push $TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+  test:
+    name: 'Automated Testing'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Placeholder Tests
+        run: |
+          echo "No tests configured yet. Skipping..."
+          exit 0
+
+  deploy:
+    name: 'Terraform Deploy'
+    needs: [build, test] # Wait for build to finish and tests to pass
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+      
+      - name: Terraform Apply (Registry Only)
+        run: terraform apply -target=google_artifact_registry_repository.repo -auto-approve
+        working-directory: ./terraform
+
+      - name: Docker Auth & Push
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+          docker push ${{ needs.build.outputs.image_tag }}
+
+      - name: Terraform Apply
+        run: terraform apply -var="image_tag=${{ needs.build.outputs.image_tag }}" -auto-approve
+        working-directory: ./terraform
 
   # deploy:
   #   runs-on: 'ubuntu-latest'
