@@ -39,6 +39,7 @@ on:
 
 env:
   PROJECT_ID: "playground-ai-478208" # Replace with your project ID
+  TF_VAR_project_id: ${PROJECT_ID}
   REGION: "us-east1"
   APP_NAME: "playground-global"
   WIF_PROVIDER: "projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider"
