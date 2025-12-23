@@ -15,3 +15,10 @@ terraform {
     prefix = "terraform/state"
   }
 }
+
+resource "google_artifact_registry_repository" "playground-tf-repo" {
+  location      = var.region
+  repository_id = "playground-tf-repo"
+  description   = "docker container repository for playground app backend"
+  format        = "DOCKER"
+}
