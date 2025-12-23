@@ -4,31 +4,28 @@ provider "google" {
 }
 
 resource "google_storage_bucket" "bucket-for-state" {
-  name        = "playground-ai-478208"
+  name        = "playground-ai-478208-terraform-state"
   location    = "US"
   uniform_bucket_level_access = true
+  force_destroy = true
 }
 
 terraform {
   backend "gcs" {
-    bucket = "playground-ai-478208"
-    prefix = "terraform/state"
+    bucket = "playground-ai-478208-terraform-state"
+    prefix = "terraform.tfstate"
   }
 }
 
-resource "google_artifact_registry_repository" "playground-tf-repo" {
-  location      = var.region
-  repository_id = "cloud-run-source-deploy"
-  description   = "docker container repository for playground app backend"
-  format        = "DOCKER"
+module "compute" {
+  source      = "./modules/compute"
+  app_name    = var.app_name
+  location    = var.region
+}
 
-  cleanup_policies {
-    action = "KEEP"
-    id     = "Old images"
-
-    most_recent_versions {
-      keep_count            = 1
-      package_name_prefixes = []
-    }
-  }
+resource "google_storage_bucket" "app_bucket" {
+  name     = "${var.app_name}-bucket"
+  uniform_bucket_level_access = true
+  force_destroy = true
+  location = var.region
 }

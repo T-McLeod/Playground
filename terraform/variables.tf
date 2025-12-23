@@ -9,6 +9,11 @@ variable "region" {
   default     = "us-east1"
 }
 
+variable "zone" {
+  description = "The zone for resources"
+  default     = "us-east1-b"
+}
+
 variable "app_name" {
-  default = "my-docker-app"
+  default = "playground-global"
 }
