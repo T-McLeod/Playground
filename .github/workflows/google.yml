@@ -32,16 +32,15 @@ name: 'Build and Deploy to Cloud Run'
 on:
   push:
     branches:
-      - '"deployment"'
+      - '"Deployment"'
   pull_request:
     branches:
-      - '"deployment"'
+      - '"Deployment"'
 
 env:
-  PROJECT_ID: "your-gcp-project-id" # Replace with your project ID
-  REGION: "us-central1"
-  AR_REPO: "my-docker-app-repo"
-  SERVICE_NAME: "my-docker-app"
+  PROJECT_ID: "playground-ai-478208" # Replace with your project ID
+  REGION: "us-east1"
+  APP_NAME: "playground-global"
   WIF_PROVIDER: "projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider"
   WIF_SERVICE_ACCOUNT: "service-account-1@playground-ai-478208.iam.gserviceaccount.com"
 
@@ -68,7 +67,7 @@ jobs:
       - name: Build and Push Container
         id: image-info
         run: |
-          TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/app-image:${{ github.sha }}"
+          TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}/playground-backend:${{ github.sha }}"
           docker build -t $TAG .
           docker push $TAG
           echo "tag=$TAG" >> $GITHUB_OUTPUT
