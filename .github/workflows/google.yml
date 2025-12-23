@@ -47,6 +47,10 @@ env:
 
 jobs:
   build:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     name: 'Build and Push'
     runs-on: ubuntu-latest
     outputs:
