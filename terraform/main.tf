@@ -19,12 +19,14 @@ terraform {
 
 module "compute" {
   source      = "./modules/compute"
+  project_id  = var.project_id
   app_name    = var.app_name
   location    = var.region
 }
 
 module "storage" {
   source      = "./modules/storage"
+  project_id  = var.project_id
   app_name    = var.app_name
   location    = var.region
 }

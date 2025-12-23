@@ -14,3 +14,21 @@ resource "google_artifact_registry_repository" "playground-tf-repo" {
     }
   }
 }
+
+resource "google_cloud_run_v2_service" "app" {
+  name     = "${var.app_name}-service"
+  location = var.location
+
+  scaling {
+    max_instance_count = 5
+  }
+
+  template {
+    containers {
+      image = "${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.playground-tf-repo.repository_id}/playground-backend:latest"
+      ports {
+        container_port = 5000
+      }
+    }
+  }
+}
