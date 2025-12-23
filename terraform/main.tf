@@ -28,3 +28,9 @@ module "storage" {
   app_name    = var.app_name
   location    = var.region
 }
+
+module "networking" {
+  source      = "./modules/networking"
+  app_name    = var.app_name
+  project_id  = var.project_id
+}
