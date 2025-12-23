@@ -1,6 +1,6 @@
 provider "google" {
-  project     = "playground-ai-478208"
-  region      = "REGION"
+  project     = var.project_id
+  region      = var.region
 }
 
 resource "google_storage_bucket" "bucket-for-state" {

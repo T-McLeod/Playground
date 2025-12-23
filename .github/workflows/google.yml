@@ -32,10 +32,10 @@ name: 'Build and Deploy to Cloud Run'
 on:
   push:
     branches:
-      - '"Deployment"'
+      - Deployment
   pull_request:
     branches:
-      - '"Deployment"'
+      - Deployment
 
 env:
   PROJECT_ID: "playground-ai-478208" # Replace with your project ID
