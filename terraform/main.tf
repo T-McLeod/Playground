@@ -18,7 +18,17 @@ terraform {
 
 resource "google_artifact_registry_repository" "playground-tf-repo" {
   location      = var.region
-  repository_id = "playground-tf-repo"
+  repository_id = "cloud-run-source-deploy"
   description   = "docker container repository for playground app backend"
   format        = "DOCKER"
+
+  cleanup_policies {
+    action = "KEEP"
+    id     = "Old images"
+
+    most_recent_versions {
+      keep_count            = 1
+      package_name_prefixes = []
+    }
+  }
 }
