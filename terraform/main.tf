@@ -23,9 +23,8 @@ module "compute" {
   location    = var.region
 }
 
-resource "google_storage_bucket" "app_bucket" {
-  name     = "${var.app_name}-bucket"
-  uniform_bucket_level_access = true
-  force_destroy = true
-  location = var.region
+module "storage" {
+  source      = "./modules/storage"
+  app_name    = var.app_name
+  location    = var.region
 }
