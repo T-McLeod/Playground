@@ -12,3 +12,8 @@ variable "location" {
     description = "The location"
     type        = string
 }
+
+variable "image_tag" {
+    description = "The container image tag to deploy"
+    type        = string
+}

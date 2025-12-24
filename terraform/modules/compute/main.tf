@@ -25,7 +25,7 @@ resource "google_cloud_run_v2_service" "app" {
 
   template {
     containers {
-      image = "${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.playground-tf-repo.repository_id}/playground-backend:latest"
+      image = "${var.location}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.playground-tf-repo.repository_id}/playground-backend:${var.image_tag}"
       ports {
         container_port = 5000
       }

@@ -17,3 +17,8 @@ variable "zone" {
 variable "app_name" {
   default = "playground-global"
 }
+
+variable "image_tag" {
+  description = "The container image tag to deploy"
+  type        = string
+}

@@ -22,6 +22,7 @@ module "compute" {
   project_id  = var.project_id
   app_name    = var.app_name
   location    = var.region
+  image_tag   = var.image_tag
 }
 
 module "storage" {
