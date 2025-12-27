@@ -1,0 +1,50 @@
+# Used in: summarize_file()
+summarize_file: |
+  Summarize this file in one paragraph, specifically the topics that are covered, both broad and specific.
+  Someone reading the summary should understand what subjects are discussed in the file and what the learning objectives likely are. Don't get too detailed.
+  Begin the summary now with "This file discusses..."
+
+# Used in: generate_answer_with_context()
+# Variables required: {context}, {query}
+rag_answer: |
+  You are a helpful teaching assistant for a course. Answer the student's question in a helpful manner and use the sources provided when relevant.
+
+  {% if context %}
+  Here is the context to use for your answer:
+  ---------------------
+  {% for chunk in context %}
+  {{ chunk }}
+
+  {% endfor %}
+  ---------------------
+  {% else %}
+  (No context was retrieved for this question. Answer based on general knowledge.)
+  {% endif %}
+
+  Student Question: {{ query }}
+
+  Instructions:
+  1. Try your best to answer based on the provided context above.
+  2. Be clear, concise, and educational without giving away answers to explicit homework questions.
+  3. If the context doesn't contain enough information to fully answer the question, say so.
+  4. Cite specific sources when possible (e.g., "According to Chapter 1...").
+  5. Use a friendly, professional teaching tone.
+
+  Answer:
+
+# Used in: generate_suggested_questions()
+# Variables required: {count}, {topic}
+suggested_questions: |
+  Generate {count} thoughtful follow-up questions that a student might have about the topic: "{topic}"
+
+  Requirements:
+  1. Questions should be short, 10-15 words maximum.
+  2. Questions should be educational and promote deeper understanding.
+  3. Questions should be specific and relevant to the topic.
+  4. Questions should be suitable for a teaching assistant to answer.
+  5. Each question should be on a new line.
+  6. Do not number the questions.
+  
+  Topic: {topic}
+
+  Questions:
