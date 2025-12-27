@@ -33,3 +33,9 @@ resource "google_project_iam_member" "service_account_token_creator" {
   role    = "roles/iam.serviceAccountTokenCreator"
   member  = "serviceAccount:${google_service_account.app_sa.email}"
 }
+
+resource "google_project_iam_member" "secret_manager_access" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.app_sa.email}"
+}

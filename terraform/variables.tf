@@ -23,3 +23,14 @@ variable "artifact_image_path" {
   description = "The Artifact Registry image name ex: us-docker.pkg.dev/project-id/repo-name/image-name"
   type        = string
 }
+
+variable "canvas_api_token_secret_id" {
+  description = "The Secret Manager secret ID for the Canvas API token"
+  type        = string
+}
+
+variable "canvas_base_url" {
+  description = "The base URL for the Canvas instance"
+  type        = string
+  default     = "https://canvas.instructure.com/api/v1"
+}

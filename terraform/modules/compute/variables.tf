@@ -22,3 +22,20 @@ variable "image_tag" {
     description = "The container image tag to deploy"
     type        = string
 }
+
+variable "service_account_email" {
+  description = "The service account email to run the service"
+  type        = string
+}
+
+variable "env_vars" {
+  description = "Environment variables to set for the service"
+  type        = map(string)
+  default     = {}
+}
+
+variable "secrets" {
+  description = "Secrets to mount as environment variables"
+  type        = map(string)
+  default     = {}
+}
