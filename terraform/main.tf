@@ -12,6 +12,7 @@ module "compute" {
   project_id  = var.project_id
   app_name    = var.environment
   location    = var.region
+  artifact_image_path = var.artifact_image_path
   image_tag   = var.image_tag
 }
 

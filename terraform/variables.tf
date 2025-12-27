@@ -18,3 +18,8 @@ variable "image_tag" {
   type        = string
   default     = ""
 }
+
+variable "artifact_image_path" {
+  description = "The Artifact Registry image name ex: us-docker.pkg.dev/project-id/repo-name/image-name"
+  type        = string
+}

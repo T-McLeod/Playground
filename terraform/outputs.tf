@@ -2,8 +2,8 @@ output "service_url" {
   value = module.compute.service_url
 }
 
-output "artifact_registry_repo_path" {
-  value = module.compute.artifact_registry_repo_path
+output "artifact_image_tag_path" {
+  value = module.compute.artifact_image_tag_path
 }
 
 output "app_gcs_bucket" {
