@@ -294,10 +294,15 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
     
 def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
     """
-    Retrieves the Blob object for a given GCS URI.
+    Retrieves the file contents for a given GCS URI as a file-like object.
     
     Args:
         gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
+    
+    Returns:
+        Optional[io.BytesIO]: A file-like object containing the file contents
+        if the blob exists and is successfully downloaded, or None if the
+        blob does not exist or an error occurs.
     """
     # Parse GCS URI
     if not gcs_uri.startswith('gs://'):
