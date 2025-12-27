@@ -16,6 +16,8 @@ import os
 import logging
 from typing import List, Dict, Optional
 import requests
+import google.auth
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -355,12 +357,19 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         client = get_storage_client()
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
+
+        credentials, _ = google.auth.default()
+
+        logger.info(f"Generating signed URL for {credentials.service_account_email}")
+
         
         # Generate signed URL with expiration
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
-            method="GET"
+            method="GET",
+            service_account_email=credentials.service_account_email,
+            access_token=credentials.token
         )
         
         logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
