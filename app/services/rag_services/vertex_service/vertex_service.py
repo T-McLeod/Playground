@@ -1,6 +1,5 @@
 import vertexai
 from vertexai.preview import rag
-from vertexai.generative_models import GenerativeModel
 from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 import os
 import logging
