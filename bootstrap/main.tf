@@ -6,7 +6,7 @@ provider "google" {
 # Create a bucket for each environment defined in the 'environments' variable
 resource "google_storage_bucket" "state_buckets" {
   for_each      = var.environments
-  name          = "${var.project_id}-${var.app_name}-${each.key}-terraform-state"
+  name          = "${var.project_id}-${each.key}-terraform-state"
   location      = var.region
   storage_class = "STANDARD"
 

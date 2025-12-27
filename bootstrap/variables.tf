@@ -3,11 +3,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "app_name" {
-  description = "The application name used as a prefix for bucket names"
-  type        = string
-}
-
 variable "region" {
   description = "The region for the buckets"
   type        = string

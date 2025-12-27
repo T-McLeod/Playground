@@ -9,8 +9,8 @@ variable "region" {
   default     = "us-east1"
 }
 
-variable "app_name" {
-  default = "playground-global"
+variable "environment" {
+  description = "The environment name (e.g. global-dev, global-prod)"
 }
 
 variable "image_tag" {
