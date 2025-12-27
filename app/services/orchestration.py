@@ -137,10 +137,10 @@ def _summarize_files(course_id: str, files: list[dict]) -> dict:
     Summarizes a list of files using the LLM service.
     
     Args:
-        files: List of file objects with 'local_path' property
+        files: List of file objects with a 'gcs_uri' property pointing to the file in GCS
 
     Returns:
-        Dictionary mapping file display names to their summaries
+        List of file objects with a 'summary' field added for each file
     """
     for file in files:
         display_name = file.get("display_name") or f"file_{file.get('id')}"
