@@ -12,9 +12,11 @@ from typing import List
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
-from app.services import gemini_service
+from app.services.llm_services import get_llm_service
 
 logger = logging.getLogger(__name__)
+
+llm_service = get_llm_service()
 
 
 SUMMARY_QUERY_TEMPLATE = (
@@ -44,7 +46,7 @@ Example output: Machine Learning, Neural Networks, Data Processing, Model Evalua
 Summaries: {all_summaries}"""
     
     try:
-        topics_text = gemini_service.generate_answer(prompt)
+        topics_text = llm_service.generate_text(prompt)
         topics = [t.strip() for t in topics_text.split(',') if t.strip()]
         return topics[:num_topics]
     except Exception as e:
@@ -97,10 +99,8 @@ def add_topic_to_graph(topic_name: str, corpus_id: str, existing_nodes: list, ex
             source_files = []
             logger.info(f"Using custom summary for topic '{topic_name}'")
         else:
-            # Use gemini_service to get summary and sources
-            summary, source_names = gemini_service.generate_answer_with_context(
+            summary, source_names = llm_service.generate_answer(
                 query=SUMMARY_QUERY_TEMPLATE.format(topic=topic_name),
-                corpus_id=corpus_id,
             )
             
             # Extract unique source file IDs
@@ -298,9 +298,8 @@ def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tupl
         # Query RAG corpus for this topic using rag_service
         try:
             # Use rag_service to retrieve context
-            summary, source_names = gemini_service.generate_answer_with_context(
+            summary, source_names = llm_service.generate_answer(
                 query=SUMMARY_QUERY_TEMPLATE.format(topic=topic),
-                corpus_id=corpus_id,
             )
             
             # Extract unique source file IDs

@@ -1,34 +1,18 @@
-"""
-Analytics Logging Service
-Handles real-time logging of student interactions for analytics.
-
-This service is responsible for:
-- Logging chat queries with embeddings
-- Logging knowledge graph interactions
-- Storing all analytics events to Firestore
-
-This is a lightweight service focused only on data collection.
-Analysis and reporting is handled by analytics_reporting_service.
-
-Dependencies:
-- firestore_service: For database operations
-- gemini_service: For generating embeddings
-"""
 import logging
 from google.cloud import firestore
 import sys
 import os
 
-# Handle imports for both module use and standalone testing
-if __name__ == "__main__":
-    # Running as standalone script
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    from app.services import firestore_service, gemini_service
-else:
-    # Imported as a module
-    from . import firestore_service, gemini_service
+from .rag_services import get_rag_service
+
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+from app.services import firestore_service
 
 logger = logging.getLogger(__name__)
+
+rag_service = get_rag_service()
 
 
 # ============================================================================
@@ -53,10 +37,8 @@ def get_query_vector(query_text: str) -> list:
         logger.info(f"Generating embedding for query: {query_text[:50]}...")
         
         # Use Gemini's text-embedding model for query embeddings
-        vector = gemini_service.get_embedding(
-            text=query_text,
-            model_name="text-embedding-004",
-            task_type="RETRIEVAL_QUERY"
+        vector = rag_service.get_query_embedding(
+            text=query_text
         )
         
         return vector

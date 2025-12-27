@@ -3,7 +3,13 @@ Flask API Routes (ROLE 2: The "API Router")
 Handles all HTTP endpoints and connects frontend to core services.
 """
 from flask import request, render_template, jsonify, session, current_app as app
-from .services import firestore_service, rag_service, kg_service, canvas_service, gcs_service, gemini_service, analytics_logging_service, analytics_reporting_service
+
+from app.models.canvas_models import Quiz_Answer, Quiz_Question
+from .services.llm_services import get_llm_service
+from .services.rag_services import get_rag_service
+from .services.orchestration import initialize_course_from_canvas
+from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, analytics_reporting_service
+from .services.llm_services import dukegpt_service
 import os
 import logging
 import shutil
@@ -14,6 +20,9 @@ logger = logging.getLogger(__name__)
 # Get Canvas API token from environment
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 
+
+llm_service = get_llm_service()
+rag_service = get_rag_service()
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -168,126 +177,7 @@ def initialize_course():
         course_id = data.get('course_id')
         topics = data.get('topics')  # Optional now
         
-        if not course_id:
-            return jsonify({"error": "course_id is required"}), 400
-        
-        logger.info(f"Starting initialization for course {course_id}")
-        # Step 1: Create Firestore doc with status: GENERATING
-        logger.info("Step 1: Creating Firestore document...")
-        firestore_service.create_course_doc(course_id)
-        
-        # Step 2: Download course files from Canvas (downloads to local storage)
-        logger.info("Step 2: Fetching course files from Canvas...")
-        files, indexed_files_map = canvas_service.get_course_files(
-            course_id=course_id,
-            token=CANVAS_TOKEN,
-            download=True  # Downloads files locally and adds local_path
-        )
-        
-        if not files:
-            logger.warning(f"No files found for course {course_id}")
-            return jsonify({"error": "No course files found"}), 404
-        
-        logger.info(f"Retrieved {len(files)} files from Canvas")
-        
-        # Step 3: Upload files to Google Cloud Storage (GCS)
-        logger.info("Step 3: Uploading files to Google Cloud Storage...")
-        files = gcs_service.upload_course_files(files, course_id)
-        
-        # Update indexed_files_map with GCS URIs
-        for file in files:
-            file_id = str(file.get('id'))
-            if file_id in indexed_files_map and file.get('gcs_uri'):
-                indexed_files_map[file_id]['gcs_uri'] = file.get('gcs_uri')
-                indexed_files_map[file_id]['display_name'] = file.get('display_name')
-        
-        # Count successful uploads
-        successful_uploads = sum(1 for f in files if f.get('gcs_uri'))
-        logger.info(f"Uploaded {successful_uploads}/{len(files)} files to GCS")
-        
-        # Step 4: Create RAG corpus and import files from GCS
-        logger.info("Step 4: Creating RAG corpus and importing files...")
-        corpus_id = rag_service.create_and_provision_corpus(
-            files=files,
-            corpus_name_suffix=f"Course {course_id}"
-        )
-        logger.info(f"Created corpus: {corpus_id}")
-
-        # Step 4.3: Summarize all files included:
-        file_to_summary = {}
-        files_processed = 0
-
-        for file in files:
-            local_path = file.get("local_path")
-            display_name = file.get("display_name") or f"file_{file.get('id')}"
-
-            # Skip if no local path
-            if not local_path:
-                logger.info(f"Could not locate file path for {display_name}")
-                continue
-
-            summary = gemini_service.summarize_file(
-                file_path=local_path,
-            )
-
-            file_to_summary[display_name] = summary
-            files_processed += 1
-            logger.info(f"File Name: {display_name}\nSummary: {summary}")
-
-
-        # Step 4.5: Extract Topics from summaries, autogenerate topics if not provided:
-        summaries = file_to_summary.values()
-        logger.info(f"topics: {topics}")
-        if not topics or not any(t.strip() for t in topics.split(",")):
-            logger.info("No topics provided, auto-extracting generating topics from files")
-            topics = kg_service.extract_topics_from_summaries(summaries)
-            logger.info(f"Auto-extracted topics: {topics}")
-        else:
-            topics = topics.split(",")
-        
-        # Step 5: Build knowledge graph
-        logger.info("Step 5: Building knowledge graph...")
-        kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
-            topic_list=topics,
-            corpus_id=corpus_id,
-            files=files
-        )
-        logger.info("Knowledge graph built successfully")
-        
-        # Step 6: Clean up local files
-        logger.info("Step 6: Cleaning up local files...")
-        local_dir = os.path.join('app', 'data', 'courses', course_id)
-        if os.path.exists(local_dir):
-            shutil.rmtree(local_dir)
-            logger.info(f"Deleted local directory: {local_dir}")
-        
-        # Step 7: Keep GCS files for future use (no cleanup)
-        logger.info("Step 7: GCS files retained for source downloads")
-        
-        # Step 8: Finalize Firestore document with all data
-        logger.info("Step 8: Finalizing Firestore document...")
-        update_payload = {
-            'corpus_id': corpus_id,
-            'indexed_files': indexed_files_map,
-            'kg_nodes': kg_nodes,
-            'kg_edges': kg_edges,
-            'kg_data': kg_data
-        }
-        firestore_service.finalize_course_doc(course_id, update_payload)
-        
-        logger.info(f"Course {course_id} initialization complete!")
-        
-        return jsonify({
-            "status": "complete",
-            "corpus_id": corpus_id,
-            "files_count": len(files),
-            "uploaded_count": successful_uploads,
-            "kg_nodes": kg_nodes,
-            "kg_edges": kg_edges,
-            "kg_data": kg_data
-        })
-
-        
+        return jsonify(initialize_course_from_canvas(course_id, topics))
     except Exception as e:
         logger.error(f"Error initializing course {course_id or 'unknown'}: {str(e)}", exc_info=True)
         
@@ -323,9 +213,15 @@ def chat():
         # Convert DocumentSnapshot to dict
         data_dict = course_data.to_dict()
         corpus_id = data_dict.get('corpus_id')
-        answer, sources  = gemini_service.generate_answer_with_context(
-            query=query,
+        
+        context = rag_service.retrieve_context(
             corpus_id=corpus_id,
+            query=query
+        )
+
+        answer, sources  = llm_service.generate_answer(
+            query=query,
+            context=context
         )
     except Exception as e:
         print(f"[CHAT ERROR] {str(e)}")
@@ -439,7 +335,126 @@ def rate_answer():
             "error": "Failed to rate answer",
             "message": str(e)
         }), 500
+    
 
+@app.route('/api/generate-quiz-questions', methods=['POST'])
+def generate_quiz():
+    """
+    Generates a quiz based on the provided topic and number of questions.
+    Request body:
+        {
+            "question_groups": [
+                {
+                    "topic": "abc123",
+                    "num_questions": 1,
+                    "file_gcs_uris": ["gs://bucket/file1.pdf", "gs://bucket/file2.pdf"],
+                    "special_instructions": "optional instructions",
+                },
+            ]
+        }
+    """
+    data = request.json
+    question_groups = data.get('question_groups')
+    if not question_groups:
+        return jsonify({
+            "error": "Missing required field: question_groups"
+        }), 400
+    
+    generated_question_groups = [] 
+    for group in question_groups:
+        topic = group.get('topic')
+        num_questions = group.get('num_questions')
+        files = group.get('file_gcs_uris', None)
+        special_instructions = group.get('special_instructions', "")
+        file_objs = []
+        for file_uri in files:
+            file_obj = gcs_service.get_file_obj(file_uri)
+            file_objs.append(file_obj)
+
+        if not topic or not num_questions or not files:
+            return jsonify({
+                "error": "Missing required fields: topic, num_questions, and files"
+            }), 400
+        
+        try:
+            quiz_data = dukegpt_service.generate_quiz_questions(topic, num_questions, special_instructions, file_objs)
+        except Exception as e:
+            logger.error(f"Failed to generate quiz: {e}", exc_info=True)
+            return jsonify({
+                "error": "Failed to generate quiz",
+                "message": str(e)
+            }), 500
+        quiz_data['topic'] = topic
+        quiz_data['num_questions'] = num_questions
+        quiz_data['special_instructions'] = special_instructions
+
+        generated_question_groups.append(quiz_data)
+
+    return jsonify({
+        "question_groups": generated_question_groups
+    })
+
+
+@app.route('/api/create-quiz', methods=['POST'])
+def create_quiz():
+    """
+    Creates a quiz in Canvas based on the provided quiz data.
+    
+    Request body:
+        {
+            "course_id": "12345",
+            "quiz_title": "Sample Quiz",
+            "question_groups": {
+                // Quiz data structure from /generate-quiz-questions
+            }
+        }
+    """
+    data = request.json
+    course_id = data.get('course_id')
+    quiz_title = data.get('quiz_title')
+    question_groups = data.get('question_groups')
+
+    if not course_id or not quiz_title or not question_groups:
+        return jsonify({
+            "error": "Missing required fields: course_id, quiz_title, and question_groups"
+        }), 400
+
+    quiz_questions = []
+    for question_group in question_groups:
+        questions = question_group.get('questions', [])
+        for question in questions:
+            quiz_question = Quiz_Question(
+                question_type="multiple_choice_question",
+                question_text=question.get('question'),
+                points_possible=1.0,
+                answers=[
+                    Quiz_Answer(
+                        text=option,
+                        weight=100 if idx == question.get('correct_answer') else 0
+                    ) for idx, option in enumerate(question.get('options', []))
+                ]
+            )
+            quiz_questions.append(quiz_question)
+
+    
+    try:
+        quiz_info = canvas_service.create_quiz_draft(
+            course_id=course_id,
+            title=quiz_title,
+            questions=quiz_questions,
+            token=CANVAS_TOKEN
+        )
+        
+        return jsonify({
+            "success": True,
+            "quiz_info": quiz_info
+        })
+    except Exception as e:
+        logger.error(f"Failed to create Canvas quiz: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to create Canvas quiz",
+            "message": str(e)
+        }), 500
 
 @app.route('/api/remove-topic', methods=['POST'])
 def remove_topic():
