@@ -2,7 +2,7 @@ from typing import Dict
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .llm_services import get_llm_service
 from .rag_services import get_rag_service
-from . import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, analytics_reporting_service
+from . import firestore_service, kg_service, canvas_service, gcs_service
 import os
 import logging
 
