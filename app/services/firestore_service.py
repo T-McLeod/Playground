@@ -157,11 +157,11 @@ def add_files(course_id: str, data: dict) -> None:
 
 def update_status(course_id: str, status: str) -> None:
     """
-    Updates the course document with provided data.
+    Updates the status field in the course document.
     
     Args:
         course_id: The Canvas course ID
-        data: Dictionary of fields to update
+        status: The new status value for the course
     """
     _ensure_db()
     db.collection(COURSES_COLLECTION).document(course_id).update({
