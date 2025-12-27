@@ -315,9 +315,9 @@ def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
         if not blob.exists():
             return None
         
-        file_bites = blob.download_as_bytes()
+        file_bytes = blob.download_as_bytes()
 
-        file_obj = io.BytesIO(file_bites)
+        file_obj = io.BytesIO(file_bytes)
         file_obj.name = blob_path
 
         return file_obj
