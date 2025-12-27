@@ -47,7 +47,7 @@ class VertexRAGService(RAGInterface):
         return corpus_name
     
 
-    def retrieve_context(self, corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], Dict]:
+    def retrieve_context(self, corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], List[Dict]]:
         """
         Retrieves relevant context chunks from the RAG corpus using vector similarity search.
         Does NOT generate answers - only returns raw context for use by other services.
