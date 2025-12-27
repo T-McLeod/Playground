@@ -32,10 +32,12 @@ name: 'Build and Deploy to Cloud Run'
 on:
   push:
     branches:
-      - Deployment
+      - development
+      - main
   pull_request:
     branches:
-      - Deployment
+      - development
+      - main
 
 env:
   PROJECT_ID: "playground-ai-478208"
@@ -57,10 +59,38 @@ jobs:
           echo "No tests configured yet. Skipping..."
           exit 0
 
-  deploy:
-    name: 'Terraform Deploy'
-    needs: [test] # Wait for build to finish and tests to pass
+  deploy_build:
+    name: 'Build & Deploy Docker Image'
+    needs: [test]
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_PATH="us-docker.pkg.dev/playground-ai-478208/playground-global-repo/playground-backend"
+          docker build -t "${IMAGE_PATH}:${{ env.IMAGE_TAG }}" -t "${IMAGE_PATH}:latest" .
+          docker push "${IMAGE_PATH}:${{ env.IMAGE_TAG }}"
+          docker push "${IMAGE_PATH}:latest"
+
+  deploy_infrastructure:
+    name: 'Terraform Deploy'
+    needs: [test, deploy_build] # Wait for build to finish and tests to pass
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'development' || github.ref_name == 'main'
 
     permissions:
       contents: 'read'
@@ -82,23 +112,18 @@ jobs:
       - name: Terraform Init
         run: terraform init
         working-directory: ./terraform
-      
-      - name: Terraform Apply (Registry Only)
-        run: terraform apply "-target=module.compute.google_artifact_registry_repository.playground-tf-repo" -var="image_tag=${{ env.IMAGE_TAG }}" -auto-approve
-        working-directory: ./terraform
-
-      - name: Docker Auth & Push
-        run: |
-          set -e
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-          REPO_PATH=$(terraform -chdir=terraform output -raw artifact_registry_repo_path)
-          IMAGE_PATH="${REPO_PATH}/playground-backend:${{ env.IMAGE_TAG }}"
-          docker build -t "${IMAGE_PATH}" .
-          docker push "${IMAGE_PATH}"
 
       - name: Terraform Apply
-        run: terraform apply -var="image_tag=${{ env.IMAGE_TAG }}" -auto-approve
+        run: terraform apply -var-file="environments/${{ github.ref_name }}/terraform.tfvars" -auto-approve
         working-directory: ./terraform
+
+      - name: Promote Image
+        run: |
+          ORIGIN_IMAGE_PATH="us-docker.pkg.dev/playground-ai-478208/playground-global-repo/playground-backend"
+          IMAGE_TAG_PATH=$(terraform -chdir=./terraform output -raw artifact_image_tag_path)
+          docker pull "${ORIGIN_IMAGE_PATH}:${{ env.IMAGE_TAG }}"
+          docker tag "${ORIGIN_IMAGE_PATH}:${{ env.IMAGE_TAG }}" "${IMAGE_TAG_PATH}"
+          docker push "${IMAGE_TAG_PATH}"
 
   # deploy:
   #   runs-on: 'ubuntu-latest'

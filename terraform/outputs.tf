@@ -2,6 +2,10 @@ output "service_url" {
   value = module.compute.service_url
 }
 
+output "artifact_image_path" {
+  value = module.compute.artifact_image_path
+}
+
 output "artifact_image_tag_path" {
   value = module.compute.artifact_image_tag_path
 }
