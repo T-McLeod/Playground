@@ -6,7 +6,6 @@ from . import firestore_service, kg_service, canvas_service, gcs_service, analyt
 import os
 import logging
 import shutil
-import json
 
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 llm_service = get_llm_service()
