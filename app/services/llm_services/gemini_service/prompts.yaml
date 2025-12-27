@@ -12,7 +12,10 @@ rag_answer: |
   {% if context %}
   Here is the context to use for your answer:
   ---------------------
-  {{ context }}
+  {% for chunk in context %}
+  {{ chunk }}
+
+  {% endfor %}
   ---------------------
   {% else %}
   (No context was retrieved for this question. Answer based on general knowledge.)
