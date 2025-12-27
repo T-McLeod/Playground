@@ -292,7 +292,7 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
         logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
         return None
     
-def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
+def get_file_obj(gcs_uri: str) -> Optional[io.BytesIO]:
     """
     Retrieves the Blob object for a given GCS URI.
     

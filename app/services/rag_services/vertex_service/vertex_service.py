@@ -130,11 +130,10 @@ class VertexRAGService(RAGInterface):
             logger.error(f"Failed to generate embedding: {e}", exc_info=True)
             raise
 
-    def add_files_to_corpus(self, corpus_id: str, files: List[Dict]):
+    def add_files_to_corpus(self, corpus_id: str, files: Dict[str, Dict]):
         upload_count = 0
         for file_id, file in files.items():
             gcs_uri = file.get('gcs_uri', None)
-            file_id = file.get('id', None)
             display_name = file.get('display_name', 'unknown')
             
             # Skip files that weren't uploaded to GCS

@@ -244,7 +244,6 @@ def chat():
         "answer": answer,
         "sources": sorted([source for source in sources if source['distance'] <= CITE_THRESHOLD], key=lambda x: x['distance']),
         "log_doc_id": doc_id,
-        "response": answer 
     })
 
 

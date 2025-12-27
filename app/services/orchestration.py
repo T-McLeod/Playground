@@ -130,7 +130,7 @@ def _intake_files_from_canvas(course_id: str, corpus_id: str) -> list[Dict]:
     return files
 
 
-def _summarize_files(course_id: str, files: list[dict]) -> dict:
+def _summarize_files(course_id: str, files: list[dict]) -> list[dict]:
     """
     Summarizes a list of files using the LLM service.
     

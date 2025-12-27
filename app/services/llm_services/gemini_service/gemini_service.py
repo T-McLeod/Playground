@@ -50,7 +50,7 @@ class GeminiService(LLMInterface):
             logger.error(f"Failed to generate answer: {str(e)}")
             raise
 
-    def generate_answer(self, query: list, context: Tuple[List[str], List[str]] = ([], []), model_name: str = DEFAULT_MODEL) -> Tuple[str, List[str]]:
+    def generate_answer(self, query: str, context: Tuple[List[str], List[str]] = ([], []), model_name: str = DEFAULT_MODEL) -> Tuple[str, List[str]]:
         try:
             logger.info(f"Generating RAG-enhanced answer for: {query[:100]}...") 
 
