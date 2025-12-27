@@ -99,8 +99,14 @@ def add_topic_to_graph(topic_name: str, corpus_id: str, existing_nodes: list, ex
             source_files = []
             logger.info(f"Using custom summary for topic '{topic_name}'")
         else:
+            summary_query = SUMMARY_QUERY_TEMPLATE.format(topic=topic_name)
+            context = rag_service.retrieve_context(
+                corpus_id=corpus_id,
+                query=summary_query,
+            )
             summary, source_names = llm_service.generate_answer(
-                query=SUMMARY_QUERY_TEMPLATE.format(topic=topic_name),
+                query=summary_query,
+                context=context,
             )
             
             # Extract unique source file IDs
