@@ -1,6 +1,5 @@
 import vertexai
 from vertexai.preview import rag
-from vertexai.generative_models import GenerativeModel
 from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 import os
 import logging
@@ -48,7 +47,7 @@ class VertexRAGService(RAGInterface):
         return corpus_name
     
 
-    def retrieve_context(self, corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], Dict]:
+    def retrieve_context(self, corpus_id: str, query: str, top_k: int = 10, threshold: float = 0.5) -> Tuple[List[str], List[Dict]]:
         """
         Retrieves relevant context chunks from the RAG corpus using vector similarity search.
         Does NOT generate answers - only returns raw context for use by other services.
@@ -103,7 +102,7 @@ class VertexRAGService(RAGInterface):
     embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
     def get_query_embedding(self, text: str) -> list:
         """
-        Generates aquery retrieval embedding vector for text using Vertex AI's text-embedding model.
+        Generates a query retrieval embedding vector for text using Vertex AI's text-embedding model.
         
         Args:
             text: The text to embed
@@ -131,11 +130,10 @@ class VertexRAGService(RAGInterface):
             logger.error(f"Failed to generate embedding: {e}", exc_info=True)
             raise
 
-    def add_files_to_corpus(self, corpus_id: str, files: List[Dict]):
+    def add_files_to_corpus(self, corpus_id: str, files: Dict[str, Dict]):
         upload_count = 0
         for file_id, file in files.items():
             gcs_uri = file.get('gcs_uri', None)
-            file_id = file.get('id', None)
             display_name = file.get('display_name', 'unknown')
             
             # Skip files that weren't uploaded to GCS

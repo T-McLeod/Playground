@@ -1,6 +1,6 @@
 
 
-from typing import Dict, List
+from typing import List
 
 
 class Quiz_Answer():
@@ -12,7 +12,7 @@ class Quiz_Answer():
 
     def __init__(self, text: str, weight: int):
         self.text = text
-        self.weight =   weight
+        self.weight = weight
 
 
     def as_json(self):

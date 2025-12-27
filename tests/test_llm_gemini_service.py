@@ -5,7 +5,6 @@ import os
 
 # Ensure app is in path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-print(sys.path[0])
 from app.services.llm_services.gemini_service.gemini_service import GeminiService
 
 class TestGeminiService(unittest.TestCase):
@@ -70,23 +69,6 @@ class TestGeminiService(unittest.TestCase):
         self.assertIn("Context about X", generated_prompt)
         self.assertIn("What is X?", generated_prompt)
         self.assertIn("source1.pdf", generated_prompt)
-
-    @patch('app.services.llm_services.gemini_service.gemini_service.TextEmbeddingModel')
-    def test_get_query_embedding(self, mock_embed_model_cls):
-        # Setup mock
-        mock_model = MagicMock()
-        mock_embedding = MagicMock()
-        mock_embedding.values = [0.1, 0.2, 0.3]
-        mock_model.get_embeddings.return_value = [mock_embedding]
-        mock_embed_model_cls.from_pretrained.return_value = mock_model
-
-        # Execute
-        vector = self.service.get_query_embedding("Test Text")
-
-        # Verify
-        self.assertEqual(vector, [0.1, 0.2, 0.3])
-        mock_embed_model_cls.from_pretrained.assert_called()
-        mock_model.get_embeddings.assert_called()
 
     @patch('app.services.llm_services.gemini_service.gemini_service.GenerativeModel')
     @patch('builtins.open', new_callable=mock_open, read_data=b"file_content")

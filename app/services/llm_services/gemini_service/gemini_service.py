@@ -11,12 +11,10 @@ This service provides functions to:
 This service handles all LLM prompting and response formatting.
 """
 from vertexai.generative_models import GenerativeModel, Part
-from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 import mimetypes
 import os
 import logging
 from typing import List, Tuple
-import vertexai
 import sys
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -50,7 +48,7 @@ class GeminiService(LLMInterface):
             logger.error(f"Failed to generate answer: {str(e)}")
             raise
 
-    def generate_answer(self, query: list, context: Tuple[List[str], List[str]] = ([], []), model_name: str = DEFAULT_MODEL) -> Tuple[str, List[str]]:
+    def generate_answer(self, query: str, context: Tuple[List[str], List[str]] = ([], []), model_name: str = DEFAULT_MODEL) -> Tuple[str, List[str]]:
         try:
             logger.info(f"Generating RAG-enhanced answer for: {query[:100]}...") 
 
@@ -86,10 +84,15 @@ class GeminiService(LLMInterface):
         Returns:
             Summary text
         """
+        # Determine MIME type dynamically based on the file extension
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+
         # Create a Gemini Part
         file_part = Part.from_uri(
             uri=file_path,
-            mime_type="application/pdf",
+            mime_type=mime_type,
         )
 
         prompt = prompts.render("summarize_file")

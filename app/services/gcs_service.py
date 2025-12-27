@@ -65,22 +65,24 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
 
 def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
     """
-    Streams file-like objects to Google Cloud Storage and updates file objects with GCS URIs.
+    Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}
     
     Args:
-        files: List of file objects with 'file_obj' (file-like object) and 'display_name' properties
+        files: Dictionary mapping file IDs to file metadata dictionaries, each containing at least
+            a 'display_name' and a 'url' used to download the file contents.
         course_id: Canvas course ID for organizing files
         bucket_name: GCS bucket name (default from env)
         
     Returns:
-        Updated list of file objects with 'gcs_uri' property added"""
+        Updated dictionary of file objects with 'gcs_uri' property added
+    """
     bucket = ensure_bucket_exists(bucket_name)
     for file_id, file in files.items():
         display_name = file.get('display_name', f"file_{file_id}")
         download_url = file.get('url')
 
-        logger.debug("Starting upload for file:", display_name)
+        logger.debug(f"Starting upload for file: {display_name}")
         logger.debug(file)
         with requests.get(download_url, stream=True) as response:
             response.raise_for_status()
@@ -290,12 +292,17 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
         logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
         return None
     
-def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
+def get_file_obj(gcs_uri: str) -> Optional[io.BytesIO]:
     """
-    Retrieves the Blob object for a given GCS URI.
+    Retrieves the file contents for a given GCS URI as a file-like object.
     
     Args:
         gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
+    
+    Returns:
+        Optional[io.BytesIO]: A file-like object containing the file contents
+        if the blob exists and is successfully downloaded, or None if the
+        blob does not exist or an error occurs.
     """
     # Parse GCS URI
     if not gcs_uri.startswith('gs://'):
@@ -313,9 +320,9 @@ def get_file_obj(gcs_uri: str) -> Optional[storage.Blob]:
         if not blob.exists():
             return None
         
-        file_bites = blob.download_as_bytes()
+        file_bytes = blob.download_as_bytes()
 
-        file_obj = io.BytesIO(file_bites)
+        file_obj = io.BytesIO(file_bytes)
         file_obj.name = blob_path
 
         return file_obj

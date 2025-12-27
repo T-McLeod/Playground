@@ -8,7 +8,7 @@ from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
 from .services.orchestration import initialize_course_from_canvas
-from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, analytics_reporting_service
+from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
 import os
 import logging
@@ -244,7 +244,6 @@ def chat():
         "answer": answer,
         "sources": sorted([source for source in sources if source['distance'] <= CITE_THRESHOLD], key=lambda x: x['distance']),
         "log_doc_id": doc_id,
-        "response": answer 
     })
 
 
