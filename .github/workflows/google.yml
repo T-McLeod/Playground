@@ -48,6 +48,9 @@ env:
   WIF_SERVICE_ACCOUNT: "service-account-1@playground-ai-478208.iam.gserviceaccount.com"
   IMAGE_TAG: ${{ github.sha }}
 
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   test:
