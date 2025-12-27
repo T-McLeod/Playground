@@ -1,6 +1,6 @@
 
 
-from typing import Dict, List
+from typing import List
 
 
 class Quiz_Answer():
