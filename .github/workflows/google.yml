@@ -44,39 +44,10 @@ env:
   APP_NAME: "playground-global"
   WIF_PROVIDER: "projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider"
   WIF_SERVICE_ACCOUNT: "service-account-1@playground-ai-478208.iam.gserviceaccount.com"
+  IMAGE_TAG: ${{ github.sha }}
 
 
 jobs:
-  build:
-    permissions:
-      contents: 'read'
-      id-token: 'write'
-
-    name: 'Build and Push'
-    runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.image-info.outputs.tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ env.WIF_PROVIDER }}
-          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
-
-      - name: Docker Auth
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-
-      - name: Build and Push Container
-        id: image-info
-        run: |
-          REPO_PATH=$(terraform output -raw artifact_registry_repo_path)
-          IMAGE_PATH="${REPO_PATH}/playground-backend:${{ github.sha }}"
-          docker build -t $IMAGE_PATH .
-          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
-  
   test:
     name: 'Automated Testing'
     needs: build
@@ -114,19 +85,19 @@ jobs:
         working-directory: ./terraform
       
       - name: Terraform Apply (Registry Only)
-        run: terraform apply "-target=module.compute.google_artifact_registry_repository.playground-tf-repo" -var="image_tag=${{ needs.build.outputs.image_tag }}" -auto-approve
+        run: terraform apply "-target=module.compute.google_artifact_registry_repository.playground-tf-repo" -var="image_tag=${{ env.IMAGE_TAG }}" -auto-approve
         working-directory: ./terraform
 
       - name: Docker Auth & Push
         run: |
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
           REPO_PATH=$(terraform output -raw artifact_registry_repo_path)
-          IMAGE_PATH="${REPO_PATH}/playground-backend:${{ github.sha }}"
+          IMAGE_PATH="${REPO_PATH}/playground-backend:${{ env.IMAGE_TAG }}"
           docker build -t $IMAGE_PATH .
           docker push $IMAGE_PATH
 
       - name: Terraform Apply
-        run: terraform apply -var="image_tag=${{ needs.build.outputs.image_tag }}" -auto-approve
+        run: terraform apply -var="image_tag=${{ env.IMAGE_TAG }}" -auto-approve
         working-directory: ./terraform
 
   # deploy:
