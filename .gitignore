@@ -56,3 +56,34 @@ install-key.pem
 install.pem
 
 app/data/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars.json
+
+# Providers and Modules
+# Vendor the terraform plugins (providers) in a modules directory
+# but do not track them in Git.
+#
+# Note: if you are using a tool that requires the .terraform folder
+# to be committed, you should remove the .terraform/ line above.
+# For most use cases, it should be ignored.
+
+# Local Configuration
+# The following lines are for files that might contain sensitive information
+# or apply only to your local environment.
+#
+# terraform.tfvars
+# *.auto.tfvars
+# *.auto.tfvars.json
+#
+# If you are not using a remote backend for state locking and management,
+# consider the security implications of committing state files.
+
+# You can find the canonical list on GitHub's repository:
+# 

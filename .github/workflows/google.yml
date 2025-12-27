@@ -1,5 +1,5 @@
-# This workflow will build a docker container, publish it to Google Container
-# Registry, and deploy it to GKE when there is a push to the "main"
+# This workflow build and push a Docker container to Google Artifact Registry
+# and deploy it on Cloud Run when a commit is pushed to the "main"
 # branch.
 #
 # To configure this workflow:
@@ -7,107 +7,173 @@
 # 1. Enable the following Google Cloud APIs:
 #
 #    - Artifact Registry (artifactregistry.googleapis.com)
-#    - Google Kubernetes Engine (container.googleapis.com)
+#    - Cloud Run (run.googleapis.com)
 #    - IAM Credentials API (iamcredentials.googleapis.com)
 #
 #    You can learn more about enabling APIs at
 #    https://support.google.com/googleapi/answer/6158841.
 #
-# 2. Ensure that your repository contains the necessary configuration for your
-#    Google Kubernetes Engine cluster, including deployment.yml,
-#    kustomization.yml, service.yml, etc.
-#
-# 3. Create and configure a Workload Identity Provider for GitHub:
+# 2. Create and configure a Workload Identity Provider for GitHub:
 #    https://github.com/google-github-actions/auth#preferred-direct-workload-identity-federation.
 #
 #    Depending on how you authenticate, you will need to grant an IAM principal
 #    permissions on Google Cloud:
 #
 #    - Artifact Registry Administrator (roles/artifactregistry.admin)
-#    - Kubernetes Engine Developer (roles/container.developer)
+#    - Cloud Run Developer (roles/run.developer)
 #
 #    You can learn more about setting IAM permissions at
 #    https://cloud.google.com/iam/docs/manage-access-other-resources
 #
-# 5. Change the values in the "env" block to match your values.
+# 3. Change the values in the "env" block to match your values.
 
-name: 'Build and Deploy to GKE'
+name: 'Build and Deploy to Cloud Run'
 
-# on:
-#   push:
-#     branches:
-#       - '"main"'
+on:
+  push:
+    branches:
+      - development
+      - main
+  pull_request:
+    branches:
+      - development
+      - main
 
 env:
-  GKE_CLUSTER: 'autopilot-cluster-1	'
-  DEPLOYMENT_NAME: 'gke-test' # TODO: update to your deployment name
-  REPOSITORY: 'playground-ai'
-  IMAGE: 'web-app'
-  WORKLOAD_IDENTITY_PROVIDER: 'projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github'
+  PROJECT_ID: "playground-ai-478208"
+  TF_VAR_project_id: "playground-ai-478208"
+  REGION: "us-east1"
+  APP_NAME: "playground-global"
+  WIF_PROVIDER: "projects/817349898318/locations/global/workloadIdentityPools/playground-ai-github/providers/t-mcleod-github-provider"
+  WIF_SERVICE_ACCOUNT: "service-account-1@playground-ai-478208.iam.gserviceaccount.com"
+  IMAGE_TAG: ${{ github.sha }}
+
 
 jobs:
-  setup-build-publish-deploy:
-    name: 'Setup, Build, Publish, and Deploy'
-    runs-on: 'ubuntu-latest'
-    environment: 'production'
+  test:
+    name: 'Automated Testing'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Placeholder Tests
+        run: |
+          echo "No tests configured yet. Skipping..."
+          exit 0
+
+  deploy_build:
+    name: 'Build & Deploy Docker Image'
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_PATH="us-docker.pkg.dev/playground-ai-478208/playground-global-repo/playground-backend"
+          docker build -t "${IMAGE_PATH}:${{ env.IMAGE_TAG }}" -t "${IMAGE_PATH}:latest" .
+          docker push "${IMAGE_PATH}:${{ env.IMAGE_TAG }}"
+          docker push "${IMAGE_PATH}:latest"
+
+  deploy_infrastructure:
+    name: 'Terraform Deploy'
+    needs: [test, deploy_build] # Wait for build to finish and tests to pass
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'development' || github.ref_name == 'main'
 
     permissions:
       contents: 'read'
       id-token: 'write'
 
     steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332' # actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # Configure Workload Identity Federation and generate an access token.
-      #
-      # See https://github.com/google-github-actions/auth for more options,
-      # including authenticating via a JSON credentials file.
-      - id: 'auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2' # google-github-actions/auth@v2
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
-      # Authenticate Docker to Google Cloud Artifact Registry
-      - name: 'Docker Auth'
-        uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567' # docker/login-action@v3
-        with:
-          username: 'oauth2accesstoken'
-          password: '${{ steps.auth.outputs.auth_token }}'
-          registry: '${{ env.GAR_LOCATION }}-docker.pkg.dev'
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-      # Get the GKE credentials so we can deploy to the cluster
-      - name: 'Set up GKE credentials'
-        uses: 'google-github-actions/get-gke-credentials@6051de21ad50fbb1767bc93c11357a49082ad116' # google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: '${{ env.GKE_CLUSTER }}'
-          location: '${{ env.GKE_ZONE }}'
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
 
-      # Build the Docker image
-      - name: 'Build and push Docker container'
-        run: |-
-          DOCKER_TAG="${GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE}:${GITHUB_SHA}"
+      - name: Terraform Apply
+        run: terraform apply -var-file="environments/${{ github.ref_name }}/terraform.tfvars" -auto-approve
+        working-directory: ./terraform
 
-          docker build \
-            --tag "${DOCKER_TAG}" \
-            --build-arg GITHUB_SHA="${GITHUB_SHA}" \
-            --build-arg GITHUB_REF="${GITHUB_REF}" \
-            .
+      - name: Promote Image
+        run: |
+          ORIGIN_IMAGE_PATH="us-docker.pkg.dev/playground-ai-478208/playground-global-repo/playground-backend"
+          IMAGE_TAG_PATH=$(terraform -chdir=./terraform output -raw artifact_image_tag_path)
+          docker pull "${ORIGIN_IMAGE_PATH}:${{ env.IMAGE_TAG }}"
+          docker tag "${ORIGIN_IMAGE_PATH}:${{ env.IMAGE_TAG }}" "${IMAGE_TAG_PATH}"
+          docker push "${IMAGE_TAG_PATH}"
 
-          docker push "${DOCKER_TAG}"
+  # deploy:
+  #   runs-on: 'ubuntu-latest'
 
-      # Set up kustomize
-      - name: 'Set up Kustomize'
-        run: |-
-          curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
-          chmod u+x ./kustomize
+  #   permissions:
+  #     contents: 'read'
+  #     id-token: 'write'
 
-      # Deploy the Docker image to the GKE cluster
-      - name: 'Deploy to GKE'
-        run: |-
-          # replacing the image name in the k8s template
-          ./kustomize edit set image LOCATION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE:TAG=$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$IMAGE:$GITHUB_SHA
-          ./kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment/$DEPLOYMENT_NAME
-          kubectl get services -o wide
+  #   steps:
+  #     - name: 'Checkout'
+  #       uses: 'actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332' # actions/checkout@v4
+
+  #     # Configure Workload Identity Federation and generate an access token.
+  #     #
+  #     # See https://github.com/google-github-actions/auth for more options,
+  #     # including authenticating via a JSON credentials file.
+  #     - id: 'auth'
+  #       name: 'Authenticate to Google Cloud'
+  #       uses: 'google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2' # google-github-actions/auth@v2
+  #       with:
+  #         workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+
+  #     # BEGIN - Docker auth and build
+  #     #
+  #     # If you already have a container image, you can omit these steps.
+  #     - name: 'Docker Auth'
+  #       uses: 'docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567' # docker/login-action@v3
+  #       with:
+  #         username: 'oauth2accesstoken'
+  #         password: '${{ steps.auth.outputs.auth_token }}'
+  #         registry: '${{ env.REGION }}-docker.pkg.dev'
+
+  #     - name: 'Build and Push Container'
+  #       run: |-
+  #         DOCKER_TAG="$${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}"
+  #         docker build --tag "${DOCKER_TAG}" .
+  #         docker push "${DOCKER_TAG}"
+  #     - name: 'Deploy to Cloud Run'
+
+  #       # END - Docker auth and build
+
+  #       uses: 'google-github-actions/deploy-cloudrun@33553064113a37d688aa6937bacbdc481580be17' # google-github-actions/deploy-cloudrun@v2
+  #       with:
+  #         service: '${{ env.SERVICE }}'
+  #         region: '${{ env.REGION }}'
+  #         # NOTE: If using a pre-built image, update the image name below:
+
+  #         image: '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}'
+  #     # If required, use the Cloud Run URL output in later steps
+  #     - name: 'Show output'
+  #       run: |2-
+
+  #         echo ${{ steps.deploy.outputs.url }}
