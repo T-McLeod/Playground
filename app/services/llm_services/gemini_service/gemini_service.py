@@ -11,7 +11,6 @@ This service provides functions to:
 This service handles all LLM prompting and response formatting.
 """
 from vertexai.generative_models import GenerativeModel, Part
-from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 import mimetypes
 import os
 import logging
