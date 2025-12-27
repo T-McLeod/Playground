@@ -119,7 +119,6 @@ def _intake_files_from_canvas(course_id: str, corpus_id: str) -> list[Dict]:
 
     logger.debug("Step 4: Uploading files to GCS...")
     files = gcs_service.stream_files_to_gcs(files, course_id)
-    logger.info(files)
     logger.info(f"Uploaded {len(files)} files to GCS")
     
     logger.debug("Step 5: Importing files from GCS to RAG corpus...")

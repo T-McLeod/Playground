@@ -12,7 +12,6 @@ import requests
 from typing import Tuple, Dict, List
 import logging
 import os
-from canvasapi import Canvas
 import sys
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
