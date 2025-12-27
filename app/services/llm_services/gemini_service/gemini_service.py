@@ -86,10 +86,15 @@ class GeminiService(LLMInterface):
         Returns:
             Summary text
         """
+        # Determine MIME type dynamically based on the file extension
+        mime_type, _ = mimetypes.guess_type(file_path)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+
         # Create a Gemini Part
         file_part = Part.from_uri(
             uri=file_path,
-            mime_type="application/pdf",
+            mime_type=mime_type,
         )
 
         prompt = prompts.render("summarize_file")
