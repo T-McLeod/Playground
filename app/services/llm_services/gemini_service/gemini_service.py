@@ -15,7 +15,6 @@ import mimetypes
 import os
 import logging
 from typing import List, Tuple
-import vertexai
 import sys
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
