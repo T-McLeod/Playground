@@ -77,7 +77,7 @@ jobs:
           service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
       - name: Configure Docker
-        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker us-docker.pkg.dev --quiet
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -119,6 +119,9 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -var-file="environments/${{ github.ref_name }}/terraform.tfvars" -auto-approve
         working-directory: ./terraform
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker us-docker.pkg.dev --quiet
 
       - name: Promote Image
         run: |
