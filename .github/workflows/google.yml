@@ -72,10 +72,10 @@ jobs:
       - name: Build and Push Container
         id: image-info
         run: |
-          TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}-backend-repo/playground-backend:${{ github.sha }}"
-          docker build -t $TAG .
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
+          IMAGE_PATH="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.APP_NAME }}-backend-repo/playground-backend:${{ github.sha }}"
+          docker build -t $IMAGE_PATH .
+          echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+  
   test:
     name: 'Automated Testing'
     needs: build

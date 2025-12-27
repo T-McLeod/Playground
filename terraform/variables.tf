@@ -21,4 +21,5 @@ variable "app_name" {
 variable "image_tag" {
   description = "The container image tag to deploy"
   type        = string
+  default     = "latest"
 }
