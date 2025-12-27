@@ -103,7 +103,7 @@ class VertexRAGService(RAGInterface):
     embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
     def get_query_embedding(self, text: str) -> list:
         """
-        Generates aquery retrieval embedding vector for text using Vertex AI's text-embedding model.
+        Generates a query retrieval embedding vector for text using Vertex AI's text-embedding model.
         
         Args:
             text: The text to embed
