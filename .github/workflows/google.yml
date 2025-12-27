@@ -64,7 +64,7 @@ jobs:
 
   deploy_build:
     name: 'Build & Deploy Docker Image'
-    needs: [test]
+    needs: [unit_test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -91,7 +91,7 @@ jobs:
 
   deploy_infrastructure:
     name: 'Terraform Deploy'
-    needs: [test, deploy_build] # Wait for build to finish and tests to pass
+    needs: [unit_test, deploy_build] # Wait for build to finish and tests to pass
     runs-on: ubuntu-latest
     if: github.ref_name == 'development' || github.ref_name == 'main'
 
