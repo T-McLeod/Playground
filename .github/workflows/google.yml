@@ -89,11 +89,12 @@ jobs:
 
       - name: Docker Auth & Push
         run: |
+          set -e
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
-          REPO_PATH=$(terraform output -raw artifact_registry_repo_path)
+          REPO_PATH=$(terraform -chdir=terraform output -raw artifact_registry_repo_path)
           IMAGE_PATH="${REPO_PATH}/playground-backend:${{ env.IMAGE_TAG }}"
-          docker build -t $IMAGE_PATH .
-          docker push $IMAGE_PATH
+          docker build -t "${IMAGE_PATH}" .
+          docker push "${IMAGE_PATH}"
 
       - name: Terraform Apply
         run: terraform apply -var="image_tag=${{ env.IMAGE_TAG }}" -auto-approve
