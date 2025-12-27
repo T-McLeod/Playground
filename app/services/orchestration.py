@@ -1,5 +1,4 @@
 from typing import Dict
-from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .llm_services import get_llm_service
 from .rag_services import get_rag_service
 from . import firestore_service, kg_service, canvas_service, gcs_service
@@ -96,16 +95,18 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     }
     
 
-def _intake_files_from_canvas(course_id: str, corpus_id: str) -> list[Dict]:
+def _intake_files_from_canvas(course_id: str, corpus_id: str) -> Dict[str, Dict]:
     """
-    Intake files from Canvas, upload to GCS, and return updated file objects with GCS URIs.
+    Intake files from Canvas, upload to GCS, and return a mapping of file identifiers
+    to updated file objects with GCS URIs.
     
     Args:
-        course_id: The Canvas course ID
-        files: List of file objects from Canvas API
+        course_id: The Canvas course ID.
+        corpus_id: The RAG corpus ID to which the files will be added.
 
     Returns:
-        List of file objects with 'gcs_uri' property added
+        Dict[str, Dict]: Mapping of file identifiers to file metadata dictionaries with
+        the 'gcs_uri' property added.
     """
     logger.debug("Step 3: Fetching course files from Canvas...")
     files = canvas_service.get_course_files(
