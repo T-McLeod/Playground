@@ -82,7 +82,7 @@ def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str
         display_name = file.get('display_name', f"file_{file_id}")
         download_url = file.get('url')
 
-        logger.debug("Starting upload for file:", display_name)
+        logger.debug(f"Starting upload for file: {display_name}")
         logger.debug(file)
         with requests.get(download_url, stream=True) as response:
             response.raise_for_status()
