@@ -5,7 +5,6 @@ from .rag_services import get_rag_service
 from . import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, analytics_reporting_service
 import os
 import logging
-import shutil
 
 CANVAS_TOKEN = os.environ.get('CANVAS_API_TOKEN')
 llm_service = get_llm_service()
