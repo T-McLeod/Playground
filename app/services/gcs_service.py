@@ -65,16 +65,18 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
 
 def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
     """
-    Streams file-like objects to Google Cloud Storage and updates file objects with GCS URIs.
+    Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}
     
     Args:
-        files: List of file objects with 'file_obj' (file-like object) and 'display_name' properties
+        files: Dictionary mapping file IDs to file metadata dictionaries, each containing at least
+            a 'display_name' and a 'url' used to download the file contents.
         course_id: Canvas course ID for organizing files
         bucket_name: GCS bucket name (default from env)
         
     Returns:
-        Updated list of file objects with 'gcs_uri' property added"""
+        Updated dictionary of file objects with 'gcs_uri' property added
+    """
     bucket = ensure_bucket_exists(bucket_name)
     for file_id, file in files.items():
         display_name = file.get('display_name', f"file_{file_id}")
