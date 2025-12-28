@@ -10,6 +10,12 @@ resource "google_project_iam_member" "firestore_access" {
   member  = "serviceAccount:${google_service_account.app_sa.email}"
 }
 
+resource "google_project_iam_member" "vertex_rag_access" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.app_sa.email}"
+}
+
 resource "google_project_iam_member" "cloud_run_access" {
   project = var.project_id
   role    = "roles/run.invoker"

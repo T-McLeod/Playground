@@ -7,13 +7,6 @@ terraform {
   backend "gcs" {}
 }
 
-resource "google_secret_manager_secret" "canvas_api_token" {
-  secret_id = var.canvas_api_token_secret_id
-  replication {
-    auto {}
-  }
-}
-
 module "compute" {
   source      = "./modules/compute"
   project_id  = var.project_id
@@ -28,10 +21,12 @@ module "compute" {
     GOOGLE_CLOUD_LOCATION = var.region
     GCS_BUCKET_NAME       = module.storage.app_gcs_bucket
     CANVAS_BASE_URL       = var.canvas_base_url
+    DUKE_GPT_API_BASE_URL = "https://litellm.oit.duke.edu/v1" #temporary hardcode
   }
 
   secrets = {
-    CANVAS_API_TOKEN = google_secret_manager_secret.canvas_api_token.id
+    CANVAS_API_TOKEN = var.canvas_api_token_secret_id
+    DUKE_GPT_TOKEN  = "projects/817349898318/secrets/GLOBAL_DUKE_GPT_TOKEN"
   }
 }
 
