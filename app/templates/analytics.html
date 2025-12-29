@@ -11,15 +11,15 @@
 <body>
     <!-- Inject server-side data -->
     <script>
-        const APP_COURSE_ID = "{{ course_id }}";
+        const PLAYGROUND_ID = "{{ playground_id }}";
     </script>
 
     <div id="analytics-dashboard">
         <header class="dashboard-header">
             <h1>Course Analytics Dashboard</h1>
-            <p class="course-id">Course ID: <span>{{ course_id }}</span></p>
+            <p class="playground-id">Playground ID: <span>{{ playground_id }}</span></p>
             <div class="header-actions">
-                <a href="/launch?course_id={{ course_id }}&role=teacher" class="btn-explorer">
+                <a href="/launch?playground_id={{ playground_id }}&role=teacher" class="btn-explorer">
                     <span class="btn-icon">🗺️</span>
                     <span class="btn-text">Main View</span>
                 </a>

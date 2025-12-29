@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Explorer - {{ course_id }}</title>
+    <title>Course Explorer - {{ playground_id }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='student_view.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="{{ url_for('static', filename='vis-network.min.js') }}"></script>
@@ -150,9 +150,9 @@
         <p>Loading course content...</p>
     </div>
 
-    <!-- Inject course data -->
+    <!-- Inject playground data -->
     <script>
-        const COURSE_ID = "{{ course_id }}";
+        const PLAYGROUND_ID = "{{ playground_id }}";
         const USER_ID = "{{ user_id }}";
     </script>
     <script src="{{ url_for('static', filename='student_view.js') }}"></script>

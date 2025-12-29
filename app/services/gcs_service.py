@@ -63,7 +63,7 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
         return bucket
 
 
-def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
+def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
     """
     Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}
@@ -78,8 +78,8 @@ def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str
         Updated dictionary of file objects with 'gcs_uri' property added
     """
     bucket = ensure_bucket_exists(bucket_name)
-    for file_id, file in files.items():
-        display_name = file.get('display_name', f"file_{file_id}")
+    for file in files:
+        display_name = file.get('display_name', f"file_{file.get('id')}")
         download_url = file.get('url')
 
         logger.debug(f"Starting upload for file: {display_name}")
@@ -87,7 +87,7 @@ def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str
         with requests.get(download_url, stream=True) as response:
             response.raise_for_status()
             
-            blob_path = f"courses/{course_id}/{display_name}"
+            blob_path = f"playgrounds/{playground_id}/{display_name}"
             blob = bucket.blob(blob_path)
             gcs_uri = f"gs://{bucket_name}/{blob_path}"
 

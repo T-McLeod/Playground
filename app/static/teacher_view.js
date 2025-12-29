@@ -67,7 +67,7 @@ function renderMarkdownWithMath(content) {
 // ===========================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Student View initialized for course:', COURSE_ID);
+    console.log('Teacher View initialized for playground:', PLAYGROUND_ID);
     console.log('User:', USER_ID);
 
     initializeEventListeners();
@@ -126,7 +126,7 @@ function initializeEventListeners() {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        course_id: COURSE_ID,
+                        playground_id: PLAYGROUND_ID,
                         topic_id: currentTopic.id
                     })
                 });
@@ -194,7 +194,7 @@ async function loadKnowledgeGraph() {
     showLoading('Loading knowledge graph...');
 
     try {
-        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`);
+        const response = await fetch(`/api/get-graph?playground_id=${PLAYGROUND_ID}`);
         if (!response.ok) {
             throw new Error(`Failed to load graph: ${response.statusText}`);
         }
@@ -336,7 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        course_id: COURSE_ID,
+                        playground_id: PLAYGROUND_ID,
                         topic_name: name,
                         summary: summary || undefined // Only include if provided
                     })
@@ -703,7 +703,7 @@ async function sendModalMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 query: contextualQuery
             })
         });
@@ -962,7 +962,7 @@ async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 node_id: nodeId,
                 node_label: nodeLabel,
                 node_type: nodeType,

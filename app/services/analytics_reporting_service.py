@@ -120,9 +120,9 @@ def determine_optimal_clusters(vectors, max_clusters: int = 10) -> int:
         return min(5, len(vectors) // 10)  # Use 5 or 10% of samples, whichever is smaller
 
 
-def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clusters: bool = True) -> dict:
+def run_daily_analytics(playground_id: str, n_clusters: int = None, auto_detect_clusters: bool = True) -> dict:
     """
-    Runs the complete analytics pipeline for a course.
+    Runs the complete analytics pipeline for a playground.
     
     This is the main analytics function that:
     1. Fetches all chat query vectors from Firestore
@@ -135,7 +135,7 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
     This should be run periodically (e.g., daily) or on-demand by professors.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         n_clusters: Number of clusters to create (optional if auto_detect_clusters=True)
         auto_detect_clusters: Use elbow method to automatically determine optimal k (default: True)
         
@@ -144,10 +144,10 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
         
     Example:
         # Auto-detect optimal clusters
-        report = run_daily_analytics("12345")
+        report = run_daily_analytics("abc123")
         
         # Or specify exact number
-        report = run_daily_analytics("12345", n_clusters=5, auto_detect_clusters=False)
+        report = run_daily_analytics("abc123", n_clusters=5, auto_detect_clusters=False)
         
         # Returns: {
         #     'clusters': {
@@ -161,11 +161,11 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
         # }
     """
     try:
-        logger.info(f"Starting daily analytics for course {course_id}")
+        logger.info(f"Starting daily analytics for playground {playground_id}")
         
         # Step 1: Fetch all chat events
         logger.info("Fetching analytics events...")
-        events = firestore_service.get_analytics_events(course_id, event_type='chat')
+        events = firestore_service.get_analytics_events(playground_id, event_type='chat')
         
         if not events or len(events) < 5:
             logger.warning(f"Not enough data for clustering (found {len(events)} queries)")
@@ -253,7 +253,7 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
         # Step 5: Generate comprehensive report
         report = {
             'status': 'complete',
-            'course_id': course_id,
+            'playground_id': playground_id,
             'total_queries': len(events),
             'num_clusters': len(clusters),
             'optimal_clusters': n_clusters,  # Include the k value used
@@ -264,9 +264,9 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
         
         # Step 6: Save report to Firestore
         logger.info("Saving analytics report...")
-        firestore_service.save_analytics_report(course_id, report)
+        firestore_service.save_analytics_report(playground_id, report)
         
-        logger.info(f"Daily analytics completed for course {course_id}")
+        logger.info(f"Daily analytics completed for playground {playground_id}")
         return report
         
     except Exception as e:
@@ -278,21 +278,21 @@ def run_daily_analytics(course_id: str, n_clusters: int = None, auto_detect_clus
 # REPORT RETRIEVAL
 # ============================================================================
 
-def get_analytics_report(course_id: str) -> dict:
+def get_analytics_report(playground_id: str) -> dict:
     """
-    Retrieves the latest analytics report for a course.
+    Retrieves the latest analytics report for a playground.
     
     This is a simple passthrough to the firestore_service.
     Called by the API when professors view their dashboard.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         
     Returns:
         Dictionary containing the analytics report
     """
-    logger.info(f"Retrieving analytics report for course {course_id}")
-    return firestore_service.get_analytics_report(course_id)
+    logger.info(f"Retrieving analytics report for playground {playground_id}")
+    return firestore_service.get_analytics_report(playground_id)
 
 
 # ============================================================================
