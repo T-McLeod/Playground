@@ -149,7 +149,7 @@ def _summarize_files(course_id: str, files: list[dict]) -> list[dict]:
 
 
 SUMMARY_QUERY_TEMPLATE = (
-    "For each topic, provide a con"
+    "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
 )
 def _build_knowledge_graph(topic_list: list[str], corpus_id: str, files: list[dict]) -> list[dict]:
     """
