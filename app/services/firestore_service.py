@@ -28,8 +28,8 @@ except Exception as e:
     logger.error(f"Failed to initialize Firestore: {e}")
     db = None
 
-COURSES_COLLECTION = 'courses'
 PLAYGROUNDS_COLLECTION = 'playgrounds'
+KNOWLEDGE_GRAPH_COLLECTION = 'knowledge_graph'
 ANALYTICS_COLLECTION = 'course_analytics'
 REPORTS_COLLECTION = 'analytics_reports'
 
@@ -131,21 +131,6 @@ def get_init_logs(course_id: str) -> list:
     return []
 
 
-# returns the google.cloud.firestore.document.DocumentSnapshot class
-def get_course_data(course_id: str):
-    """
-    Fetches the complete course document.
-    
-    Args:
-        course_id: The Canvas course ID
-        
-    Returns:
-        DocumentSnapshot containing all course data
-    """
-    _ensure_db()
-    return db.collection(COURSES_COLLECTION).document(course_id).get()
-
-
 def get_playground_data(playground_id: str):
     """
     Fetches the complete playground document.
@@ -230,7 +215,30 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
         'kg_data': data.get('kg_data')
     })
 
-def update_knowledge_graph(playground_id: str = None, kg_nodes: list = None, kg_edges: list = None, kg_data: dict = None, course_id: str = None) -> None:
+
+def initialize_knowledge_graph(playground_id: str, nodes: list) -> None:
+    """
+    Initializes the knowledge graph portion of a course/playground document.
+    
+    Args:
+        playground_id: The playground document ID
+        nodes: List of node dicts to initialize the knowledge graph
+    """
+    _ensure_db()
+    
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    batch = db.batch()
+    
+    for node in nodes:
+        node['id'] = node_collection.document().id
+        node_doc = node_collection.document(node['id'])
+        batch.set(node_doc, node)
+    
+    batch.commit()
+    logger.info(f"Initialized knowledge graph for playground {playground_id} with {len(nodes)} nodes.")
+
+
+def update_knowledge_graph(playground_id: str, kg_nodes: list) -> None:
     """
     Updates only the knowledge graph portion of a course/playground document.
     Does NOT overwrite corpus_id, indexed_files, or status.
@@ -244,21 +252,43 @@ def update_knowledge_graph(playground_id: str = None, kg_nodes: list = None, kg_
     """
     _ensure_db()
     
-    # Support both playground_id and legacy course_id
-    doc_id = playground_id or course_id
-    if not doc_id:
-        raise ValueError("Either playground_id or course_id must be provided")
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    batch = db.batch()
+    
+    for node in kg_nodes:
+        node_id = node.get('id')
+        if not node_id:
+            node_id = node_collection.document().id
+            node['id'] = node_id
+        node_doc = node_collection.document(node_id)
+        batch.set(node_doc, node)
 
-    update_payload = {
-        'kg_nodes': kg_nodes,
-        'kg_edges': kg_edges,
-        'kg_data':  kg_data
-    }
+    batch.commit()
+    logger.info(f"Updated knowledge graph for playground {playground_id}")
 
-    db.collection(PLAYGROUNDS_COLLECTION).document(doc_id).update(update_payload)
 
-    logger.info(f"Updated knowledge graph for playground {doc_id}")
-
+def get_knowledge_graph(playground_id: str) -> list:
+    """
+    Retrieves the knowledge graph nodes for a given playground.
+    
+    Args:
+        playground_id: The playground document ID
+        
+    Returns:
+        List of node dictionaries
+    """
+    _ensure_db()
+    
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    nodes = []
+    
+    docs = node_collection.stream()
+    for doc in docs:
+        node_data = doc.to_dict()
+        nodes.append(node_data)
+    
+    logger.info(f"Retrieved {len(nodes)} knowledge graph nodes for playground {playground_id}")
+    return nodes
 
 
 def log_analytics_event(data: dict) -> str:
