@@ -79,7 +79,6 @@ class GeminiService(LLMInterface):
             topic=topic,
             context=context
         )
-        print(f"Summarize Topic Prompt:\n{prompt}")
         try:
             model = GenerativeModel(model_name)
             response = model.generate_content(prompt)

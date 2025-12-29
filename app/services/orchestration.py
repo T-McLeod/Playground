@@ -65,11 +65,6 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     
     # Step 8: Build knowledge graph
     logger.info("Step 8: Building knowledge graph...")
-    kg_nodes, kg_edges, kg_data = kg_service.build_knowledge_graph(
-        topic_list=topics,
-        corpus_id=corpus_id,
-        files=files
-    )
     nodes = _build_knowledge_graph(
         topic_list=topics,
         corpus_id=corpus_id,

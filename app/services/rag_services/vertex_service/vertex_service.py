@@ -82,7 +82,8 @@ class VertexRAGService(RAGInterface):
         for context in contexts:
             if hasattr(context, 'source_uri') and context.source_uri:
                 source_path = context.source_uri
-                file_id = source_path.split('/')[-1] if '/' in source_path else source_path
+                file_name = source_path.split('/')[-1] if '/' in source_path else source_path
+                file_id = file_name.split('.')[0]
                 if file_id and file_id not in source_ids:
                     source_ids.add(file_id)
                     sources.append({
