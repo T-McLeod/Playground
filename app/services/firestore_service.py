@@ -3,7 +3,6 @@ Firestore Service
 Handles all Cloud Firestore operations for course data persistence.
 """
 from typing import Any
-import uuid
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 import os

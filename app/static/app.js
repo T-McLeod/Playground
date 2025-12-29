@@ -1184,7 +1184,7 @@ async function setupAppPage() {
 // Load graph data from API
 async function loadGraphData() {
     try {
-        const response = await fetch(`/api/get-graph?playground_id=${COURSE_ID}`);
+        const response = await fetch(`/api/get-graph?playground_id=${PLAYGROUND_ID}`);
         const data = await response.json();
         
         graphData = {

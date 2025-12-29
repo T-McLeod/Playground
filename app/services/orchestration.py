@@ -119,7 +119,7 @@ def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str
     firestore_service.add_files(playground_id, files)
 
     logger.debug("Step 4: Uploading files to GCS...")
-    files = gcs_service.stream_files_to_gcs(files, course_id)
+    files = gcs_service.stream_files_to_gcs(files, playground_id)
     logger.info(f"Uploaded {len(files)} files to GCS")
     
     logger.debug("Step 5: Importing files from GCS to RAG corpus...")
