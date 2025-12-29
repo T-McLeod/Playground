@@ -11,7 +11,9 @@
 <body>
     <!-- Inject server-side data -->
     <script>
-        const COURSE_ID = "{{ course_id }}";
+        const PLAYGROUND_ID = "{{ playground_id }}";
+        // Alias for backward compatibility with app.js
+        const COURSE_ID = PLAYGROUND_ID;
         const USER_ROLES = "{{ user_roles }}";
         const APP_STATE = "{{ app_state }}";
     </script>

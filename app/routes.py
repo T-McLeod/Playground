@@ -44,6 +44,7 @@ def launch():
     """
     # Extract LTI parameters
     course_id = request.args.get('course_id')
+    playground_id = request.args.get('playground_id')
     user_id = request.args.get('user_id')
     role = request.args.get('role')
 
@@ -52,7 +53,9 @@ def launch():
     session["role"] = role
     
     # Determine application state
-    state = firestore_service.get_course_state(course_id)
+    if not playground_id:
+        playground_id = firestore_service.get_playground_id_for_course(course_id)
+    state = firestore_service.get_course_state(playground_id)
     
     # When course is ACTIVE, route based on role
     if state == 'ACTIVE':
@@ -63,7 +66,7 @@ def launch():
             if 'student' in role_lower:
                 return render_template(
                     'student_view.html',
-                    course_id=course_id,
+                    playground_id=playground_id,
                     user_id=user_id,
                     role=role
                 )
@@ -71,7 +74,7 @@ def launch():
             elif 'teacher' in role_lower or 'instructor' in role_lower or 'professor' in role_lower:
                 return render_template(
                     'teacher_view.html',
-                    course_id=course_id,
+                    playground_id=playground_id,
                     user_id=user_id,
                     role=role
                 )
@@ -79,24 +82,24 @@ def launch():
         # Default fallback: Professors/instructors get the editor
         return render_template(
             'editor.html',
-            course_id=course_id,
+            playground_id=playground_id,
             user_roles=role,
             user_id=user_id,
             app_state=state
         )
     
-    # Otherwise render the single-page app with injected state
+    # Otherwise render the single-page app with injected state (needs course_id for initialization)
     return render_template(
         'index.html',
         course_id=course_id,
         user_roles=role,
-        user_id = user_id,
+        user_id=user_id,
         app_state=state
     )
 
 
-@app.route('/analytics/<course_id>', methods=['GET'])
-def analytics_dashboard(course_id):
+@app.route('/analytics/<playground_id>', methods=['GET'])
+def analytics_dashboard(playground_id):
     """
     Analytics Dashboard - Professor-only page to view course analytics.
     
@@ -110,12 +113,12 @@ def analytics_dashboard(course_id):
     # Render the analytics dashboard
     return render_template(
         'analytics.html',
-        course_id=course_id,
+        playground_id=playground_id,
     )
 
 
-@app.route('/student/<course_id>', methods=['GET'])
-def student_view(course_id):
+@app.route('/student/<playground_id>', methods=['GET'])
+def student_view(playground_id):
     """
     Student View - Interactive knowledge graph exploration interface.
     
@@ -131,11 +134,13 @@ def student_view(course_id):
     user_id = session.get('user_id', 'unknown')
     role = session.get('role', 'student')
     
-    # Verify course is active
-    state = firestore_service.get_course_state(course_id)
+    # Verify playground is active
+    state = firestore_service.get_course_state(playground_id)
     
     if state != 'ACTIVE':
-        # Redirect to main launch if course is not active
+        # Redirect to main launch if not active
+        # Note: We don't have course_id here, so redirect to a generic error or use session
+        course_id = session.get('course_id')
         return render_template(
             'index.html',
             course_id=course_id,
@@ -147,7 +152,7 @@ def student_view(course_id):
     # Render the student view
     return render_template(
         'student_view.html',
-        course_id=course_id,
+        playground_id=playground_id,
         user_id=user_id,
         role=role
     )
@@ -205,13 +210,13 @@ def chat():
     """
     try:
         data = request.json
-        course_id = data.get('course_id')
+        playground_id = data.get('playground_id')
         query = data.get('query')
 
-        course_data = firestore_service.get_course_data(course_id)
+        playground_data = firestore_service.get_playground_data(playground_id)
         
         # Convert DocumentSnapshot to dict
-        data_dict = course_data.to_dict()
+        data_dict = playground_data.to_dict()
         corpus_id = data_dict.get('corpus_id')
         
         context = rag_service.retrieve_context(
@@ -232,9 +237,9 @@ def chat():
             "response": f"Sorry, an error occurred: {str(e)}"
         }), 500
 
-    logger.info(f"Logging chat query for course {course_id}: {query[:50]}...")
+    logger.info(f"Logging chat query for playground {playground_id}: {query[:50]}...")
     doc_id = analytics_logging_service.log_chat_query(
-        course_id=course_id,
+        playground_id=playground_id,
         query_text=query,
         answer_text=answer,
         sources=sources
@@ -252,14 +257,14 @@ def get_graph():
     """
     Fetches the knowledge graph data for visualization.
     """
-    course_id = request.args.get('course_id')
-    course_data = firestore_service.get_course_data(course_id)
+    playground_id = request.args.get('playground_id')
+    playground_data = firestore_service.get_playground_data(playground_id)
     
     return jsonify({
-        "nodes": course_data.get("kg_nodes"),
-        "edges": course_data.get("kg_edges"),
-        "data": course_data.get("kg_data"),
-        "indexed_files": course_data.get("indexed_files")  # Include file metadata with gcs_uri
+        "nodes": playground_data.get("kg_nodes"),
+        "edges": playground_data.get("kg_edges"),
+        "data": playground_data.get("kg_data"),
+        "indexed_files": playground_data.get("indexed_files")  # Include file metadata with gcs_uri
     })
 
 
@@ -399,9 +404,14 @@ def create_quiz():
     """
     Creates a quiz in Canvas based on the provided quiz data.
     
+    NOTE: This endpoint requires course_id (not playground_id) because it 
+    interfaces directly with the Canvas API which requires the Canvas course ID.
+    TODO: Consider adding get_course_id_for_playground() if we need to call this
+    from a playground-based context.
+    
     Request body:
         {
-            "course_id": "12345",
+            "course_id": "12345",  # Canvas course ID required for Canvas API
             "quiz_title": "Sample Quiz",
             "question_groups": {
                 // Quiz data structure from /generate-quiz-questions
@@ -458,11 +468,11 @@ def create_quiz():
 @app.route('/api/remove-topic', methods=['POST'])
 def remove_topic():
     """
-    Removes a topic from an existing course knowledge graph.
+    Removes a topic from an existing playground knowledge graph.
     
     Request body:
         {
-            "course_id": "12345",
+            "playground_id": "abc123",
             "topic_id": "topic_1"
         }
     
@@ -471,30 +481,30 @@ def remove_topic():
     """
     try:
         data = request.json
-        course_id = data.get('course_id')
+        playground_id = data.get('playground_id')
         topic_id = data.get('topic_id')
         
-        if not course_id or not topic_id:
+        if not playground_id or not topic_id:
             return jsonify({
-                "error": "Missing required fields: course_id and topic_id"
+                "error": "Missing required fields: playground_id and topic_id"
             }), 400
         
-        logger.info(f"Removing topic '{topic_id}' from course {course_id}")
+        logger.info(f"Removing topic '{topic_id}' from playground {playground_id}")
         
         # Step 1: Get existing knowledge graph from Firestore
-        course_data = firestore_service.get_course_data(course_id)
+        playground_data = firestore_service.get_playground_data(playground_id)
         
-        if not course_data.exists:
+        if not playground_data.exists:
             return jsonify({
-                "error": f"Course {course_id} not found"
+                "error": f"Playground {playground_id} not found"
             }), 404
         
-        data_dict = course_data.to_dict()
+        data_dict = playground_data.to_dict()
         
-        # Check if course is active
+        # Check if playground is active
         if data_dict.get('status') != 'ACTIVE':
             return jsonify({
-                "error": "Course must be in ACTIVE state to remove topics"
+                "error": "Playground must be in ACTIVE state to remove topics"
             }), 400
         
         existing_nodes = json.loads(data_dict.get('kg_nodes', '[]'))
@@ -513,13 +523,14 @@ def remove_topic():
         
         # Step 3: Update Firestore with new graph data
         logger.info("Updating Firestore with new graph data...")
-        firestore_service.db.collection(firestore_service.COURSES_COLLECTION).document(course_id).update({
-            'kg_nodes': updated_nodes_json,
-            'kg_edges': updated_edges_json,
-            'kg_data': updated_data_json
-        })
+        firestore_service.update_knowledge_graph(
+            playground_id=playground_id,
+            kg_nodes=updated_nodes_json,
+            kg_edges=updated_edges_json,
+            kg_data=updated_data_json
+        )
         
-        logger.info(f"Successfully removed topic '{topic_id}' from course {course_id}")
+        logger.info(f"Successfully removed topic '{topic_id}' from playground {playground_id}")
         
         return jsonify({
             "status": "success",
@@ -550,26 +561,26 @@ def log_node_click():
     
     Request body:
         {
-            "course_id": "12345",
+            "playground_id": "abc123",
             "node_id": "topic_1",
             "node_label": "Machine Learning",
             "node_type": "topic" | "file"
         }
     """
     data = request.json
-    course_id = data.get('course_id')
+    playground_id = data.get('playground_id')
     node_id = data.get('node_id')
     node_label = data.get('node_label')
     node_type = data.get('node_type')
     
-    if not course_id or not node_id or not node_label:
+    if not playground_id or not node_id or not node_label:
         return jsonify({
-            "error": "Missing required fields: course_id, node_id, node_label"
+            "error": "Missing required fields: playground_id, node_id, node_label"
         }), 400
     
     try:
         doc_id = analytics_logging_service.log_kg_node_click(
-            course_id=course_id,
+            playground_id=playground_id,
             node_id=node_id,
             node_label=node_label,
             node_type=node_type
@@ -587,17 +598,17 @@ def log_node_click():
         }), 500
 
 
-@app.route('/api/analytics/<course_id>', methods=['GET'])
-def get_analytics(course_id):
+@app.route('/api/analytics/<playground_id>', methods=['GET'])
+def get_analytics(playground_id):
     """
-    Retrieves the latest analytics report for a course.
+    Retrieves the latest analytics report for a playground.
     
     Returns cluster analysis and insights for professors.
     """
     try:
         from .services import analytics_reporting_service
         
-        report = analytics_reporting_service.get_analytics_report(course_id)
+        report = analytics_reporting_service.get_analytics_report(playground_id)
         
         if not report:
             return jsonify({
@@ -616,21 +627,21 @@ def get_analytics(course_id):
 @app.route('/api/analytics/run', methods=['POST'])
 def run_analytics():
     """
-    Triggers analytics processing for a course (professor-only).
+    Triggers analytics processing for a playground (professor-only).
     
     Request body:
         {
-            "course_id": "12345",
+            "playground_id": "abc123",
             "n_clusters": 5  // optional, uses elbow method if not specified
         }
     """
     data = request.json
-    course_id = data.get('course_id')
+    playground_id = data.get('playground_id')
     n_clusters = data.get('n_clusters')
     
-    if not course_id:
+    if not playground_id:
         return jsonify({
-            "error": "Missing required field: course_id"
+            "error": "Missing required field: playground_id"
         }), 400
     
     try:
@@ -639,13 +650,13 @@ def run_analytics():
         # Run analytics with auto-detection or specified clusters
         if n_clusters:
             report = analytics_reporting_service.run_daily_analytics(
-                course_id, 
+                playground_id, 
                 n_clusters=n_clusters, 
                 auto_detect_clusters=False
             )
         else:
             report = analytics_reporting_service.run_daily_analytics(
-                course_id, 
+                playground_id, 
                 auto_detect_clusters=True
             )
         
@@ -665,7 +676,7 @@ def add_topic():
     
     Request body:
         {
-            "course_id": "12345",
+            "playground_id": "abc123",
             "topic_name": "New Topic Name",
             "summary": "Optional custom summary" (optional)
         }
@@ -675,31 +686,31 @@ def add_topic():
     """
     try:
         data = request.json
-        course_id = data.get('course_id')
+        playground_id = data.get('playground_id')
         topic_name = data.get('topic_name')
         custom_summary = data.get('summary')  # Optional
         
-        if not course_id or not topic_name:
+        if not playground_id or not topic_name:
             return jsonify({
-                "error": "Missing required fields: course_id and topic_name"
+                "error": "Missing required fields: playground_id and topic_name"
             }), 400
         
-        logger.info(f"Adding topic '{topic_name}' to course {course_id}")
+        logger.info(f"Adding topic '{topic_name}' to playground {playground_id}")
         
         # Step 1: Get existing knowledge graph from Firestore
-        course_data = firestore_service.get_course_data(course_id)
+        playground_data = firestore_service.get_playground_data(playground_id)
         
-        if not course_data.exists:
+        if not playground_data.exists:
             return jsonify({
-                "error": f"Course {course_id} not found"
+                "error": f"Playground {playground_id} not found"
             }), 404
         
-        data_dict = course_data.to_dict()
+        data_dict = playground_data.to_dict()
         
-        # Check if course is active
+        # Check if playground is active
         if data_dict.get('status') != 'ACTIVE':
             return jsonify({
-                "error": "Course must be in ACTIVE state to add topics"
+                "error": "Playground must be in ACTIVE state to add topics"
             }), 400
         
         corpus_id = data_dict.get('corpus_id')
@@ -709,7 +720,7 @@ def add_topic():
         
         if not corpus_id:
             return jsonify({
-                "error": "Course does not have a corpus_id"
+                "error": "Playground does not have a corpus_id"
             }), 400
         
         logger.info(f"Current graph has {len(existing_nodes)} nodes, {len(existing_edges)} edges")
@@ -726,13 +737,14 @@ def add_topic():
         
         # Step 3: Update Firestore with new graph data
         logger.info("Updating Firestore with new graph data...")
-        firestore_service.db.collection(firestore_service.COURSES_COLLECTION).document(course_id).update({
-            'kg_nodes': updated_nodes_json,
-            'kg_edges': updated_edges_json,
-            'kg_data': updated_data_json
-        })
+        firestore_service.update_knowledge_graph(
+            playground_id=playground_id,
+            kg_nodes=updated_nodes_json,
+            kg_edges=updated_edges_json,
+            kg_data=updated_data_json
+        )
         
-        logger.info(f"Successfully added topic '{topic_name}' to course {course_id}")
+        logger.info(f"Successfully added topic '{topic_name}' to playground {playground_id}")
         
         return jsonify({
             "status": "success",

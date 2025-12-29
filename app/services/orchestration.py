@@ -35,7 +35,7 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
 
     # Step 1: Create Firestore doc with status: GENERATING
     logger.debug("Step 1: Creating Firestore document...")
-    firestore_service.create_course_doc(course_id)
+    firestore_service.create_playground_doc(f"Canvas Course {course_id}", course_id)
     logger.info(f"Firestore document created for course {course_id}")
 
     logger.debug("Step 2: Provisioning RAG corpus...")

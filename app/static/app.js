@@ -256,10 +256,10 @@ async function loadSuggestedTopics() {
     const editorDiv = document.getElementById('init-editor');
     
     try {
-        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`, {
+        const response = await fetch(`/api/get-graph?playground_id=${COURSE_ID}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ course_id: COURSE_ID })
+            body: JSON.stringify({ playground_id: COURSE_ID })
         });
         
         if (!response.ok) {
@@ -1184,7 +1184,7 @@ async function setupAppPage() {
 // Load graph data from API
 async function loadGraphData() {
     try {
-        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`);
+        const response = await fetch(`/api/get-graph?playground_id=${COURSE_ID}`);
         const data = await response.json();
         
         graphData = {
@@ -1420,7 +1420,7 @@ async function sendMessage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                course_id: COURSE_ID, 
+                playground_id: PLAYGROUND_ID, 
                 query: query 
             })
         });
@@ -1652,7 +1652,7 @@ async function sendChatMessage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 query: message
             })
         });
