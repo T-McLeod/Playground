@@ -29,7 +29,8 @@ except Exception as e:
     db = None
 
 PLAYGROUNDS_COLLECTION = 'playgrounds'
-KNOWLEDGE_GRAPH_COLLECTION = 'knowledge_graph'
+GRAPH_NODES_COLLECTION = 'graph_nodes'
+FILES_COLLECTION = 'files'
 ANALYTICS_COLLECTION = 'course_analytics'
 REPORTS_COLLECTION = 'analytics_reports'
 
@@ -216,7 +217,7 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
     })
 
 
-def initialize_knowledge_graph(playground_id: str, nodes: list) -> None:
+def initialize_nodes(playground_id: str, nodes: list) -> None:
     """
     Initializes the knowledge graph portion of a course/playground document.
     
@@ -226,7 +227,7 @@ def initialize_knowledge_graph(playground_id: str, nodes: list) -> None:
     """
     _ensure_db()
     
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
     batch = db.batch()
     
     for node in nodes:
@@ -238,7 +239,7 @@ def initialize_knowledge_graph(playground_id: str, nodes: list) -> None:
     logger.info(f"Initialized knowledge graph for playground {playground_id} with {len(nodes)} nodes.")
 
 
-def update_knowledge_graph(playground_id: str, kg_nodes: list) -> None:
+def update_nodes(playground_id: str, kg_nodes: list) -> None:
     """
     Updates only the knowledge graph portion of a course/playground document.
     Does NOT overwrite corpus_id, indexed_files, or status.
@@ -252,7 +253,7 @@ def update_knowledge_graph(playground_id: str, kg_nodes: list) -> None:
     """
     _ensure_db()
     
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
     batch = db.batch()
     
     for node in kg_nodes:
@@ -267,7 +268,7 @@ def update_knowledge_graph(playground_id: str, kg_nodes: list) -> None:
     logger.info(f"Updated knowledge graph for playground {playground_id}")
 
 
-def get_knowledge_graph(playground_id: str) -> list:
+def fetch_raw_nodes(playground_id: str) -> list:
     """
     Retrieves the knowledge graph nodes for a given playground.
     
@@ -279,7 +280,7 @@ def get_knowledge_graph(playground_id: str) -> list:
     """
     _ensure_db()
     
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(KNOWLEDGE_GRAPH_COLLECTION)
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
     nodes = []
     
     docs = node_collection.stream()
@@ -289,6 +290,46 @@ def get_knowledge_graph(playground_id: str) -> list:
     
     logger.info(f"Retrieved {len(nodes)} knowledge graph nodes for playground {playground_id}")
     return nodes
+
+def create_node(playground_id: str, node: dict) -> str:
+    """
+    Initializes the knowledge graph portion of a course/playground document.
+    
+    Args:
+        playground_id: The playground document ID
+        nodes: List of node dicts to initialize the knowledge graph
+    """
+    _ensure_db()
+    
+    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
+    
+    node['id'] = node_collection.document().id
+    node_collection.document(node['id']).set(node)
+    return node['id']
+
+
+def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
+    """
+    Retrieves a file document from the files subcollection.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The file document ID
+        
+    Returns:
+        Dictionary containing file data with doc_id, or None if not found
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_doc = file_ref.get()
+    
+    if not file_doc.exists:
+        return None
+    
+    file_data = file_doc.to_dict()
+    file_data['doc_id'] = file_doc.id
+    return file_data
 
 
 def log_analytics_event(data: dict) -> str:

@@ -78,8 +78,10 @@ def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str 
         Updated dictionary of file objects with 'gcs_uri' property added
     """
     bucket = ensure_bucket_exists(bucket_name)
+
     for file in files:
         display_name = file.get('display_name', f"file_{file.get('id')}")
+        file_id = file.get('id')
         download_url = file.get('url')
 
         logger.debug(f"Starting upload for file: {display_name}")
@@ -87,7 +89,7 @@ def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str 
         with requests.get(download_url, stream=True) as response:
             response.raise_for_status()
             
-            blob_path = f"playgrounds/{playground_id}/{display_name}"
+            blob_path = f"playgrounds/{playground_id}/{file_id}.pdf"
             blob = bucket.blob(blob_path)
             gcs_uri = f"gs://{bucket_name}/{blob_path}"
 
@@ -96,6 +98,8 @@ def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str 
                 response.raw, 
                 content_type=response.headers.get('Content-Type')
             )
+            blob.content_disposition = f'inline; filename="{display_name}"'
+            blob.patch()
             file['gcs_uri'] = gcs_uri
             logger.info(f"Successfully uploaded {blob_path}")
 

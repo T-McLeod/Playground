@@ -70,17 +70,17 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
         corpus_id=corpus_id,
         files=files
     )
+    nodes = _build_knowledge_graph(
+        topic_list=topics,
+        corpus_id=corpus_id,
+        files=files
+    )
     logger.info("Knowledge graph built successfully")
     
     # Step 9: Finalize Firestore document with all data
     logger.info("Step 9: Finalizing Firestore document...")
-    update_payload = {
-        'corpus_id': corpus_id,
-        'kg_nodes': kg_nodes,
-        'kg_edges': kg_edges,
-        'kg_data': kg_data
-    }
-    firestore_service.finalize_course_doc(playground_id, update_payload)
+    firestore_service.update_nodes(playground_id, nodes)
+    firestore_service.finalize_course_doc(playground_id, {})
     
     logger.info(f"Course {course_id} initialization complete!")
     
@@ -88,9 +88,6 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
         "status": "complete",
         "corpus_id": corpus_id,
         "files_count": len(files),
-        "kg_nodes": kg_nodes,
-        "kg_edges": kg_edges,
-        "kg_data": kg_data
     }
     
 
@@ -154,3 +151,40 @@ def _summarize_files(course_id: str, files: list[dict]) -> list[dict]:
         logger.debug(f"File Name: {display_name}\nSummary: {summary}")
 
     return files
+
+
+SUMMARY_QUERY_TEMPLATE = (
+    "For each topic, provide a con"
+)
+def _build_knowledge_graph(topic_list: list[str], corpus_id: str, files: list[dict]) -> list[dict]:
+    """
+    Builds a knowledge graph using the provided topics and files.
+    
+    Args:
+        topic_list: List of topics to include in the knowledge graph.
+        corpus_id: The RAG corpus ID to use for context retrieval.
+        files: List of file objects with summaries.
+    Returns:
+        Tuple containing:
+        - List of knowledge graph nodes
+        - List of knowledge graph edges
+        - Additional knowledge graph data"""
+    nodes = []
+    for topic in topic_list:
+        logger.info(f"Processing topic for KG: {topic}")
+        query = SUMMARY_QUERY_TEMPLATE.format(topic=topic)
+        context_texts, sources = rag_service.retrieve_context(
+            corpus_id=corpus_id,
+            query=query,
+        )
+        summary = llm_service.summarize_topic(
+            topic=topic,
+            context=context_texts,
+        )
+        nodes.append({
+            "topic": topic,
+            "summary": summary,
+            "files": [source['file_id'] for source in sources]
+        })
+
+    return nodes

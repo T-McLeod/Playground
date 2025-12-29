@@ -13,11 +13,12 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 from app.services.llm_services import get_llm_service
+from app.services.rag_services import get_rag_service
 
 logger = logging.getLogger(__name__)
 
 llm_service = get_llm_service()
-
+rag_service = get_rag_service()
 
 SUMMARY_QUERY_TEMPLATE = (
     "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
@@ -360,133 +361,3 @@ def build_knowledge_graph(topic_list: list, corpus_id: str, files: list) -> tupl
     
     return (nodes_json, edges_json, data_json)
 
-
-if __name__ == "__main__":
-    # Test topic extraction for Canvas course
-    from dotenv import load_dotenv
-    import vertexai
-    
-    # Load environment variables
-    env_path = os.path.join(root_dir, '.env')
-    load_dotenv(env_path)
-    
-    # Initialize Vertex AI
-    project_id = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    location = os.environ.get('GOOGLE_CLOUD_LOCATION')
-    
-    if project_id:
-        vertexai.init(project=project_id, location=location)
-    
-    print(f"Loaded environment from: {env_path}")
-    print(f"GOOGLE_CLOUD_PROJECT: {project_id}")
-    print(f"GOOGLE_CLOUD_LOCATION: {location}")
-    
-    if not project_id:
-        print("\n⚠️  Please set GOOGLE_CLOUD_PROJECT in .env")
-        import sys
-        sys.exit(1)
-    
-    try:
-        # Import firestore service to get course data
-        from app.services.firestore_service import get_course_data
-        
-        # Get course data for 13299557
-        course_id = "13299557"
-        print("\n" + "=" * 80)
-        print(f"TOPIC EXTRACTION TEST - Course {course_id}")
-        print("=" * 80)
-        
-        course_doc = get_course_data(course_id)
-        if not course_doc.exists:
-            print(f"\n❌ Course {course_id} not found in Firestore")
-            import sys
-            sys.exit(1)
-        
-        course_data = course_doc.to_dict()
-        corpus_id = course_data.get('corpus_id')
-        
-        print(f"\n📚 Course Info:")
-        print(f"   Corpus ID: {corpus_id}")
-        
-        # Get file summaries from the corpus
-        print(f"\n📄 Generating file summaries...")
-        from app.services.rag_service import retrieve_context
-        
-        # Create queries to get comprehensive content from each major topic area
-        summary_queries = [
-            "What are the main topics covered in these materials?",
-            "What mathematical concepts and theorems are taught?",
-            "What problem-solving techniques are discussed?",
-            "What are the key learning objectives?"
-        ]
-        
-        all_contexts = []
-        for query in summary_queries:
-            contexts, _ = retrieve_context(corpus_id, query, top_k=15, threshold=0.5)
-            all_contexts.extend(contexts)
-        
-        print(f"   Retrieved {len(all_contexts)} context chunks")
-        
-        # Use the contexts as "summaries" for topic extraction
-        summaries = all_contexts[:30]  # Use first 30 chunks to avoid token limits
-        
-        print(f"\n🔍 Testing topic extraction with different NUM_TOPICS values...")
-        print("=" * 80)
-        
-        # Test different values of NUM_TOPICS
-        test_values = [4, 6, 8, 10, 12]
-        
-        results = {}
-        original_num = NUM_TOPICS  # Save original value
-        
-        for num in test_values:
-            print(f"\n{'─' * 80}")
-            print(f"Testing NUM_TOPICS = {num}")
-            print(f"{'─' * 80}")
-            
-            # Temporarily modify the module-level variable
-            import app.services.kg_service as kg_module
-            kg_module.NUM_TOPICS = num
-            
-            try:
-                topics = extract_topics_from_summaries(summaries, num_topics=num)
-                
-                print(f"\n✅ Extracted {len(topics)} topics:")
-                for i, topic in enumerate(topics, 1):
-                    print(f"   {i}. {topic}")
-                
-                results[num] = topics
-                
-            except Exception as e:
-                print(f"\n❌ Error: {e}")
-                import traceback
-                traceback.print_exc()
-            finally:
-                # Restore original value
-                kg_module.NUM_TOPICS = original_num
-        
-        # Summary comparison
-        print("\n" + "=" * 80)
-        print("SUMMARY COMPARISON")
-        print("=" * 80)
-        
-        for num, topics in results.items():
-            print(f"\nNUM_TOPICS = {num} ({len(topics)} topics generated):")
-            for i, topic in enumerate(topics, 1):
-                print(f"  {i}. {topic}")
-        
-        print("\n" + "=" * 80)
-        print("🎉 Topic Extraction Test Complete!")
-        print("=" * 80)
-        
-        print("\n💡 Analysis:")
-        print("   • Compare the topics generated with different NUM_TOPICS values")
-        print("   • Look for the right balance between comprehensiveness and granularity")
-        print("   • Topics should be broad enough to group related content")
-        print("   • Topics should be specific enough to be meaningful")
-        print("   • Optimal value depends on course content and structure")
-        
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
