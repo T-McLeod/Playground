@@ -13,16 +13,17 @@ logger = logging.getLogger(__name__)
 
 # Get GCP configuration from environment
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
+DATABASE = os.environ.get('FIRESTORE_DATABASE', '(default)')
 
 # Initialize Firestore client
 # If GOOGLE_APPLICATION_CREDENTIALS is set, it will be used automatically
 # Otherwise, it will use Application Default Credentials (ADC)
 try:
     if PROJECT_ID:
-        db = firestore.Client(project=PROJECT_ID)
+        db = firestore.Client(project=PROJECT_ID, database=DATABASE)
         logger.info(f"Firestore initialized for project: {PROJECT_ID}")
     else:
-        db = firestore.Client()
+        db = firestore.Client(database=DATABASE)
         logger.warning("GOOGLE_CLOUD_PROJECT not set, using default project")
 except Exception as e:
     logger.error(f"Failed to initialize Firestore: {e}")
