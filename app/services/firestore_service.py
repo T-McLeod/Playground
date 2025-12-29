@@ -187,16 +187,16 @@ def update_status(course_id: str, status: str) -> None:
     })
 
 
-def add_corpus_id(course_id: str, corpus_id: str) -> None:
+def add_corpus_id(playground_id: str, corpus_id: str) -> None:
     """
     Adds the corpus_id field to the course document.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         corpus_id: The RAG corpus ID
     """
     _ensure_db()
-    db.collection(PLAYGROUNDS_COLLECTION).document(course_id).set({
+    db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).set({
         'corpus_id': corpus_id
     }, merge=True)
 

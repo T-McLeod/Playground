@@ -35,14 +35,14 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
 
     # Step 1: Create Firestore doc with status: GENERATING
     logger.debug("Step 1: Creating Firestore document...")
-    firestore_service.create_playground_doc(f"Canvas Course {course_id}", course_id)
+    playground_id = firestore_service.create_playground_doc(f"Canvas Course {course_id}", course_id)
     logger.info(f"Firestore document created for course {course_id}")
 
     logger.debug("Step 2: Provisioning RAG corpus...")
-    corpus_id = rag_service.create_and_provision_corpus(course_id)
+    corpus_id = rag_service.create_and_provision_corpus(playground_id)
     logger.info(f"RAG corpus provisioned for course {course_id}")
 
-    firestore_service.add_corpus_id(course_id, corpus_id)
+    firestore_service.add_corpus_id(playground_id, corpus_id)
 
     try:
         files = _intake_files_from_canvas(course_id, corpus_id)
