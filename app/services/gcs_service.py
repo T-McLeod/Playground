@@ -63,7 +63,7 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
         return bucket
 
 
-def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
+def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
     """
     Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}

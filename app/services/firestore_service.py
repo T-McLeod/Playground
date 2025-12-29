@@ -177,10 +177,10 @@ def add_files(playground_id: str, files: list[dict]) -> None:
     for file in files:
         file_id = file_collection.document().id
         file_document = file_collection.document(file_id)
-        batch.set(file_document, file)
-
         file['canvas_file_id'] = file.get('id')
         file['id'] = file_id
+        
+        batch.set(file_document, file)
 
     batch.commit()
 
