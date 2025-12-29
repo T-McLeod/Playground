@@ -85,7 +85,8 @@ def create_playground_doc(display_name: str, course_id: str) -> Any:
         'source': {
             'type': 'canvas_course',
             'course_id': course_id
-        }
+        },
+        'status': 'GENERATING',
     })
 
     return new_id
@@ -159,18 +160,28 @@ def get_playground_data(playground_id: str):
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
 
 
-def add_files(course_id: str, data: dict) -> None:
+def add_files(playground_id: str, files: list[dict]) -> None:
     """
     Adds or updates the indexed_files field in the course document.
     
     Args:
-        course_id: The Canvas course ID
-        data: Dictionary of indexed files to add/update
+        playground_id: The playground document ID
+        files: List of dictionaries representing indexed files to add/update
     """
     _ensure_db()
-    db.collection(COURSES_COLLECTION).document(course_id).set({
-        'indexed_files': data
-    }, merge=True)
+
+    batch = db.batch()
+    file_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+
+    for file in files:
+        file_id = file_collection.document().id
+        file_document = file_collection.document(file_id)
+        batch.set(file_document, file)
+
+        file['canvas_file_id'] = file.get('id')
+        file['id'] = file_id
+
+    batch.commit()
 
 
 def update_status(course_id: str, status: str) -> None:

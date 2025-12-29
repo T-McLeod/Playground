@@ -45,15 +45,14 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     firestore_service.add_corpus_id(playground_id, corpus_id)
 
     try:
-        files = _intake_files_from_canvas(course_id, corpus_id)
+        files = _intake_files_from_canvas(playground_id, course_id, corpus_id)
     except Exception as e:
         logger.error(f"Failed to intake files from Canvas: {str(e)}")
         raise
 
     # Step 6: Summarize all files included:
-    files = _summarize_files(course_id, list(files.values()))
+    files = _summarize_files(course_id, files)
     summaries = [file.get("summary", "") for file in files]
-    firestore_service.add_files(course_id, files)
 
     # Step 7: Extract Topics from summaries, autogenerate topics if not provided:
     logger.info(f"topics: {topics}")
@@ -81,7 +80,7 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
         'kg_edges': kg_edges,
         'kg_data': kg_data
     }
-    firestore_service.finalize_course_doc(course_id, update_payload)
+    firestore_service.finalize_course_doc(playground_id, update_payload)
     
     logger.info(f"Course {course_id} initialization complete!")
     
@@ -95,7 +94,7 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     }
     
 
-def _intake_files_from_canvas(course_id: str, corpus_id: str) -> Dict[str, Dict]:
+def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:
     """
     Intake files from Canvas, upload to GCS, and return a mapping of file identifiers
     to updated file objects with GCS URIs.
@@ -116,6 +115,9 @@ def _intake_files_from_canvas(course_id: str, corpus_id: str) -> Dict[str, Dict]
     )
     logger.info(f"Retrieved {len(files)} files from Canvas")
 
+    files = [files[canvas_id] for canvas_id in files]
+    firestore_service.add_files(playground_id, files)
+
     logger.debug("Step 4: Uploading files to GCS...")
     files = gcs_service.stream_files_to_gcs(files, course_id)
     logger.info(f"Uploaded {len(files)} files to GCS")
@@ -127,7 +129,6 @@ def _intake_files_from_canvas(course_id: str, corpus_id: str) -> Dict[str, Dict]
     )
     logger.info(f"Uploaded files to corpus: {corpus_id}")
 
-    firestore_service.add_files(course_id, files)
     return files
 
 
