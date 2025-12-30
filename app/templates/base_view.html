@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}Course Explorer{% endblock %} - {{ playground_id }}</title>
+    
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='student_view.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Knowledge Graph Exploration Area -->
+    <div class="exploration-container">
+        <!-- Header Bar -->
+        <div class="header-bar">
+            <h1 class="course-title">{% block title %}Playground AI{% endblock %}</h1>
+            
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button id="graph-view-btn" class="view-btn active">
+                    {% block graph_btn_content %}Graph{% endblock %}
+                </button>
+                <button id="cards-view-btn" class="view-btn">
+                    {% block cards_btn_content %}Cards{% endblock %}
+                </button>
+            </div>
+            
+            <div class="user-info">
+                {% block header_extra %}{% endblock %}
+                <span class="user-name">{{ user_id }}</span>
+                <span class="role-badge">{% block role_badge %}User{% endblock %}</span>
+            </div>
+        </div>
+
+        <!-- Topic Cards Container -->
+        <div id="topics-grid" class="topics-grid view-hidden">
+            <!-- Topic cards will be dynamically inserted here -->
+        </div>
+
+        <!-- Graph Visualization Container -->
+        {% include 'partials/_graph_container.html' %}
+
+        <!-- Topic Detail Modal -->
+        {% block topic_modal %}
+        <div id="topic-modal" class="topic-modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" id="modal-close">&times;</button>
+                <div class="modal-header">
+                    <h2 id="modal-topic-title" class="modal-title"></h2>
+                    {% block modal_icon %}{% endblock %}
+                </div>
+                <div class="modal-body">
+                    <p id="modal-topic-summary" class="modal-summary"></p>
+                    <div class="related-resources" id="modal-resources">
+                        <h3>{% block resources_header %}Related Resources{% endblock %}</h3>
+                        <ul id="resource-list"></ul>
+                    </div>
+                    
+                    {% block modal_extra %}{% endblock %}
+                </div>
+                {% block modal_footer %}{% endblock %}
+            </div>
+        </div>
+        {% endblock %}
+
+        {% block extra_modals %}{% endblock %}
+    </div>
+
+    {% block extra_ui %}{% endblock %}
+
+    <!-- Loading Overlay -->
+    {% include 'partials/_loading_overlay.html' %}
+
+    <!-- Shared Scripts -->
+    <script src="{{ url_for('static', filename='vis-network.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- Core Modules -->
+    <script src="{{ url_for('static', filename='js/core/markdown-utils.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/ui-helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/api-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/graph-renderer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/core/modal-manager.js') }}"></script>
+
+    <!-- View Classes -->
+    <script src="{{ url_for('static', filename='js/views/base-view.js') }}"></script>
+
+    <!-- Inject playground data -->
+    <script>
+        const PLAYGROUND_ID = "{{ playground_id }}";
+        const USER_ID = "{{ user_id }}";
+        const VIEW_MODE = "{% block view_mode %}base{% endblock %}";
+    </script>
+
+    {% block view_scripts %}{% endblock %}
+
+    {% block init_script %}{% endblock %}
+</body>
+</html>

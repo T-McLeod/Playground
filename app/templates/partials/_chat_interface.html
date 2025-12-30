@@ -1,0 +1,55 @@
+<!-- Student Chat Interface Partial -->
+
+<!-- Minimal Chat Prompt (Overlay) -->
+<div id="chat-prompt" class="chat-prompt">
+    <div class="prompt-avatar">🤖</div>
+    <input 
+        type="text" 
+        id="prompt-input" 
+        class="prompt-input" 
+        placeholder="Ask me anything about your course..."
+    />
+</div>
+
+<!-- Floating expand button (visible when chat is collapsed) -->
+<button id="chat-expand-fab" class="chat-expand-fab visible">
+    Chat
+</button>
+
+<!-- Full Chat Interface (Slides up from bottom when message sent) -->
+<div id="chat-container" class="chat-container collapsed">
+    <div class="chat-header">
+        <div class="chat-title">
+            <span>Course Assistant</span>
+        </div>
+        <button id="chat-collapse" class="chat-collapse-btn">
+            <span id="collapse-icon">▼</span>
+        </button>
+    </div>
+    
+    <div id="chat-body" class="chat-body">
+        <div id="chat-messages" class="chat-messages">
+            <div class="message bot-message welcome-message">
+                <div class="message-content">
+                    <p>Hi there! I'm your AI teaching assistant. Click on any topic to explore, or ask me a question below!</p>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <div class="typing-indicator hidden" id="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="input-container">
+                <textarea 
+                    id="chat-input" 
+                    class="chat-input" 
+                    placeholder="Ask a question about your course..."
+                    rows="1"
+                ></textarea>
+                <button id="send-btn" class="send-btn">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,146 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher View - {{ playground_id }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='student_view.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="{{ url_for('static', filename='vis-network.min.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-</head>
-<body>
-    <!-- Knowledge Graph Exploration Area -->
-    <div class="exploration-container">
-        <div class="header-bar">
-            <h1 class="course-title">🎓 Teacher View</h1>
-            
-            <!-- View Toggle -->
-            <div class="view-toggle">
-                <button id="graph-view-btn" class="view-btn active">
-                    <span>🕸️</span> Graph
-                </button>
-                <button id="cards-view-btn" class="view-btn">
-                    <span>📱</span> Cards
-                </button>
-            </div>
-            
-            <div class="user-info">
-                <a href="/analytics/{{ playground_id }}" class="analytics-toggle-btn" title="View Analytics">
-                    <span>📊</span> Analytics
-                </a>
-                <span class="user-name">{{ user_id }}</span>
-                <span class="role-badge">Teacher</span>
-            </div>
+{% extends "base_view.html" %}
+
+{% block page_title %}Teacher View{% endblock %}
+{% block title %}🎓 Teacher View{% endblock %}
+
+{% block graph_btn_content %}<span>🕸️</span> Graph{% endblock %}
+{% block cards_btn_content %}<span>📱</span> Cards{% endblock %}
+
+{% block header_extra %}
+<a href="/analytics/{{ playground_id }}" class="analytics-toggle-btn" title="View Analytics">
+    <span>📊</span> Analytics
+</a>
+{% endblock %}
+
+{% block role_badge %}Teacher{% endblock %}
+{% block view_mode %}teacher{% endblock %}
+
+{% block modal_icon %}
+<div class="topic-icon" id="modal-topic-icon">📚</div>
+{% endblock %}
+
+{% block resources_header %}📎 Related Resources{% endblock %}
+
+{% block modal_footer %}
+<div class="modal-footer">
+    <button id="remove-topic-btn" class="btn-danger">
+        🗑️ Remove Topic
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_modals %}
+<!-- Add Topic Modal -->
+<div id="add-topic-modal" class="topic-modal hidden">
+    <div class="modal-content">
+        <button class="modal-close" id="add-topic-close">&times;</button>
+        <div class="modal-header">
+            <h2 class="modal-title">Add New Topic</h2>
+            <div class="topic-icon">➕</div>
         </div>
 
-        <!-- Topic Cards Container -->
-        <div id="topics-grid" class="topics-grid view-hidden">
-            <!-- Topic cards will be dynamically inserted here -->
+        <div class="modal-body">
+            <label for="new-topic-name">Topic Name: <span style="color: red;">*</span></label>
+            <input 
+                type="text" 
+                id="new-topic-name" 
+                placeholder="e.g., Graph Theory, Machine Learning"
+                class="modal-input"
+                required
+            />
+
+            <label for="new-topic-summary">Summary (Optional):</label>
+            <textarea 
+                id="new-topic-summary" 
+                rows="4" 
+                placeholder="Provide a custom summary, or leave blank to auto-generate from course materials"
+                class="modal-textarea"
+            ></textarea>
         </div>
 
-        <!-- Graph Visualization Container (Full Screen) -->
-        <div id="graph-container" class="graph-container view-active">
-            <div id="network-canvas" class="network-canvas"></div>
-            
-            <!-- Graph Controls -->
-            <div class="graph-controls">
-                <button id="fit-graph-btn" class="control-btn" title="Fit to screen">
-                    🔍 Fit
-                </button>
-                <button id="reset-zoom-btn" class="control-btn" title="Reset zoom">
-                    ↺ Reset
-                </button>
-            </div>
+        <div class="modal-footer">
+            <button id="add-topic-save-btn" class="btn-primary">
+                Save
+            </button>
+            <button id="add-topic-cancel-btn" class="btn-secondary">
+                Cancel
+            </button>
         </div>
-
-        <!-- Topic Detail Modal -->
-        <div id="topic-modal" class="topic-modal hidden">
-            <div class="modal-content">
-                <button class="modal-close" id="modal-close">&times;</button>
-                <div class="modal-header">
-                    <h2 id="modal-topic-title" class="modal-title"></h2>
-                    <div class="topic-icon" id="modal-topic-icon">📚</div>
-                </div>
-                <div class="modal-body">
-                    <p id="modal-topic-summary" class="modal-summary"></p>
-                    <div class="related-resources" id="modal-resources">
-                        <h3>📎 Related Resources</h3>
-                        <ul id="resource-list"></ul>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button id="remove-topic-btn" class="btn-danger">
-                        🗑️ Remove Topic
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Topic Modal -->
-        <div id="add-topic-modal" class="topic-modal hidden">
-            <div class="modal-content">
-                <button class="modal-close" id="add-topic-close">&times;</button>
-                <div class="modal-header">
-                    <h2 class="modal-title">Add New Topic</h2>
-                    <div class="topic-icon">➕</div>
-                </div>
-
-                <div class="modal-body">
-                    <label for="new-topic-name">Topic Name: <span style="color: red;">*</span></label>
-                    <input 
-                        type="text" 
-                        id="new-topic-name" 
-                        placeholder="e.g., Graph Theory, Machine Learning"
-                        class="modal-input"
-                        required
-                    />
-
-                    <label for="new-topic-summary">Summary (Optional):</label>
-                    <textarea 
-                        id="new-topic-summary" 
-                        rows="4" 
-                        placeholder="Provide a custom summary, or leave blank to auto-generate from course materials"
-                        class="modal-textarea"
-                    ></textarea>
-                </div>
-
-                <div class="modal-footer">
-                    <button id="add-topic-save-btn" class="btn-primary">
-                        Save
-                    </button>
-                    <button id="add-topic-cancel-btn" class="btn-secondary">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
-
     </div>
+</div>
+{% endblock %}
 
-    
+{% block extra_ui %}
+<!-- Bottom container for teacher actions -->
+<div class="bottom-bar">
+    <button id="add-topic-btn" class="add-topic-btn">➕ Add New Topic</button>
+    <button id="init-course-btn" class="init-course-btn">🔄 Initialize Course</button>
+</div>
+{% endblock %}
 
-    <!-- ✅ ADDED — Bottom container -->
-        <div class="bottom-bar">
-            <button id="add-topic-btn" class="add-topic-btn">➕ Add New Topic</button>
-            <button id="init-course-btn" class="init-course-btn">🔄 Initialize Course</button>
-        </div>
+{% block view_scripts %}
+<script src="{{ url_for('static', filename='js/views/teacher-view.js') }}"></script>
+{% endblock %}
 
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <p>Loading course content...</p>
-    </div>
-
-    <!-- Inject playground data -->
-    <script>
-        const PLAYGROUND_ID = "{{ playground_id }}";
-        const USER_ID = "{{ user_id }}";
-    </script>
-    <script src="{{ url_for('static', filename='teacher_view.js') }}"></script>
-</body>
-</html>
-
+{% block init_script %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Teacher View initialized for playground:', PLAYGROUND_ID);
+        console.log('User:', USER_ID);
+        
+        const view = new TeacherView(PLAYGROUND_ID, USER_ID);
+        view.init();
+    });
+</script>
+{% endblock %}
