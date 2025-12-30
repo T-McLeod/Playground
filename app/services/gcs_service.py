@@ -18,6 +18,14 @@ from typing import List, Dict, Optional
 import requests
 import google.auth
 
+try:
+    from ..utils import sanitize_filename
+except ImportError:
+    # Fallback for direct script execution
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils import sanitize_filename
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -480,13 +488,16 @@ def update_blob_metadata(gcs_uri: str, display_name: str, content_type: str = No
         bucket = client.bucket(parsed_bucket_name)
         blob = bucket.blob(blob_path)
         
+        # Sanitize display_name to prevent header injection attacks
+        sanitized_display_name = sanitize_filename(display_name)
+        
         # Update metadata
-        blob.content_disposition = f'inline; filename="{display_name}"'
+        blob.content_disposition = f'inline; filename="{sanitized_display_name}"'
         if content_type:
             blob.content_type = content_type
         blob.patch()
         
-        logger.info(f"Updated metadata for {blob_path}: display_name={display_name}")
+        logger.info(f"Updated metadata for {blob_path}: display_name={sanitized_display_name}")
         return True
         
     except Exception as e:
