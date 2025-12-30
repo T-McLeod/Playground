@@ -258,13 +258,16 @@ def get_graph():
     Fetches the knowledge graph data for visualization.
     """
     playground_id = request.args.get('playground_id')
-    playground_data = firestore_service.get_playground_data(playground_id)
-    
+    if not playground_id:
+        return jsonify({"error": "playground_id is required"}), 400
+    files_map = firestore_service.get_file_map(playground_id)
+    kg_nodes, kg_edges, kg_data = kg_service.render_knowledge_graph(playground_id, files_map)
+
     return jsonify({
-        "nodes": playground_data.get("kg_nodes"),
-        "edges": playground_data.get("kg_edges"),
-        "data": playground_data.get("kg_data"),
-        "indexed_files": playground_data.get("indexed_files")  # Include file metadata with gcs_uri
+        "nodes": kg_nodes,
+        "edges": kg_edges,
+        "data": kg_data,
+        "indexed_files": files_map
     })
 
 
@@ -488,56 +491,15 @@ def remove_topic():
             return jsonify({
                 "error": "Missing required fields: playground_id and topic_id"
             }), 400
-        
-        logger.info(f"Removing topic '{topic_id}' from playground {playground_id}")
-        
-        # Step 1: Get existing knowledge graph from Firestore
-        playground_data = firestore_service.get_playground_data(playground_id)
-        
-        if not playground_data.exists:
-            return jsonify({
-                "error": f"Playground {playground_id} not found"
-            }), 404
-        
-        data_dict = playground_data.to_dict()
-        
-        # Check if playground is active
-        if data_dict.get('status') != 'ACTIVE':
-            return jsonify({
-                "error": "Playground must be in ACTIVE state to remove topics"
-            }), 400
-        
-        existing_nodes = json.loads(data_dict.get('kg_nodes', '[]'))
-        existing_edges = json.loads(data_dict.get('kg_edges', '[]'))
-        existing_data = json.loads(data_dict.get('kg_data', '{}'))
-        
-        logger.info(f"Current graph has {len(existing_nodes)} nodes, {len(existing_edges)} edges")
-        
-        # Step 2: Remove the topic using kg_service
-        updated_nodes_json, updated_edges_json, updated_data_json = kg_service.remove_topic_from_graph(
-            topic_id=topic_id,
-            existing_nodes=existing_nodes,
-            existing_edges=existing_edges,
-            existing_data=existing_data
-        )
-        
-        # Step 3: Update Firestore with new graph data
-        logger.info("Updating Firestore with new graph data...")
-        firestore_service.update_knowledge_graph(
+
+        kg_service.remove_topic_from_graph(
             playground_id=playground_id,
-            kg_nodes=updated_nodes_json,
-            kg_edges=updated_edges_json,
-            kg_data=updated_data_json
+            topic_id=topic_id
         )
-        
-        logger.info(f"Successfully removed topic '{topic_id}' from playground {playground_id}")
         
         return jsonify({
             "status": "success",
             "message": f"Topic '{topic_id}' removed successfully",
-            "nodes": updated_nodes_json,
-            "edges": updated_edges_json,
-            "data": updated_data_json
         })
         
     except ValueError as ve:
@@ -689,71 +651,21 @@ def add_topic():
         playground_id = data.get('playground_id')
         topic_name = data.get('topic_name')
         custom_summary = data.get('summary')  # Optional
-        
         if not playground_id or not topic_name:
             return jsonify({
                 "error": "Missing required fields: playground_id and topic_name"
             }), 400
         
-        logger.info(f"Adding topic '{topic_name}' to playground {playground_id}")
-        
-        # Step 1: Get existing knowledge graph from Firestore
-        playground_data = firestore_service.get_playground_data(playground_id)
-        
-        if not playground_data.exists:
-            return jsonify({
-                "error": f"Playground {playground_id} not found"
-            }), 404
-        
-        data_dict = playground_data.to_dict()
-        
-        # Check if playground is active
-        if data_dict.get('status') != 'ACTIVE':
-            return jsonify({
-                "error": "Playground must be in ACTIVE state to add topics"
-            }), 400
-        
-        corpus_id = data_dict.get('corpus_id')
-        existing_nodes = json.loads(data_dict.get('kg_nodes', '[]'))
-        existing_edges = json.loads(data_dict.get('kg_edges', '[]'))
-        existing_data = json.loads(data_dict.get('kg_data', '{}'))
-        
-        if not corpus_id:
-            return jsonify({
-                "error": "Playground does not have a corpus_id"
-            }), 400
-        
-        logger.info(f"Current graph has {len(existing_nodes)} nodes, {len(existing_edges)} edges")
-        
-        # Step 2: Add the new topic using kg_service
-        updated_nodes_json, updated_edges_json, updated_data_json = kg_service.add_topic_to_graph(
-            topic_name=topic_name,
-            corpus_id=corpus_id,
-            existing_nodes=existing_nodes,
-            existing_edges=existing_edges,
-            existing_data=existing_data,
-            custom_summary=custom_summary  # Pass optional summary
-        )
-        
-        # Step 3: Update Firestore with new graph data
-        logger.info("Updating Firestore with new graph data...")
-        firestore_service.update_knowledge_graph(
+        kg_service.add_topic_to_graph(
             playground_id=playground_id,
-            kg_nodes=updated_nodes_json,
-            kg_edges=updated_edges_json,
-            kg_data=updated_data_json
+            topic_name=topic_name,
+            summary=custom_summary
         )
-        
-        logger.info(f"Successfully added topic '{topic_name}' to playground {playground_id}")
         
         return jsonify({
             "status": "success",
-            "message": f"Topic '{topic_name}' added successfully",
-            "nodes": updated_nodes_json,
-            "edges": updated_edges_json,
-            "data": updated_data_json
+            "message": f"Topic '{topic_name}' added successfully"
         })
-        
     except Exception as e:
         logger.error(f"Failed to add topic: {e}", exc_info=True)
         return jsonify({

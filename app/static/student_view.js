@@ -184,9 +184,9 @@ async function loadKnowledgeGraph() {
         
         // Parse the JSON strings into objects
         knowledgeGraph = {
-            kg_nodes: JSON.parse(data.nodes),
-            kg_edges: JSON.parse(data.edges),
-            kg_data: JSON.parse(data.data),
+            kg_nodes: data.nodes,
+            kg_edges: data.edges,
+            kg_data: data.data,
             indexed_files: data.indexed_files || {}  // File metadata with gcs_uri
         };
 

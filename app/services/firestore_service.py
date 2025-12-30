@@ -199,6 +199,20 @@ def add_corpus_id(playground_id: str, corpus_id: str) -> None:
     }, merge=True)
 
 
+def get_corpus_id(playground_id: str) -> str:
+    """
+    Retrieves the corpus_id field from the course document.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        The RAG corpus ID, or None if not set
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    return doc.get('corpus_id')
+
+
 # call with dictionary of:
 # corpus_id, indexed_files, kg_nodes, kg_edges, kg_data
 def finalize_course_doc(course_id: str, data: dict) -> None:
@@ -229,6 +243,22 @@ def get_node_collection(playground_id: str) -> CollectionReference:
     """
     _ensure_db()
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
+
+
+def get_file_map(playground_id: str) -> dict:
+    """
+    Returns a mapping of file document IDs to their data for a playground.
+    
+    Args:
+        playground_id: The playground document ID
+    
+    Returns:
+        dict: A dictionary where keys are file document IDs and values are file data dictionaries.
+    """
+    _ensure_db()
+    files = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).stream()
+    file_map = {file.id: file.to_dict() for file in files}
+    return file_map
 
 
 def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
