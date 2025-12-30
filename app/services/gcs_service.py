@@ -473,11 +473,11 @@ def update_blob_metadata(gcs_uri: str, display_name: str, content_type: str = No
             raise ValueError(f"Invalid GCS URI: {gcs_uri}")
         
         parts = gcs_uri[5:].split('/', 1)
-        bucket_name = parts[0]
+        parsed_bucket_name = parts[0]
         blob_path = parts[1] if len(parts) > 1 else ''
         
         client = get_storage_client()
-        bucket = client.bucket(bucket_name)
+        bucket = client.bucket(parsed_bucket_name)
         blob = bucket.blob(blob_path)
         
         # Update metadata
