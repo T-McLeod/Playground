@@ -709,7 +709,7 @@ def generate_upload_url(playground_id):
             }), 404
         
         # Generate unique file ID
-        file_id = firestore_service.initialize_file()
+        file_id = firestore_service.initialize_file(playground_id)
         
         # Generate signed upload URL (15 min expiration)
         result = gcs_service.generate_signed_upload_url(
