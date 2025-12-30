@@ -17,11 +17,14 @@ import logging
 from typing import List, Dict, Optional
 import requests
 import google.auth
-import sys
 
-# Add parent directory to path to import utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import sanitize_filename
+try:
+    from ..utils import sanitize_filename
+except ImportError:
+    # Fallback for direct script execution
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from utils import sanitize_filename
 
 
 # Configure logging

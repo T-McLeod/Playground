@@ -46,15 +46,15 @@ def sanitize_filename(filename: str, max_length: int = 255) -> str:
     filename = filename.replace('\x00', '')
     
     # Remove or replace dangerous characters
-    # Allow: alphanumeric, underscore, hyphen, period, space
-    # Replace other characters with underscore
-    filename = re.sub(r'[^\w\s.\-]', '_', filename)
+    # Allow: alphanumeric, underscore, hyphen, period
+    # Replace other characters (including spaces) with underscore
+    filename = re.sub(r'[^\w.\-]', '_', filename)
     
-    # Remove leading/trailing spaces and dots (which can be problematic)
-    filename = filename.strip('. ')
+    # Remove leading/trailing underscores and dots (which can be problematic)
+    filename = filename.strip('._')
     
-    # Replace multiple consecutive spaces or underscores with single underscore
-    filename = re.sub(r'[\s_]+', '_', filename)
+    # Replace multiple consecutive underscores with single underscore
+    filename = re.sub(r'_+', '_', filename)
     
     # Handle reserved names on Windows (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
     reserved_names = [
