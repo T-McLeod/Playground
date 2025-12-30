@@ -57,7 +57,7 @@ Summaries: {all_summaries}"""
         raise
 
 
-def add_topic_to_graph(playground_id: str, topic_name: str, existing_nodes: list, summary: str = "", files: list = []) -> tuple[str, str, str]:
+def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = "", files: list = []) -> None:
     """
     Adds a new topic to an existing knowledge graph.
     
@@ -76,12 +76,11 @@ def add_topic_to_graph(playground_id: str, topic_name: str, existing_nodes: list
         if 'id' not in file or 'name' not in file:
             raise ValueError("Each file must have 'id' and 'name' fields")
     
-    new_node = create_node(playground_id, {
+    create_node(playground_id, {
         "topic": topic_name,
         "summary": summary,
         "sources": files
     })
-    return new_node
 
 
 def remove_topic_from_graph(playground_id: str, topic_id: str) -> None:
