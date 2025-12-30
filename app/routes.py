@@ -262,13 +262,6 @@ def get_graph():
       
     kg_nodes, kg_edges, kg_data = kg_service.render_knowledge_graph(playground_id, files_map)
 
-    print(jsonify({
-        "nodes": kg_nodes,
-        "edges": kg_edges,
-        "data": kg_data,
-        "indexed_files": files_map
-    }))
-    
     return jsonify({
         "nodes": kg_nodes,
         "edges": kg_edges,
