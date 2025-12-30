@@ -256,7 +256,13 @@ def render_knowledge_graph(playground_id: str, files_map: dict) -> tuple[list, l
     kg_nodes = []
     kg_edges = []
     kg_data = {}
-    files_added = set()
+
+    for file_id, file_info in files_map.items():
+        kg_nodes.append({
+            "id": file_id,
+            "label": file_info.get('display_name', 'Unnamed File'),
+            "group": f"file_{file_info.get('mime_type', 'unknown').split('/')[-1]}"
+        })
 
     for node in nodes:
         kg_nodes.append({
@@ -269,13 +275,6 @@ def render_knowledge_graph(playground_id: str, files_map: dict) -> tuple[list, l
             "sources": node.get('files', [])
         }
         for source_file_id in node.get('files', []):
-            if source_file_id in files_map and source_file_id not in files_added:
-                kg_nodes.append({
-                    "id": source_file_id,
-                    "label": files_map[source_file_id].get('display_name', 'Unnamed File'),
-                    "group": "file_pdf"
-                })
-                files_added.add(source_file_id)
 
             if source_file_id in files_map:
                 kg_edges.append({
