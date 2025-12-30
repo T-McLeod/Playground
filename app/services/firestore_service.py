@@ -147,6 +147,25 @@ def get_playground_data(playground_id: str):
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
 
 
+def initialize_file(playground_id: str) -> str:
+    """
+    Creates a new file document in the files subcollection for a playground.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        The new file document ID
+    """
+    _ensure_db()
+    file_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+    new_file_ref = file_collection.document()
+    new_file_ref.set({
+        'created_at': firestore.SERVER_TIMESTAMP,
+        'status': 'initialized'
+    })
+    return new_file_ref.id
+
+
 REQUIRED_FILE_FIELDS = ["name", "size", "content_type", "source"]
 def add_files(playground_id: str, files: list[dict]) -> None:
     """
@@ -288,6 +307,35 @@ def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
     file_data = file_doc.to_dict()
     file_data['doc_id'] = file_doc.id
     return file_data
+
+
+def register_uploaded_file(playground_id: str, file_id: str, file_data: dict) -> str:
+    """
+    Registers a file uploaded via signed URL in Firestore.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The unique file ID (from signed URL generation)
+        file_data: Dictionary containing file metadata:
+            - name: Original filename
+            - display_name: Display name
+            - size: File size in bytes
+            - content_type: MIME type
+            - gcs_uri: GCS URI where file is stored
+            - source: Source information dict
+            - status: Current status (e.g., 'uploaded', 'indexed')
+            - indexed: Boolean indicating if file is indexed in RAG
+            
+    Returns:
+        The file document ID
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_ref.set(file_data)
+    
+    logger.info(f"Registered uploaded file: {file_data.get('name')} ({file_id}) for playground {playground_id}")
+    return file_id
 
 
 def log_analytics_event(data: dict) -> str:
