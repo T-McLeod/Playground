@@ -152,6 +152,7 @@ def initialize_nodes(playground_id: str, nodes: list) -> None:
     for node in nodes:
         node['id'] = node_collection.document().id
         node_doc = node_collection.document(node['id'])
+        node_doc.set(node)
     logger.info(f"Initialized knowledge graph for playground {playground_id} with {len(nodes)} nodes.")
 
 
