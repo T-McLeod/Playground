@@ -1,0 +1,22 @@
+<!-- Base Topic Modal Partial -->
+<div id="topic-modal" class="topic-modal hidden">
+    <div class="modal-content">
+        <button class="modal-close" id="modal-close">&times;</button>
+        <div class="modal-header">
+            <h2 id="modal-topic-title" class="modal-title"></h2>
+            {% if show_modal_icon %}
+            <div class="topic-icon" id="modal-topic-icon">📚</div>
+            {% endif %}
+        </div>
+        <div class="modal-body">
+            <p id="modal-topic-summary" class="modal-summary"></p>
+            <div class="related-resources" id="modal-resources">
+                <h3>{% if show_modal_icon %}📎 {% endif %}Related Resources</h3>
+                <ul id="resource-list"></ul>
+            </div>
+            
+            {% block modal_extra %}{% endblock %}
+        </div>
+        {% block modal_footer %}{% endblock %}
+    </div>
+</div>
