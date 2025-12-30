@@ -700,6 +700,26 @@ def generate_upload_url(playground_id):
         filename = data.get('filename', 'unnamed_file')
         content_type = data.get('content_type', 'application/octet-stream')
         file_size = data.get('size')
+
+        # Validate content type against allowed whitelist
+        # NOTE: Keep this in sync with the frontend `acceptedFiles` configuration.
+        allowed_content_types = {
+            "application/pdf",
+            "text/plain",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/png",
+            "image/jpeg",
+        }
+        if content_type not in allowed_content_types:
+            return jsonify({
+                "error": "Unsupported content type",
+                "message": "The provided content type is not allowed for uploads."
+            }), 400
         
         # Validate playground exists
         playground_data = firestore_service.get_playground_data(playground_id)
