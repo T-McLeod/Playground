@@ -96,7 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         gcs_uri: file.gcsUri
                     })
                 })
-                .then(() => {
+                .then((res) => {
+                    if (!res.ok) {
+                        throw new Error('File registration failed with status ' + res.status);
+                    }
                     console.log('File registered:', file.name);
                 })
                 .catch(err => {
