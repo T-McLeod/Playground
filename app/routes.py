@@ -10,6 +10,7 @@ from .services.rag_services import get_rag_service
 from .services.orchestration import initialize_course_from_canvas
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
+from .utils import sanitize_filename
 import os
 import logging
 import shutil
@@ -697,7 +698,9 @@ def generate_upload_url(playground_id):
     """
     try:
         data = request.json or {}
-        filename = data.get('filename', 'unnamed_file')
+        raw_filename = data.get('filename', 'unnamed_file')
+        # Sanitize filename to prevent path traversal and special character issues
+        filename = sanitize_filename(raw_filename)
         content_type = data.get('content_type', 'application/octet-stream')
 
         # Validate content type against allowed whitelist
@@ -780,7 +783,9 @@ def register_uploaded_file(playground_id):
     try:
         data = request.json
         file_id = data.get('file_id')
-        filename = data.get('filename')
+        raw_filename = data.get('filename')
+        # Sanitize filename to prevent path traversal and special character issues
+        filename = sanitize_filename(raw_filename) if raw_filename else None
         content_type = data.get('content_type', 'application/octet-stream')
         size = data.get('size', 0)
         gcs_uri = data.get('gcs_uri')
