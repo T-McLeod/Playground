@@ -106,7 +106,6 @@ def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str
     )
     logger.info(f"Retrieved {len(files)} files from Canvas")
 
-    files = [files[canvas_id] for canvas_id in files]
     firestore_service.add_files(playground_id, files)
 
     logger.debug("Step 4: Uploading files to GCS...")

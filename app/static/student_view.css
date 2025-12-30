@@ -53,7 +53,8 @@ body {
 }
 
 .add-topic-btn,
-.init-course-btn {
+.init-course-btn,
+.upload-files-btn {
     font-size: 16px;
     padding: 10px 18px;
     border-radius: 8px;
@@ -67,6 +68,14 @@ body {
 }
 .add-topic-btn:hover {
     background-color: #4338CA;
+}
+
+.upload-files-btn {
+    background-color: #7C3AED;
+    color: white;
+}
+.upload-files-btn:hover {
+    background-color: #6D28D9;
 }
 
 .init-course-btn {

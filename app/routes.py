@@ -672,3 +672,192 @@ def add_topic():
             "error": "Failed to add topic",
             "message": str(e)
         }), 500
+
+
+@app.route('/api/playgrounds/<playground_id>/generate-upload-url', methods=['POST'])
+def generate_upload_url(playground_id):
+    """
+    Generates a signed URL for direct-to-GCS file upload.
+    This bypasses Cloud Run memory limits by allowing the browser to upload directly.
+    
+    Request body:
+        {
+            "filename": "lecture_notes.pdf",
+            "content_type": "application/pdf",
+            "size": 15000000  // optional, for validation
+        }
+    
+    Returns:
+        {
+            "file_id": "uuid-generated-id",
+            "upload_url": "https://storage.googleapis.com/...",
+            "gcs_uri": "gs://bucket/playgrounds/.../uploads/file_id",
+            "expires_in": 900  // seconds
+        }
+    """
+    try:
+        data = request.json or {}
+        filename = data.get('filename', 'unnamed_file')
+        content_type = data.get('content_type', 'application/octet-stream')
+
+        # Validate content type against allowed whitelist
+        # NOTE: Keep this in sync with the frontend `acceptedFiles` configuration.
+        allowed_content_types = {
+            "application/pdf",
+            "text/plain",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/png",
+            "image/jpeg",
+        }
+        if content_type not in allowed_content_types:
+            return jsonify({
+                "error": "Unsupported content type",
+                "message": "The provided content type is not allowed for uploads."
+            }), 400
+        
+        # Validate playground exists
+        playground_data = firestore_service.get_playground_data(playground_id)
+        if not playground_data.exists:
+            return jsonify({
+                "error": "Playground not found"
+            }), 404
+        
+        # Generate unique file ID
+        file_id = firestore_service.initialize_file(playground_id)
+        
+        # Generate signed upload URL (15 min expiration)
+        result = gcs_service.generate_signed_upload_url(
+            playground_id=playground_id,
+            file_id=file_id,
+            content_type=content_type,
+            expiration_minutes=15
+        )
+        
+        return jsonify({
+            "file_id": file_id,
+            "upload_url": result['upload_url'],
+            "gcs_uri": result['gcs_uri'],
+            "expires_in": 900,  # 15 minutes in seconds
+            "original_filename": filename,
+            "content_type": content_type
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to generate upload URL: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to generate upload URL",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/playgrounds/<playground_id>/files/register', methods=['POST'])
+def register_uploaded_file(playground_id):
+    """
+    Registers a file in Firestore after successful GCS upload.
+    Called by the frontend after receiving 200 OK from GCS.
+    
+    Request body:
+        {
+            "file_id": "uuid-from-generate-url",
+            "filename": "original_filename.pdf",
+            "content_type": "application/pdf",
+            "size": 15000000,
+            "gcs_uri": "gs://bucket/playgrounds/.../uploads/file_id"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "file_id": "firestore-doc-id",
+            "status": "uploaded"
+        }
+    """
+    try:
+        data = request.json
+        file_id = data.get('file_id')
+        filename = data.get('filename')
+        content_type = data.get('content_type', 'application/octet-stream')
+        size = data.get('size', 0)
+        gcs_uri = data.get('gcs_uri')
+        
+        if not file_id or not filename or not gcs_uri:
+            return jsonify({
+                "error": "Missing required fields: file_id, filename, gcs_uri"
+            }), 400
+        
+        # Verify the file actually exists in GCS
+        if not gcs_service.verify_blob_exists(gcs_uri):
+            return jsonify({
+                "error": "File not found in GCS. Upload may have failed."
+            }), 400
+        
+        # Update blob metadata with display name
+        gcs_service.update_blob_metadata(gcs_uri, filename, content_type)
+        
+        # Create Firestore document for the file
+        file_doc = {
+            'id': file_id,
+            'name': filename,
+            'display_name': filename,
+            'size': size,
+            'content_type': content_type,
+            'gcs_uri': gcs_uri,
+            'source': {
+                'type': 'local_upload',
+                'uploaded_at': firestore_service.firestore.SERVER_TIMESTAMP
+            },
+        }
+        
+        # Add to Firestore
+        firestore_service.register_uploaded_file(playground_id, file_id, file_doc)
+        
+        logger.info(f"Registered uploaded file: {filename} ({file_id}) for playground {playground_id}")
+        
+        return jsonify({
+            "success": True,
+            "file_id": file_id,
+            "status": "uploaded",
+            "message": f"File '{filename}' registered successfully"
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to register uploaded file: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to register file",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/playgrounds/<playground_id>/files', methods=['GET'])
+def list_playground_files(playground_id):
+    """
+    Lists all files in a playground.
+    
+    Returns:
+        {
+            "files": [
+                {
+                    "id": "file_id",
+                    "name": "filename.pdf",
+                    "status": "uploaded" | "indexed",
+                    ...
+                }
+            ]
+        }
+    """
+    try:
+        files = firestore_service.get_playground_files(playground_id)
+        return jsonify({
+            "files": files
+        })
+    except Exception as e:
+        logger.error(f"Failed to list playground files: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to list files",
+            "message": str(e)
+        }), 500

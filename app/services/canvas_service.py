@@ -63,7 +63,7 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
         'Content-Type': 'application/json'
     }
     
-    files_list = {}
+    files_list = []
     
     # Initial API endpoint
     url = f"{CANVAS_API_BASE}/courses/{course_id}/files"
@@ -88,18 +88,20 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
                 # Filter for allowed file types
                 if file_ext in ALLOWED_FILE_TYPES:
                     file_obj = {
-                        'id': str(file.get('id')),
-                        'display_name': file.get('display_name'),
-                        'filename': file.get('filename'),
-                        'url': file.get('url'),  # Download URL
-                        'html_url': file.get('url'),  # Canvas web URL
-                        'content_type': file.get('content-type', 'application/pdf'),
+                        'name': filename,
                         'size': file.get('size', 0),
-                        'created_at': file.get('created_at'),
-                        'updated_at': file.get('updated_at')
+                        'content_type': file.get('content-type', 'application/pdf'),
+                        'source': {
+                            'type': 'canvas',
+                            'course_id': course_id,
+                            'download_url': file.get('url'),
+                            'hash': file.get('checksum', ''),
+                            'canvas_file_id': str(file.get('id')),
+                            'updated_at': file.get('updated_at')
+                        },
                     }
                     
-                    files_list[file_obj['id']] = file_obj
+                    files_list.append(file_obj)
             
             # Handle pagination via Link header
             url = None

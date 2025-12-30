@@ -3,6 +3,13 @@ resource "google_storage_bucket" "app_bucket" {
   uniform_bucket_level_access = true
   location = var.location
   force_destroy = true
+
+  cors {
+    origin          = var.cors_origins
+    method          = ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"]
+    response_header = ["Content-Type", "Content-Length", "Content-Disposition", "Cache-Control", "Expires"]
+    max_age_seconds = 3600
+  }
 }
 
 resource "google_firestore_database" "db" {
