@@ -199,6 +199,20 @@ def add_corpus_id(playground_id: str, corpus_id: str) -> None:
     }, merge=True)
 
 
+def get_corpus_id(playground_id: str) -> str:
+    """
+    Retrieves the corpus_id field from the course document.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        The RAG corpus ID, or None if not set
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    return doc.get('corpus_id')
+
+
 # call with dictionary of:
 # corpus_id, indexed_files, kg_nodes, kg_edges, kg_data
 def finalize_course_doc(course_id: str, data: dict) -> None:

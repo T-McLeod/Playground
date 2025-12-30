@@ -57,7 +57,7 @@ Summaries: {all_summaries}"""
         raise
 
 
-def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = "", files: list = []) -> None:
+def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None, files: list = []) -> None:
     """
     Adds a new topic to an existing knowledge graph.
     
@@ -75,11 +75,19 @@ def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = "", f
     for file in files:
         if 'id' not in file or 'name' not in file:
             raise ValueError("Each file must have 'id' and 'name' fields")
+
+    if not summary or files == []:
+        corpus_id = firestore_service.get_corpus_id(playground_id)
+        generated_summary, sources = summarize_topic(topic=topic_name, corpus_id=corpus_id)
+        generated_sources = [source['file_id'] for source in sources]
+
+        summary = summary if summary else generated_summary
+        files = [file['id'] for file in files] if files else generated_sources
     
     create_node(playground_id, {
         "topic": topic_name,
         "summary": summary,
-        "sources": files
+        "files": files
     })
 
 
@@ -98,11 +106,33 @@ def remove_topic_from_graph(playground_id: str, topic_id: str) -> None:
         logger.info(f"Removed topic {topic_id} from knowledge graph in playground {playground_id}")
     else:
         logger.warning(f"Topic {topic_id} not found in playground {playground_id}")
-    
+
 
 SUMMARY_QUERY_TEMPLATE = (
     "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
 )
+def summarize_topic(topic: str, corpus_id: str) -> str:
+    """
+    Summarizes a topic using the RAG corpus for context.
+    
+    Args:
+        topic: The topic to summarize
+        corpus_id: The RAG corpus ID to use for context retrieval
+        
+    Returns:
+        Summary string
+    """
+    context_texts, sources = rag_service.retrieve_context(
+        corpus_id=corpus_id,
+        query=topic,
+    )
+    summary = llm_service.summarize_topic(
+        topic=topic,
+        context=context_texts,
+    )
+    return summary, sources
+    
+
 def build_knowledge_graph(playground_id: str, topic_list: list[str], corpus_id: str) -> list[dict]:
     """
     Builds a knowledge graph using the provided topics and files.
@@ -117,15 +147,8 @@ def build_knowledge_graph(playground_id: str, topic_list: list[str], corpus_id: 
     nodes = []
     for topic in topic_list:
         logger.info(f"Processing topic for KG: {topic}")
-        query = SUMMARY_QUERY_TEMPLATE.format(topic=topic)
-        context_texts, sources = rag_service.retrieve_context(
-            corpus_id=corpus_id,
-            query=query,
-        )
-        summary = llm_service.summarize_topic(
-            topic=topic,
-            context=context_texts,
-        )
+        
+        summary, sources = summarize_topic(topic, corpus_id)
         nodes.append({
             "topic": topic,
             "summary": summary,

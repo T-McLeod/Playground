@@ -658,7 +658,7 @@ def add_topic():
         kg_service.add_topic_to_graph(
             playground_id=playground_id,
             topic_name=topic_name,
-            summary=custom_summary or ""
+            summary=custom_summary
         )
         
         return jsonify({
