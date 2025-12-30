@@ -147,6 +147,7 @@ def get_playground_data(playground_id: str):
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
 
 
+REQUIRED_FILE_FIELDS = ["name", "size", "content_type", "source"]
 def add_files(playground_id: str, files: list[dict]) -> None:
     """
     Adds or updates the indexed_files field in the course document.
@@ -161,9 +162,13 @@ def add_files(playground_id: str, files: list[dict]) -> None:
     file_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
 
     for file in files:
+        # Validate required fields
+        for field in REQUIRED_FILE_FIELDS:
+            if field not in file:
+                raise ValueError(f"File is missing required field: {field}")
+
         file_id = file_collection.document().id
         file_document = file_collection.document(file_id)
-        file['canvas_file_id'] = file.get('id')
         file['id'] = file_id
         
         batch.set(file_document, file)

@@ -82,7 +82,7 @@ def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str 
     for file in files:
         display_name = file.get('display_name', f"file_{file.get('id')}")
         file_id = file.get('id')
-        download_url = file.get('url')
+        download_url = file['source']['download_url']
 
         logger.debug(f"Starting upload for file: {display_name}")
         logger.debug(file)
