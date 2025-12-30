@@ -699,7 +699,6 @@ def generate_upload_url(playground_id):
         data = request.json or {}
         filename = data.get('filename', 'unnamed_file')
         content_type = data.get('content_type', 'application/octet-stream')
-        file_size = data.get('size')
 
         # Validate content type against allowed whitelist
         # NOTE: Keep this in sync with the frontend `acceptedFiles` configuration.
