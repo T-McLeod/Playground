@@ -231,6 +231,21 @@ def get_node_collection(playground_id: str) -> CollectionReference:
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
 
 
+def get_file_map(playground_id: str) -> dict:
+    """
+    Returns the files subcollection reference for a playground.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        CollectionReference for the files subcollection
+    """
+    _ensure_db()
+    files = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).stream()
+    file_map = {file.id: file.to_dict() for file in files}
+    return file_map
+
+
 def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
     """
     Retrieves a file document from the files subcollection.

@@ -258,13 +258,22 @@ def get_graph():
     Fetches the knowledge graph data for visualization.
     """
     playground_id = request.args.get('playground_id')
-    playground_data = firestore_service.get_playground_data(playground_id)
+    files_map = firestore_service.get_file_map(playground_id)
+      
+    kg_nodes, kg_edges, kg_data = kg_service.render_knowledge_graph(playground_id, files_map)
+
+    print(jsonify({
+        "nodes": kg_nodes,
+        "edges": kg_edges,
+        "data": kg_data,
+        "indexed_files": files_map
+    }))
     
     return jsonify({
-        "nodes": playground_data.get("kg_nodes"),
-        "edges": playground_data.get("kg_edges"),
-        "data": playground_data.get("kg_data"),
-        "indexed_files": playground_data.get("indexed_files")  # Include file metadata with gcs_uri
+        "nodes": kg_nodes,
+        "edges": kg_edges,
+        "data": kg_data,
+        "indexed_files": files_map
     })
 
 
