@@ -114,8 +114,7 @@ def build_knowledge_graph(playground_id: str, topic_list: list[str], corpus_id: 
     Returns:
         Tuple containing:
         - List of knowledge graph nodes
-        - List of knowledge graph edges
-        - Additional knowledge graph data"""
+    """
     nodes = []
     for topic in topic_list:
         logger.info(f"Processing topic for KG: {topic}")
