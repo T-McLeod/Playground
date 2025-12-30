@@ -5,6 +5,7 @@ Handles all Cloud Firestore operations for course data persistence.
 from typing import Any
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1.collection import CollectionReference
 import os
 import logging
 
@@ -217,95 +218,17 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
     })
 
 
-def initialize_nodes(playground_id: str, nodes: list) -> None:
+def get_node_collection(playground_id: str) -> CollectionReference:
     """
-    Initializes the knowledge graph portion of a course/playground document.
+    Returns the graph_nodes subcollection reference for a playground.
     
     Args:
         playground_id: The playground document ID
-        nodes: List of node dicts to initialize the knowledge graph
-    """
-    _ensure_db()
-    
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
-    batch = db.batch()
-    
-    for node in nodes:
-        node['id'] = node_collection.document().id
-        node_doc = node_collection.document(node['id'])
-        batch.set(node_doc, node)
-    
-    batch.commit()
-    logger.info(f"Initialized knowledge graph for playground {playground_id} with {len(nodes)} nodes.")
-
-
-def update_nodes(playground_id: str, kg_nodes: list) -> None:
-    """
-    Updates only the knowledge graph portion of a course/playground document.
-    Does NOT overwrite corpus_id, indexed_files, or status.
-
-    Args:
-        playground_id: The playground document ID (preferred)
-        kg_nodes: Updated list of node dicts
-        kg_edges: Updated list of edge dicts
-        kg_data:  Updated dict keyed by topic_id
-        course_id: Deprecated - use playground_id instead
-    """
-    _ensure_db()
-    
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
-    batch = db.batch()
-    
-    for node in kg_nodes:
-        node_id = node.get('id')
-        if not node_id:
-            node_id = node_collection.document().id
-            node['id'] = node_id
-        node_doc = node_collection.document(node_id)
-        batch.set(node_doc, node)
-
-    batch.commit()
-    logger.info(f"Updated knowledge graph for playground {playground_id}")
-
-
-def fetch_raw_nodes(playground_id: str) -> list:
-    """
-    Retrieves the knowledge graph nodes for a given playground.
-    
-    Args:
-        playground_id: The playground document ID
-        
     Returns:
-        List of node dictionaries
+        CollectionReference for the graph_nodes subcollection
     """
     _ensure_db()
-    
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
-    nodes = []
-    
-    docs = node_collection.stream()
-    for doc in docs:
-        node_data = doc.to_dict()
-        nodes.append(node_data)
-    
-    logger.info(f"Retrieved {len(nodes)} knowledge graph nodes for playground {playground_id}")
-    return nodes
-
-def create_node(playground_id: str, node: dict) -> str:
-    """
-    Initializes the knowledge graph portion of a course/playground document.
-    
-    Args:
-        playground_id: The playground document ID
-        nodes: List of node dicts to initialize the knowledge graph
-    """
-    _ensure_db()
-    
-    node_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
-    
-    node['id'] = node_collection.document().id
-    node_collection.document(node['id']).set(node)
-    return node['id']
+    return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
 
 
 def get_file_by_id(playground_id: str, file_id: str) -> dict | None:

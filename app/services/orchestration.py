@@ -65,16 +65,15 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
     
     # Step 8: Build knowledge graph
     logger.info("Step 8: Building knowledge graph...")
-    nodes = _build_knowledge_graph(
+    kg_service.build_knowledge_graph(
+        playground_id=playground_id,
         topic_list=topics,
         corpus_id=corpus_id,
-        files=files
     )
     logger.info("Knowledge graph built successfully")
     
     # Step 9: Finalize Firestore document with all data
     logger.info("Step 9: Finalizing Firestore document...")
-    firestore_service.update_nodes(playground_id, nodes)
     firestore_service.finalize_course_doc(playground_id, {})
     
     logger.info(f"Course {course_id} initialization complete!")
