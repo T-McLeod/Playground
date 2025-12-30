@@ -5,6 +5,7 @@ Handles all Cloud Firestore operations for course data persistence.
 from typing import Any
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1.collection import CollectionReference
 import os
 import logging
 
@@ -28,8 +29,9 @@ except Exception as e:
     logger.error(f"Failed to initialize Firestore: {e}")
     db = None
 
-COURSES_COLLECTION = 'courses'
 PLAYGROUNDS_COLLECTION = 'playgrounds'
+GRAPH_NODES_COLLECTION = 'graph_nodes'
+FILES_COLLECTION = 'files'
 ANALYTICS_COLLECTION = 'course_analytics'
 REPORTS_COLLECTION = 'analytics_reports'
 
@@ -131,21 +133,6 @@ def get_init_logs(course_id: str) -> list:
     return []
 
 
-# returns the google.cloud.firestore.document.DocumentSnapshot class
-def get_course_data(course_id: str):
-    """
-    Fetches the complete course document.
-    
-    Args:
-        course_id: The Canvas course ID
-        
-    Returns:
-        DocumentSnapshot containing all course data
-    """
-    _ensure_db()
-    return db.collection(COURSES_COLLECTION).document(course_id).get()
-
-
 def get_playground_data(playground_id: str):
     """
     Fetches the complete playground document.
@@ -230,35 +217,42 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
         'kg_data': data.get('kg_data')
     })
 
-def update_knowledge_graph(playground_id: str = None, kg_nodes: list = None, kg_edges: list = None, kg_data: dict = None, course_id: str = None) -> None:
-    """
-    Updates only the knowledge graph portion of a course/playground document.
-    Does NOT overwrite corpus_id, indexed_files, or status.
 
+def get_node_collection(playground_id: str) -> CollectionReference:
+    """
+    Returns the graph_nodes subcollection reference for a playground.
+    
     Args:
-        playground_id: The playground document ID (preferred)
-        kg_nodes: Updated list of node dicts
-        kg_edges: Updated list of edge dicts
-        kg_data:  Updated dict keyed by topic_id
-        course_id: Deprecated - use playground_id instead
+        playground_id: The playground document ID
+    Returns:
+        CollectionReference for the graph_nodes subcollection
+    """
+    _ensure_db()
+    return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
+
+
+def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
+    """
+    Retrieves a file document from the files subcollection.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The file document ID
+        
+    Returns:
+        Dictionary containing file data with doc_id, or None if not found
     """
     _ensure_db()
     
-    # Support both playground_id and legacy course_id
-    doc_id = playground_id or course_id
-    if not doc_id:
-        raise ValueError("Either playground_id or course_id must be provided")
-
-    update_payload = {
-        'kg_nodes': kg_nodes,
-        'kg_edges': kg_edges,
-        'kg_data':  kg_data
-    }
-
-    db.collection(PLAYGROUNDS_COLLECTION).document(doc_id).update(update_payload)
-
-    logger.info(f"Updated knowledge graph for playground {doc_id}")
-
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_doc = file_ref.get()
+    
+    if not file_doc.exists:
+        return None
+    
+    file_data = file_doc.to_dict()
+    file_data['doc_id'] = file_doc.id
+    return file_data
 
 
 def log_analytics_event(data: dict) -> str:

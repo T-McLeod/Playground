@@ -71,7 +71,22 @@ class GeminiService(LLMInterface):
         except Exception as e:
             logger.error(f"Failed to generate RAG-enhanced answer: {str(e)}")
             raise
+        
 
+    def summarize_topic(self, topic: str, context: List[str], model_name: str = DEFAULT_MODEL) -> str:
+        prompt = prompts.render(
+            "summarize_topic",
+            topic=topic,
+            context=context
+        )
+        try:
+            model = GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to summarize topic {topic}: {str(e)}")
+            raise
+    
 
     def summarize_file(self, file_path: str, model_name: str = DEFAULT_MODEL) -> str:
         """
@@ -87,7 +102,7 @@ class GeminiService(LLMInterface):
         # Determine MIME type dynamically based on the file extension
         mime_type, _ = mimetypes.guess_type(file_path)
         if mime_type is None:
-            mime_type = "application/octet-stream"
+            mime_type = "application/pdf"
 
         # Create a Gemini Part
         file_part = Part.from_uri(
