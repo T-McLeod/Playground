@@ -8,7 +8,6 @@ import json
 import logging
 import os
 from typing import List
-from google.cloud.firestore_v1.collection import CollectionReference
 
 
 root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
