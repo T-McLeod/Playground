@@ -247,12 +247,13 @@ def get_node_collection(playground_id: str) -> CollectionReference:
 
 def get_file_map(playground_id: str) -> dict:
     """
-    Returns the files subcollection reference for a playground.
+    Returns a mapping of file document IDs to their data for a playground.
     
     Args:
         playground_id: The playground document ID
+    
     Returns:
-        CollectionReference for the files subcollection
+        dict: A dictionary where keys are file document IDs and values are file data dictionaries.
     """
     _ensure_db()
     files = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).stream()
