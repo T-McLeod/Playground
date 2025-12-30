@@ -111,7 +111,6 @@ def build_knowledge_graph(playground_id: str, topic_list: list[str], corpus_id: 
     Args:
         topic_list: List of topics to include in the knowledge graph.
         corpus_id: The RAG corpus ID to use for context retrieval.
-        files: List of file objects with summaries.
     Returns:
         Tuple containing:
         - List of knowledge graph nodes
