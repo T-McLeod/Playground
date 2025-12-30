@@ -163,9 +163,6 @@ def update_nodes(playground_id: str, kg_nodes: list) -> None:
     Args:
         playground_id: The playground document ID (preferred)
         kg_nodes: Updated list of node dicts
-        kg_edges: Updated list of edge dicts
-        kg_data:  Updated dict keyed by topic_id
-        course_id: Deprecated - use playground_id instead
     """
     
     node_collection = firestore_service.get_node_collection(playground_id)
@@ -208,7 +205,7 @@ def create_node(playground_id: str, node: dict) -> str:
     
     Args:
         playground_id: The playground document ID
-        nodes: List of node dicts to initialize the knowledge graph
+        node: node dict to initialize the knowledge graph
     """
     node_collection = firestore_service.get_node_collection(playground_id)
     
