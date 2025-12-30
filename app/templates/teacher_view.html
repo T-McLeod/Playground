@@ -68,18 +68,27 @@
         </div>
     </div>
 </div>
+
+<!-- Upload Modal -->
+{% include 'partials/_upload_modal.html' %}
 {% endblock %}
 
 {% block extra_ui %}
 <!-- Bottom container for teacher actions -->
 <div class="bottom-bar">
+    <button id="upload-files-btn" class="upload-files-btn">📁 Upload Files</button>
     <button id="add-topic-btn" class="add-topic-btn">➕ Add New Topic</button>
     <button id="init-course-btn" class="init-course-btn">🔄 Initialize Course</button>
 </div>
 {% endblock %}
 
 {% block view_scripts %}
+<!-- Dropzone.js CDN -->
+<link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='upload.css') }}">
+<script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
 <script src="{{ url_for('static', filename='js/views/teacher-view.js') }}"></script>
+<script src="{{ url_for('static', filename='js/views/upload-manager.js') }}"></script>
 {% endblock %}
 
 {% block init_script %}

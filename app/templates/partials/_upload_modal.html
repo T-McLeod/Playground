@@ -1,0 +1,21 @@
+<!-- Upload Modal with Dropzone.js -->
+<div id="upload-modal" class="upload-modal" style="display: none;">
+    <div class="upload-modal-overlay" onclick="closeUploadModal()"></div>
+    <div class="upload-modal-content">
+        <div class="upload-modal-header">
+            <h2>📁 Upload Files</h2>
+            <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <div class="upload-modal-body">
+            <form id="file-dropzone" class="dropzone">
+                <div class="dz-message">
+                    <span>Drop files here or click to upload</span>
+                    <br><small>PDF, Word, PowerPoint, Text, Images</small>
+                </div>
+            </form>
+        </div>
+        <div class="upload-modal-footer">
+            <button class="btn-secondary" onclick="closeUploadModal()">Close</button>
+        </div>
+    </div>
+</div>
