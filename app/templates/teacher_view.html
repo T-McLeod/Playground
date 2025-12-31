@@ -23,13 +23,15 @@
 
 {% block modal_footer %}
 <div class="modal-footer">
-    <button id="remove-topic-btn" class="btn-danger">
-        🗑️ Remove Topic
-    </button>
+    <button id="edit-topic-btn" class="btn-primary">✏️ Edit Topic</button>
+    <button id="remove-topic-btn" class="btn-danger">🗑️ Remove Topic</button>
 </div>
 {% endblock %}
 
 {% block extra_modals %}
+<!-- Edit Topic Modal -->
+{% include 'partials/_edit_topic_modal.html' %}
+
 <!-- Add Topic Modal -->
 <div id="add-topic-modal" class="topic-modal hidden">
     <div class="modal-content">

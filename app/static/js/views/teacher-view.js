@@ -7,6 +7,7 @@ class TeacherView extends BaseView {
     constructor(playgroundId, userId) {
         super(playgroundId, userId);
         this.showModalIcon = true; // Teachers see icons in modal
+        this.editingTopic = null; // Track topic being edited
     }
 
     /**
@@ -17,6 +18,19 @@ class TeacherView extends BaseView {
         
         // Topic management elements
         this.elements.removeTopicBtn = document.getElementById('remove-topic-btn');
+        this.elements.editTopicBtn = document.getElementById('edit-topic-btn');
+        
+        // Edit Modal Elements
+        this.elements.editTopicModal = document.getElementById('edit-topic-modal');
+        this.elements.editTopicClose = document.getElementById('edit-topic-close');
+        this.elements.editTopicTitleInput = document.getElementById('edit-topic-title-input');
+        this.elements.editTopicSummaryInput = document.getElementById('edit-topic-summary-input');
+        this.elements.editResourceList = document.getElementById('edit-resource-list');
+        this.elements.addResourceSelect = document.getElementById('add-resource-select');
+        this.elements.addResourceBtn = document.getElementById('add-resource-btn');
+        this.elements.saveTopicChangesBtn = document.getElementById('save-topic-changes-btn');
+        this.elements.cancelTopicChangesBtn = document.getElementById('cancel-topic-changes-btn');
+
         this.elements.addTopicBtn = document.getElementById('add-topic-btn');
         this.elements.addTopicModal = document.getElementById('add-topic-modal');
         this.elements.addTopicClose = document.getElementById('add-topic-close');
@@ -33,7 +47,269 @@ class TeacherView extends BaseView {
         super.initializeEventListeners();
         
         this.initRemoveTopicHandler();
+        this.initEditTopicHandlers();
         this.initAddTopicHandlers();
+    }
+
+    /**
+     * Initialize edit topic handlers
+     */
+    initEditTopicHandlers() {
+        const { 
+            editTopicBtn, editTopicClose, saveTopicChangesBtn, cancelTopicChangesBtn,
+            addResourceBtn
+        } = this.elements;
+        
+        if (editTopicBtn) {
+            editTopicBtn.addEventListener('click', () => this.openEditTopicModal());
+        }
+        if (editTopicClose) {
+            editTopicClose.addEventListener('click', () => this.closeEditTopicModal());
+        }
+        if (cancelTopicChangesBtn) {
+            cancelTopicChangesBtn.addEventListener('click', () => this.closeEditTopicModal());
+        }
+        if (saveTopicChangesBtn) {
+            saveTopicChangesBtn.addEventListener('click', () => this.saveTopicChanges());
+        }
+        if (addResourceBtn) {
+            addResourceBtn.addEventListener('click', () => this.handleAddResource());
+        }
+    }
+
+    /**
+     * Open edit topic modal and populate with current data
+     */
+    openEditTopicModal() {
+        const currentTopic = ModalManager.getCurrentTopic();
+        if (!currentTopic) return;
+
+        this.editingTopic = currentTopic; // Store for saving later
+
+        const { 
+            editTopicModal, editTopicTitleInput, editTopicSummaryInput, 
+            editResourceList, addResourceSelect 
+        } = this.elements;
+
+        // Close view modal
+        ModalManager.closeModal();
+
+        // Populate fields
+        editTopicTitleInput.value = currentTopic.label;
+        
+        const topicData = this.knowledgeGraph.kg_data && this.knowledgeGraph.kg_data[currentTopic.id] 
+            ? this.knowledgeGraph.kg_data[currentTopic.id] 
+            : {};
+        editTopicSummaryInput.value = topicData.summary || '';
+
+        // Populate Resources
+        this.renderEditableResources(currentTopic.id);
+
+        // Show edit modal
+        if (editTopicModal) {
+            editTopicModal.classList.remove('hidden');
+            setTimeout(() => editTopicModal.classList.add('show'), 10);
+        }
+    }
+
+    /**
+     * Close edit topic modal and reopen view modal
+     */
+    closeEditTopicModal() {
+        const { editTopicModal } = this.elements;
+        const topicToReopen = this.editingTopic;
+
+        if (editTopicModal) {
+            editTopicModal.classList.remove('show');
+            setTimeout(() => {
+                editTopicModal.classList.add('hidden');
+                this.editingTopic = null; // Clear stored topic
+                
+                // Reopen view modal if we have a topic
+                if (topicToReopen) {
+                    ModalManager.openTopicModal(topicToReopen, this.knowledgeGraph);
+                }
+            }, 300);
+        }
+    }
+
+    /**
+     * Render resources in editable mode
+     */
+    renderEditableResources(topicId) {
+        const { editResourceList, addResourceSelect } = this.elements;
+        if (!editResourceList) return;
+
+        editResourceList.innerHTML = '';
+        
+        // Get current resources
+        const currentResources = ModalManager.getRelatedResources(topicId, this.knowledgeGraph);
+        
+        // Render current resources
+        currentResources.forEach(resource => {
+            this.addResourceToEditList(resource);
+        });
+
+        // Populate Select Dropdown
+        addResourceSelect.innerHTML = '<option value="">Select a file to link...</option>';
+        
+        const currentResourceIds = new Set(currentResources.map(r => r.id));
+        const allFiles = Object.values(this.knowledgeGraph.indexed_files || {});
+        const fileNodes = this.knowledgeGraph.kg_nodes.filter(n => n.group === 'file');
+        const availableFiles = allFiles.length > 0 ? allFiles : fileNodes;
+
+        availableFiles.forEach(file => {
+            const fileId = file.id || file.file_id; 
+            if (!currentResourceIds.has(fileId)) {
+                const option = document.createElement('option');
+                option.value = fileId;
+                option.textContent = file.filename || file.label || file.name;
+                addResourceSelect.appendChild(option);
+            }
+        });
+    }
+
+    /**
+     * Add a resource item to the edit list UI
+     */
+    addResourceToEditList(resource) {
+        const { editResourceList } = this.elements;
+        const li = document.createElement('li');
+        li.className = 'editable-resource-item';
+        
+        const span = document.createElement('span');
+        span.textContent = resource.label;
+        li.appendChild(span);
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.innerHTML = '❌';
+        removeBtn.className = 'btn-icon-small';
+        removeBtn.title = 'Remove connection';
+        removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            li.remove();
+            // Add back to dropdown if needed (optional enhancement)
+        };
+        li.appendChild(removeBtn);
+        
+        // Store ID for saving
+        li.dataset.resourceId = resource.id;
+        
+        editResourceList.appendChild(li);
+    }
+
+    /**
+     * Handle adding a resource from the dropdown
+     */
+    handleAddResource() {
+        const { addResourceSelect } = this.elements;
+        const selectedId = addResourceSelect.value;
+        if (!selectedId) return;
+        
+        const allFiles = Object.values(this.knowledgeGraph.indexed_files || {});
+        const fileNodes = this.knowledgeGraph.kg_nodes.filter(n => n.group === 'file');
+        const availableFiles = allFiles.length > 0 ? allFiles : fileNodes;
+
+        const selectedFile = availableFiles.find(f => (f.id || f.file_id) === selectedId);
+        
+        if (selectedFile) {
+            const resourceObj = {
+                id: selectedId,
+                label: selectedFile.filename || selectedFile.label || selectedFile.name
+            };
+            
+            this.addResourceToEditList(resourceObj);
+            
+            // Remove from select
+            const optionToRemove = addResourceSelect.querySelector(`option[value="${selectedId}"]`);
+            if (optionToRemove) optionToRemove.remove();
+            addResourceSelect.value = '';
+        }
+    }
+
+    /**
+     * Save topic changes
+     */
+    async saveTopicChanges() {
+        const { saveTopicChangesBtn, editTopicTitleInput, editTopicSummaryInput, editResourceList } = this.elements;
+        const currentTopic = this.editingTopic;
+        
+        if (!currentTopic) {
+            console.error('No topic being edited');
+            return;
+        }
+        
+        const newTitle = editTopicTitleInput.value.trim();
+        const newSummary = editTopicSummaryInput.value.trim();
+        
+        // Gather resources
+        const resourceItems = editResourceList.querySelectorAll('li');
+        const resourceIds = [];
+        resourceItems.forEach(li => {
+            resourceIds.push(li.dataset.resourceId);
+        });
+
+        try {
+            saveTopicChangesBtn.disabled = true;
+            saveTopicChangesBtn.textContent = 'Saving...';
+            
+            console.log('Saving topic changes:', {
+                id: currentTopic.id,
+                label: newTitle,
+                summary: newSummary,
+                resourceIds: resourceIds
+            });
+            
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Update local graph data
+            const node = this.knowledgeGraph.kg_nodes.find(n => n.id === currentTopic.id);
+            if (node) {
+                node.label = newTitle;
+            }
+            
+            if (!this.knowledgeGraph.kg_data) this.knowledgeGraph.kg_data = {};
+            if (!this.knowledgeGraph.kg_data[currentTopic.id]) this.knowledgeGraph.kg_data[currentTopic.id] = {};
+            this.knowledgeGraph.kg_data[currentTopic.id].summary = newSummary;
+            
+            // Update edges
+            // Remove all existing edges for this topic to files
+            this.knowledgeGraph.kg_edges = this.knowledgeGraph.kg_edges.filter(edge => {
+                const isConnected = edge.from === currentTopic.id || edge.to === currentTopic.id;
+                if (!isConnected) return true;
+                
+                const otherId = edge.from === currentTopic.id ? edge.to : edge.from;
+                const otherNode = this.knowledgeGraph.kg_nodes.find(n => n.id === otherId);
+                // Keep edge if it's NOT a file (e.g. topic-topic connection)
+                return otherNode && otherNode.group !== 'file';
+            });
+            
+            // Add new edges
+            resourceIds.forEach(resId => {
+                this.knowledgeGraph.kg_edges.push({
+                    from: currentTopic.id,
+                    to: resId,
+                    id: `edge-${Date.now()}-${Math.random()}`
+                });
+            });
+            
+            UIHelpers.showSuccess('Topic updated successfully!');
+            
+            // Close edit modal (which reopens view modal with updated data)
+            this.closeEditTopicModal();
+            
+            // Refresh graph view
+            this.renderGraph(); 
+            this.renderTopicCards();
+
+        } catch (error) {
+            console.error('Error saving topic:', error);
+            alert('Failed to save changes.');
+        } finally {
+            saveTopicChangesBtn.disabled = false;
+            saveTopicChangesBtn.textContent = '💾 Save Changes';
+        }
     }
 
     /**
