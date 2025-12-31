@@ -98,6 +98,91 @@
     margin: 10px;
 }
 
+/* File Manager Styles */
+.file-manager-list-container {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.file-manager-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.file-manager-table th,
+.file-manager-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.file-manager-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.file-manager-table tr:hover {
+    background-color: #f9fafb;
+}
+
+.file-manager-upload-section {
+    margin-top: 10px;
+}
+
+.skinny-dropzone {
+    min-height: 80px !important;
+    padding: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.skinny-dropzone .dz-message {
+    margin: 0 !important;
+    padding: 10px !important;
+}
+
+.skinny-dropzone .dz-preview {
+    margin: 5px !important;
+    min-height: 60px !important;
+}
+
+.skinny-dropzone .dz-image {
+    width: 60px !important;
+    height: 60px !important;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.btn-danger:disabled {
+    background-color: #fca5a5;
+    cursor: not-allowed;
+}
+
 #file-dropzone .dz-preview .dz-progress {
     height: 6px;
     border-radius: 3px;

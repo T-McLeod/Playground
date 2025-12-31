@@ -854,9 +854,9 @@ def list_playground_files(playground_id):
         }
     """
     try:
-        files = firestore_service.get_playground_files(playground_id)
+        files_dict = firestore_service.get_file_map(playground_id)
         return jsonify({
-            "files": files
+            "files": list(files_dict.values())
         })
     except Exception as e:
         logger.error(f"Failed to list playground files: {e}", exc_info=True)

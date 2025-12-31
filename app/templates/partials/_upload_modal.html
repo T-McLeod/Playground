@@ -1,20 +1,50 @@
-<!-- Upload Modal with Dropzone.js -->
+<!-- File Manager Modal -->
 <div id="upload-modal" class="upload-modal" style="display: none;">
     <div class="upload-modal-overlay" onclick="closeUploadModal()"></div>
     <div class="upload-modal-content">
         <div class="upload-modal-header">
-            <h2>📁 Upload Files</h2>
+            <h2>📁 File Manager</h2>
             <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
         </div>
         <div class="upload-modal-body">
-            <form id="file-dropzone" class="dropzone">
-                <div class="dz-message">
-                    <span>Drop files here or click to upload</span>
-                    <br><small>PDF, Word, PowerPoint, Text, Images</small>
+            <!-- File List Section -->
+            <div class="file-manager-list-container">
+                <div id="file-list-loading" style="display: none; text-align: center; padding: 20px;">
+                    Loading files...
                 </div>
-            </form>
+                <div id="file-list-empty" style="display: none; text-align: center; padding: 20px; color: #6b7280;">
+                    No files found. Upload some below!
+                </div>
+                <table id="file-manager-table" class="file-manager-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all-files"></th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-list-body">
+                        <!-- Files will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Dropzone Section -->
+            <div class="file-manager-upload-section">
+                <form id="file-dropzone" class="dropzone skinny-dropzone">
+                    <div class="dz-message">
+                        <span>Drop files here to upload</span>
+                    </div>
+                </form>
+            </div>
         </div>
         <div class="upload-modal-footer">
+            <div style="float: left;">
+                <button id="delete-files-btn" class="btn-danger" disabled onclick="deleteSelectedFiles()">
+                    Delete Selected
+                </button>
+            </div>
             <button class="btn-secondary" onclick="closeUploadModal()">Close</button>
         </div>
     </div>
