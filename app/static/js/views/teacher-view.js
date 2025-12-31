@@ -291,7 +291,7 @@ class TeacherView extends BaseView {
 
         } catch (error) {
             console.error('Error saving topic:', error);
-            alert('Failed to save changes.');
+            alert('Failed to save topic changes. Please try again. If the problem persists, contact your administrator or support.');
         } finally {
             saveTopicChangesBtn.disabled = false;
             saveTopicChangesBtn.textContent = 'Save';
