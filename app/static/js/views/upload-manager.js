@@ -62,7 +62,12 @@ function loadCanvasFiles() {
     if (tbody) tbody.innerHTML = '';
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/statuses`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
         .then(data => {
             if (loading) loading.style.display = 'none';
             const files = data.file_statuses || [];
@@ -101,26 +106,13 @@ function renderCanvasFiles(files) {
         const tdStatus = document.createElement('td');
         const statusSpan = document.createElement('span');
         statusSpan.textContent = formatStatus(file.status);
-        statusSpan.className = `status-badge status-${file.status}`;
-        // Add some basic styling for status badges
-        statusSpan.style.padding = '4px 8px';
-        statusSpan.style.borderRadius = '4px';
-        statusSpan.style.fontSize = '0.85em';
-        statusSpan.style.fontWeight = '600';
         
-        if (file.status === 'up_to_date') {
-            statusSpan.style.backgroundColor = '#d1fae5';
-            statusSpan.style.color = '#065f46';
-        } else if (file.status === 'out_of_date') {
-            statusSpan.style.backgroundColor = '#fef3c7';
-            statusSpan.style.color = '#92400e';
-        } else if (file.status === 'missing') {
-            statusSpan.style.backgroundColor = '#fee2e2';
-            statusSpan.style.color = '#b91c1c';
-        } else {
-            statusSpan.style.backgroundColor = '#f3f4f6';
-            statusSpan.style.color = '#374151';
+        // Use CSS classes for styling
+        let statusClass = 'status-unknown';
+        if (['up_to_date', 'out_of_date', 'missing'].includes(file.status)) {
+            statusClass = `status-${file.status}`;
         }
+        statusSpan.className = `status-badge ${statusClass}`;
         
         tdStatus.appendChild(statusSpan);
         tr.appendChild(tdStatus);
@@ -181,7 +173,10 @@ function refreshCanvasFile(btn, fileId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: fileId })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    })
     .then(data => {
         if (data.success) {
             loadCanvasFiles();
@@ -207,7 +202,10 @@ function addCanvasFile(btn, canvasFileId) {
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    }-Type': 'application/json' },
         body: JSON.stringify({ canvas_file_id: canvasFileId })
     })
     .then(res => res.json())
@@ -242,7 +240,10 @@ function loadFiles() {
     if (empty) empty.style.display = 'none';
     if (table) table.style.display = 'none';
     if (deleteBtn) deleteBtn.disabled = true;
-    if (selectAll) selectAll.checked = false;
+    if (selectAll) se{
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        }ecked = false;
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/files`)
         .then(res => res.json())

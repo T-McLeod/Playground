@@ -48,6 +48,35 @@
     font-size: 1.25rem;
 }
 
+/* Status Badges */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-up_to_date {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-out_of_date {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-missing {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-unknown {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
 .upload-modal-close {
     background: none;
     border: none;

@@ -944,8 +944,8 @@ def fetch_canvas_file_statuses(playground_id):
                     "id": "file_doc_id",
                     "canvas_id": "12345",
                     "filename": "lecture1.pdf",
-                    "status": "synced" | "pending" | "error",
-                    "last_synced": "2024-01-01T12:00:00Z"
+                    "status": "up_to_date" | "out_of_date" | "missing",
+                    "updated_at": "2024-01-01T12:00:00Z"
                 },
                 ...
             ]
