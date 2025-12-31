@@ -28,6 +28,149 @@ function closeUploadModal() {
     }
 }
 
+// --- Canvas Files Modal Logic ---
+
+function openCanvasFilesModal() {
+    // Close the file manager modal first
+    closeUploadModal();
+    
+    const modal = document.getElementById('canvas-files-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        loadCanvasFiles();
+    }
+}
+
+function closeCanvasFilesModal() {
+    const modal = document.getElementById('canvas-files-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    // Re-open the file manager modal
+    openUploadModal();
+}
+
+function loadCanvasFiles() {
+    const loading = document.getElementById('canvas-file-list-loading');
+    const empty = document.getElementById('canvas-file-list-empty');
+    const table = document.getElementById('canvas-file-table');
+    const tbody = document.getElementById('canvas-file-list-body');
+
+    if (loading) loading.style.display = 'block';
+    if (empty) empty.style.display = 'none';
+    if (table) table.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/statuses`)
+        .then(res => res.json())
+        .then(data => {
+            if (loading) loading.style.display = 'none';
+            const files = data.file_statuses || [];
+            
+            if (files.length === 0) {
+                if (empty) empty.style.display = 'block';
+            } else {
+                if (table) table.style.display = 'table';
+                renderCanvasFiles(files);
+            }
+        })
+        .catch(err => {
+            console.error('Error loading Canvas files:', err);
+            if (loading) {
+                loading.innerText = 'Error loading Canvas files.';
+                loading.style.color = 'red';
+            }
+        });
+}
+
+function renderCanvasFiles(files) {
+    const tbody = document.getElementById('canvas-file-list-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    files.forEach(file => {
+        const tr = document.createElement('tr');
+        
+        // Name
+        const tdName = document.createElement('td');
+        tdName.textContent = file.name || file.filename || 'Unknown';
+        tr.appendChild(tdName);
+
+        // Status
+        const tdStatus = document.createElement('td');
+        const statusSpan = document.createElement('span');
+        statusSpan.textContent = formatStatus(file.status);
+        statusSpan.className = `status-badge status-${file.status}`;
+        // Add some basic styling for status badges
+        statusSpan.style.padding = '4px 8px';
+        statusSpan.style.borderRadius = '4px';
+        statusSpan.style.fontSize = '0.85em';
+        statusSpan.style.fontWeight = '600';
+        
+        if (file.status === 'up_to_date') {
+            statusSpan.style.backgroundColor = '#d1fae5';
+            statusSpan.style.color = '#065f46';
+        } else if (file.status === 'out_of_date') {
+            statusSpan.style.backgroundColor = '#fef3c7';
+            statusSpan.style.color = '#92400e';
+        } else if (file.status === 'missing') {
+            statusSpan.style.backgroundColor = '#fee2e2';
+            statusSpan.style.color = '#b91c1c';
+        } else {
+            statusSpan.style.backgroundColor = '#f3f4f6';
+            statusSpan.style.color = '#374151';
+        }
+        
+        tdStatus.appendChild(statusSpan);
+        tr.appendChild(tdStatus);
+
+        // Last Updated
+        const tdUpdated = document.createElement('td');
+        tdUpdated.textContent = file.last_updated ? new Date(file.last_updated).toLocaleDateString() : '-';
+        tr.appendChild(tdUpdated);
+
+        // Action
+        const tdAction = document.createElement('td');
+        const actionBtn = document.createElement('button');
+        
+        // Standardize button style
+        actionBtn.style.width = '100px';
+        actionBtn.style.justifyContent = 'center';
+
+        if (file.status === 'up_to_date') {
+            actionBtn.textContent = 'Synced';
+            actionBtn.disabled = true;
+            actionBtn.className = 'btn-secondary btn-sm';
+            actionBtn.style.opacity = '0.6';
+            actionBtn.style.cursor = 'not-allowed';
+        } else if (file.status === 'out_of_date') {
+            actionBtn.innerHTML = '🔄 Reload';
+            actionBtn.className = 'btn-primary btn-sm';
+            actionBtn.title = 'Refresh file content';
+            actionBtn.onclick = () => alert('Refresh functionality coming soon!');
+        } else if (file.status === 'missing') {
+            actionBtn.innerHTML = '➕ Add';
+            actionBtn.className = 'btn-primary btn-sm';
+            actionBtn.title = 'Add file to playground';
+            actionBtn.onclick = () => alert('Add file functionality coming soon!');
+        } else {
+            actionBtn.textContent = '-';
+            actionBtn.disabled = true;
+        }
+        
+        tdAction.appendChild(actionBtn);
+        tr.appendChild(tdAction);
+
+        tbody.appendChild(tr);
+    });
+}
+
+function formatStatus(status) {
+    if (!status) return 'Unknown';
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
 // --- File Manager Logic ---
 
 function loadFiles() {

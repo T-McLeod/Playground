@@ -1,0 +1,36 @@
+<!-- Canvas Files Modal -->
+<div id="canvas-files-modal" class="upload-modal" style="display: none;">
+    <div class="upload-modal-overlay" onclick="closeCanvasFilesModal()"></div>
+    <div class="upload-modal-content upload-modal-content-wide">
+        <div class="upload-modal-header">
+            <h2>🎓 Canvas Files</h2>
+            <button class="upload-modal-close" onclick="closeCanvasFilesModal()">&times;</button>
+        </div>
+        <div class="upload-modal-body">
+            <div class="file-manager-list-container">
+                <div id="canvas-file-list-loading" style="display: none; text-align: center; padding: 20px;">
+                    Loading Canvas files...
+                </div>
+                <div id="canvas-file-list-empty" style="display: none; text-align: center; padding: 20px; color: #6b7280;">
+                    No Canvas files found.
+                </div>
+                <table id="canvas-file-table" class="file-manager-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="canvas-file-list-body">
+                        <!-- Files will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="upload-modal-footer">
+            <button class="btn-secondary" onclick="closeCanvasFilesModal()">Close</button>
+        </div>
+    </div>
+</div>

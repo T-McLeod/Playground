@@ -40,7 +40,10 @@
             </div>
         </div>
         <div class="upload-modal-footer">
-            <div style="float: left;">
+            <div style="float: left; display: flex; gap: 10px;">
+                <button id="open-canvas-files-btn" class="btn-primary" onclick="openCanvasFilesModal()">
+                    🎓 Canvas Files
+                </button>
                 <button id="delete-files-btn" class="btn-danger" disabled onclick="deleteSelectedFiles()">
                     Delete Selected
                 </button>
