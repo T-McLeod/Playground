@@ -133,7 +133,6 @@ const ModalManager = {
             if (edge.from === topicId) relatedNodeIds.add(edge.to);
             if (edge.to === topicId) relatedNodeIds.add(edge.from);
         });
-        console.log('Related node IDs for topic', topicId, ':', Array.from(relatedNodeIds));
 
         // Get node details - look for file nodes
         const resources = [];
@@ -154,7 +153,6 @@ const ModalManager = {
      * @param {Function} onResourceClick - Click handler for resources
      */
     renderRelatedResources(resources, knowledgeGraph, onResourceClick) {
-        console.log('Rendering related resources:', resources);
         if (!this.resourceList) return;
         
         if (resources.length === 0) {
