@@ -499,6 +499,10 @@ def edit_topic():
             }), 400
         
         node_id = node_data.get('id')
+        if not node_id:
+            return jsonify({
+                "error": "Missing required field: node.id"
+            }), 400
 
         kg_service.update_node(playground_id, node_id, node_data)
         
