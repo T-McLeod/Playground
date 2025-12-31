@@ -27,6 +27,10 @@ SUMMARY_QUERY_TEMPLATE = (
 )
 
 NUM_TOPICS = 9
+
+# Allowed fields for knowledge graph nodes
+ALLOWED_NODE_FIELDS = {'topic', 'summary', 'files'}
+
 def extract_topics_from_summaries(summaries: List[str], num_topics=NUM_TOPICS) -> List[str]:
     """
     Uses Gemini to extract main course topics from syllabus text.
@@ -209,11 +213,26 @@ def update_node(playground_id: str, node_id: str, updated_fields: dict) -> None:
         node_id: The ID of the node to update
         updated_fields: Dictionary of fields to update in the node
     """
+    # Filter out any fields that are not in the allowed list
+    validated_fields = {
+        key: value for key, value in updated_fields.items() 
+        if key in ALLOWED_NODE_FIELDS
+    }
+    
+    if not validated_fields:
+        logger.warning(f"No valid fields to update for node {node_id} in playground {playground_id}")
+        return
+    
+    # Log if any fields were filtered out
+    filtered_fields = set(updated_fields.keys()) - set(validated_fields.keys())
+    if filtered_fields:
+        logger.warning(f"Filtered out invalid fields for node {node_id}: {filtered_fields}")
+    
     node_collection = firestore_service.get_node_collection(playground_id)
     node_doc = node_collection.document(node_id)
     if node_doc.get().exists:
-        node_doc.update(updated_fields)
-        logger.info(f"Updated node {node_id} in playground {playground_id}")
+        node_doc.update(validated_fields)
+        logger.info(f"Updated node {node_id} in playground {playground_id} with fields: {list(validated_fields.keys())}")
     else:
         logger.warning(f"Node {node_id} not found in playground {playground_id}")
 
