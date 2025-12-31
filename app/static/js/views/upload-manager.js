@@ -34,7 +34,6 @@ function loadFiles() {
     const loading = document.getElementById('file-list-loading');
     const empty = document.getElementById('file-list-empty');
     const table = document.getElementById('file-manager-table');
-    const tbody = document.getElementById('file-list-body');
     const deleteBtn = document.getElementById('delete-files-btn');
     const selectAll = document.getElementById('select-all-files');
 
