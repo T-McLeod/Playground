@@ -7,7 +7,7 @@ from flask import request, render_template, jsonify, session, current_app as app
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
-from .services.orchestration import initialize_course_from_canvas, upload_file
+from .services.orchestration import initialize_course_from_canvas, upload_file, get_canvas_file_statuses
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
 import os
@@ -922,5 +922,37 @@ def list_playground_files(playground_id):
         logger.error(f"Failed to list playground files: {e}", exc_info=True)
         return jsonify({
             "error": "Failed to list files",
+            "message": str(e)
+        }), 500
+    
+
+@app.route('/api/playgrounds/<playground_id>/canvas-files/statuses', methods=['GET'])
+def fetch_canvas_file_statuses(playground_id):
+    """
+    Retrieves the synchronization statuses of Canvas source files
+    associated with the playground.
+    
+    Returns:
+        {
+            "file_statuses": [
+                {
+                    "canvas_file_id": "12345",
+                    "filename": "lecture1.pdf",
+                    "status": "synced" | "pending" | "error",
+                    "last_synced": "2024-01-01T12:00:00Z"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        file_statuses = get_canvas_file_statuses(playground_id)
+        return jsonify({
+            "file_statuses": file_statuses
+        })
+    except Exception as e:
+        logger.error(f"Failed to get Canvas file statuses: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to get Canvas file statuses",
             "message": str(e)
         }), 500

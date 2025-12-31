@@ -169,7 +169,60 @@ def remove_files(playground_id: str, file_ids: list[str]):
     for file_id in file_ids:
         firestore_service.delete_file_document(playground_id, file_id)
         logger.info(f"Removed file document {file_id} from Firestore for playground {playground_id}")
+
+
+def get_canvas_file_statuses(playground_id: str) -> list[dict]:
+    """
+    Retrieves the files from the playground's canvas course and checks whether they're up to date.
     
+    Args:
+        playground_id: The Playground document ID
+    Returns:
+        list[dict]: Mapping of file IDs to their status, e.g.
+        [
+            {
+                'id': '123456',
+                'name': 'Lecture Notes.pdf',
+                'last_updated': '2023-10-01T12:34:56Z',
+                'status': 'up_to_date'|'out_of_date'|'missing'
+            },
+            ...
+        ]
+    """
+    # get course ID from playground
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+
+    canvas_source_files = canvas_service.get_course_files(
+        course_id=course_id,
+        token=CANVAS_TOKEN,
+        download=False
+    )
+
+    internal_files = firestore_service.get_file_map(playground_id)
+    internal_file_map = {f['source']['canvas_file_id']: f for f in internal_files.values() if f.get('source') and f['source'].get('type') == 'canvas'}
+
+    status_files = []
+
+    for canvas_file in canvas_source_files:
+        source = canvas_file['source']
+        file_id = source['canvas_file_id']
+        internal_file = internal_file_map.get(file_id)
+
+        if not internal_file:
+            status = 'missing'
+        elif source['updated_at'] > internal_file['source'].get('updated_at'):
+            status = 'out_of_date'
+        else:
+            status = 'up_to_date'
+
+        status_files.append({
+            'id': file_id,
+            'name': canvas_file.get('name'),
+            'last_updated': source.get('updated_at'),
+            'status': status
+        })
+
+    return status_files
 
 def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:
     """

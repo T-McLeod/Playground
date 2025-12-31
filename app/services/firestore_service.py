@@ -147,6 +147,25 @@ def get_playground_data(playground_id: str):
     return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
 
 
+def get_canvas_course_id(playground_id: str) -> str | None:
+    """
+    Retrieves the Canvas course ID associated with a playground.
+    
+    Args:
+        playground_id: The playground document ID
+        
+    Returns:
+        The Canvas course ID, or None if not found
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    if doc.exists:
+        print(doc.to_dict())
+        source = doc.get('source')
+        return source.get('course_id')
+    return None
+
+
 def initialize_file(playground_id: str) -> str:
     """
     Creates a new file document in the files subcollection for a playground.
