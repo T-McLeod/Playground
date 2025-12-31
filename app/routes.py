@@ -856,7 +856,7 @@ def list_playground_files(playground_id):
     try:
         files_dict = firestore_service.get_file_map(playground_id)
         files = list(files_dict.values())
-        sanatize_files = [
+        sanitize_files = [
             {
                 "id": file.get("id"),
                 "name": file.get("name"),
@@ -865,7 +865,7 @@ def list_playground_files(playground_id):
             } for file in files
         ]
         return jsonify({
-            "files": sanatize_files
+            "files": sanitize_files
         })
     except Exception as e:
         logger.error(f"Failed to list playground files: {e}", exc_info=True)
