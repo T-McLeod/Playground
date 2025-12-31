@@ -252,56 +252,38 @@ class TeacherView extends BaseView {
         try {
             saveTopicChangesBtn.disabled = true;
             saveTopicChangesBtn.textContent = 'Saving...';
-            
-            console.log('Saving topic changes:', {
+
+            const node_data = {
                 id: currentTopic.id,
-                label: newTitle,
+                topic: newTitle,
                 summary: newSummary,
-                resourceIds: resourceIds
-            });
+                files: resourceIds
+            };
             
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Update local graph data
-            const node = this.knowledgeGraph.kg_nodes.find(n => n.id === currentTopic.id);
-            if (node) {
-                node.label = newTitle;
-            }
-            
-            if (!this.knowledgeGraph.kg_data) this.knowledgeGraph.kg_data = {};
-            if (!this.knowledgeGraph.kg_data[currentTopic.id]) this.knowledgeGraph.kg_data[currentTopic.id] = {};
-            this.knowledgeGraph.kg_data[currentTopic.id].summary = newSummary;
-            
-            // Update edges
-            // Remove all existing edges for this topic to files
-            this.knowledgeGraph.kg_edges = this.knowledgeGraph.kg_edges.filter(edge => {
-                const isConnected = edge.from === currentTopic.id || edge.to === currentTopic.id;
-                if (!isConnected) return true;
-                
-                const otherId = edge.from === currentTopic.id ? edge.to : edge.from;
-                const otherNode = this.knowledgeGraph.kg_nodes.find(n => n.id === otherId);
-                // Keep edge if it's NOT a file (e.g. topic-topic connection)
-                return otherNode && otherNode.group !== 'file';
-            });
-            
-            // Add new edges
-            resourceIds.forEach(resId => {
-                this.knowledgeGraph.kg_edges.push({
-                    from: currentTopic.id,
-                    to: resId,
-                    id: `edge-${Date.now()}-${Math.random()}`
+            const response = await fetch('/api/edit-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playground_id: PLAYGROUND_ID,
+                        node: node_data
+                    })
                 });
-            });
+            
+            // Reload the knowledge graph to get updated data
+            await this.loadKnowledgeGraph();
+
+            // Update the editing topic reference to the new object from the reloaded graph
+            const updatedTopic = this.knowledgeGraph.kg_nodes.find(n => n.id === currentTopic.id);
+            if (updatedTopic) {
+                this.editingTopic = updatedTopic;
+            }
             
             UIHelpers.showSuccess('Topic updated successfully!');
             
             // Close edit modal (which reopens view modal with updated data)
             this.closeEditTopicModal();
-            
-            // Refresh graph view
-            this.renderGraph(); 
-            this.renderTopicCards();
 
         } catch (error) {
             console.error('Error saving topic:', error);

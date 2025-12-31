@@ -200,6 +200,24 @@ def update_nodes(playground_id: str, kg_nodes: list) -> None:
     logger.info(f"Updated knowledge graph for playground {playground_id}")
 
 
+def update_node(playground_id: str, node_id: str, updated_fields: dict) -> None:
+    """
+    Updates a single knowledge graph node with new fields.
+    
+    Args:
+        playground_id: The playground document ID
+        node_id: The ID of the node to update
+        updated_fields: Dictionary of fields to update in the node
+    """
+    node_collection = firestore_service.get_node_collection(playground_id)
+    node_doc = node_collection.document(node_id)
+    if node_doc.get().exists:
+        node_doc.update(updated_fields)
+        logger.info(f"Updated node {node_id} in playground {playground_id}")
+    else:
+        logger.warning(f"Node {node_id} not found in playground {playground_id}")
+
+
 def fetch_raw_nodes(playground_id: str) -> list:
     """
     Retrieves the knowledge graph nodes for a given playground.

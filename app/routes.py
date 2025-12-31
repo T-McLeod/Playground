@@ -468,6 +468,52 @@ def create_quiz():
             "message": str(e)
         }), 500
 
+
+@app.route('/api/edit-topic', methods=['POST'])
+def edit_topic():
+    """
+    Edits a topic in an existing course knowledge graph.
+    
+    Request body:
+        {
+            "playground_id": "abc123",
+            "node": {
+                "id": "topic_1",
+                "title": "Updated Topic Title",
+                "summary": "Updated summary text.",
+                "files": ["abc123", "def456"]  // List of file IDs to associate
+            }
+        }
+    
+    Returns:
+        JSON response with updated graph data
+    """
+    try:
+        data = request.json
+        playground_id = data.get('playground_id')
+        node_data = data.get('node')
+        
+        if not playground_id or not node_data:
+            return jsonify({
+                "error": "Missing required fields: playground_id and node"
+            }), 400
+        
+        node_id = node_data.get('id')
+
+        kg_service.update_node(playground_id, node_id, node_data)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Topic '{node_id}' updated successfully",
+        })
+    except Exception as e:
+        logger.error(f"Failed to edit topic: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to edit topic",
+            "message": str(e)
+        }), 500
+
+
 @app.route('/api/remove-topic', methods=['POST'])
 def remove_topic():
     """
