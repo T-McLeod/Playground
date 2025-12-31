@@ -270,6 +270,10 @@ class TeacherView extends BaseView {
                         node: node_data
                     })
                 });
+
+            if (!response.ok) {
+                throw new Error('Failed to update topic');
+            }
             
             // Reload the knowledge graph to get updated data
             await this.loadKnowledgeGraph();
