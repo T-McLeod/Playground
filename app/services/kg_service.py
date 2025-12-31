@@ -261,7 +261,7 @@ def render_knowledge_graph(playground_id: str, files_map: dict) -> tuple[list, l
         kg_nodes.append({
             "id": file_id,
             "label": file_info.get('name', 'Unnamed File'),
-            "group": f"file_{file_info.get('mime_type', 'unknown').split('/')[-1]}"
+            "group": "file"
         })
 
     for node in nodes:
