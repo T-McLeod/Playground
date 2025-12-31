@@ -238,7 +238,13 @@ def refresh_canvas_file(playground_id: str, file_id: str) -> None:
     """
     course_id = firestore_service.get_canvas_course_id(playground_id)
     file = firestore_service.get_file_by_id(playground_id, file_id)
-    canvas_file_id = file['source']['canvas_file_id']
+
+    if file is None:
+        raise ValueError(f"File with ID {file_id} not found in playground {playground_id}")
+    source = file.get("source")
+    canvas_file_id = source.get("canvas_file_id")
+    if not canvas_file_id:
+        raise ValueError(f"File with ID {file_id} is not a Canvas file")
 
     canvas_file = canvas_service.get_course_file(course_id, canvas_file_id, token=CANVAS_TOKEN)
 
