@@ -97,8 +97,10 @@ class TeacherView extends BaseView {
         // Populate fields
         editTopicTitleInput.value = currentTopic.label;
         
-        const topicData = this.knowledgeGraph.kg_data && this.knowledgeGraph.kg_data[currentTopic.id] 
-            ? this.knowledgeGraph.kg_data[currentTopic.id] 
+        const topicData = this.knowledgeGraph &&
+            this.knowledgeGraph.kg_data &&
+            this.knowledgeGraph.kg_data[currentTopic.id]
+            ? this.knowledgeGraph.kg_data[currentTopic.id]
             : {};
         editTopicSummaryInput.value = topicData.summary || '';
 
