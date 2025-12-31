@@ -7,7 +7,7 @@ from flask import request, render_template, jsonify, session, current_app as app
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
-from .services.orchestration import initialize_course_from_canvas, upload_file
+from .services.orchestration import add_canvas_file, initialize_course_from_canvas, upload_file, get_canvas_file_statuses, refresh_canvas_file
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
 import os
@@ -894,6 +894,8 @@ def list_playground_files(playground_id):
     
     Returns:
         {
+            "playground_id": "abc123",
+            "is_canvas_course": true | false,
             "files": [
                 {
                     "id": "file_id",
@@ -915,12 +917,109 @@ def list_playground_files(playground_id):
                 "content_type": file.get("content_type"),
             } for file in files
         ]
+        firestore_service.get_playground_data(playground_id)  # Validate playground exists
         return jsonify({
+            "playground_id": playground_id,
+            "is_canvas_course": firestore_service.is_canvas_course(playground_id),
             "files": sanitize_files
         })
     except Exception as e:
         logger.error(f"Failed to list playground files: {e}", exc_info=True)
         return jsonify({
             "error": "Failed to list files",
+            "message": str(e)
+        }), 500
+    
+
+@app.route('/api/playgrounds/<playground_id>/canvas-files/statuses', methods=['GET'])
+def fetch_canvas_file_statuses(playground_id):
+    """
+    Retrieves the synchronization statuses of Canvas source files
+    associated with the playground.
+    
+    Returns:
+        {
+            "file_statuses": [
+                {
+                    "id": "file_doc_id",
+                    "canvas_id": "12345",
+                    "filename": "lecture1.pdf",
+                    "status": "up_to_date" | "out_of_date" | "missing",
+                    "updated_at": "2024-01-01T12:00:00Z"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        file_statuses = get_canvas_file_statuses(playground_id)
+        return jsonify({
+            "file_statuses": file_statuses
+        })
+    except Exception as e:
+        logger.error(f"Failed to get Canvas file statuses: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to get Canvas file statuses",
+            "message": str(e)
+        }), 500
+    
+
+@app.route('/api/playgrounds/<playground_id>/canvas-files/add', methods=['POST'])
+def add_canvas_file_endpoint(playground_id):
+    """
+    Adds a new Canvas file to the RAG corpus and Firestore.
+
+    Request body: {
+        "canvas_file_id": "-canvas-file-id"
+    }
+    """
+    data = request.json
+    canvas_file_id = data.get('canvas_file_id')
+    if not canvas_file_id:
+        return jsonify({
+            "error": "Missing required field: canvas_file_id"
+        }), 400
+    
+    try:
+        add_canvas_file(playground_id, canvas_file_id)
+        return jsonify({
+            "success": True,
+            "message": f"Canvas file '{canvas_file_id}' added successfully"
+        })
+    except Exception as e:
+        logger.error(f"Failed to add Canvas file: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to add Canvas file",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/playgrounds/<playground_id>/canvas-files/refresh', methods=['POST'])   
+def refresh_canvas_file_endpoint(playground_id):
+    """
+    Refreshes the Canvas source files for the given playground.
+    This function can be called internally to sync files.
+
+    Request body: {
+        "file_id": "-file-id"
+    }
+    """
+    data = request.json
+    file_id = data.get('file_id')
+    if not file_id:
+        return jsonify({
+            "error": "Missing required field: file_id"
+        }), 400
+    
+    try:
+        refresh_canvas_file(playground_id, file_id)
+        return jsonify({
+            "success": True,
+            "message": f"Canvas file '{file_id}' refresh initiated"
+        })
+    except Exception as e:
+        logger.error(f"Failed to refresh Canvas files: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to refresh Canvas file",
             "message": str(e)
         }), 500

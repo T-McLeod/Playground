@@ -28,6 +28,205 @@ function closeUploadModal() {
     }
 }
 
+// --- Canvas Files Modal Logic ---
+
+function openCanvasFilesModal() {
+    // Close the file manager modal first
+    closeUploadModal();
+    
+    const modal = document.getElementById('canvas-files-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        loadCanvasFiles();
+    }
+}
+
+function closeCanvasFilesModal() {
+    const modal = document.getElementById('canvas-files-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    // Re-open the file manager modal
+    openUploadModal();
+}
+
+function loadCanvasFiles() {
+    const loading = document.getElementById('canvas-file-list-loading');
+    const empty = document.getElementById('canvas-file-list-empty');
+    const table = document.getElementById('canvas-file-table');
+    const tbody = document.getElementById('canvas-file-list-body');
+
+    if (loading) loading.style.display = 'block';
+    if (empty) empty.style.display = 'none';
+    if (table) table.style.display = 'none';
+    if (tbody) tbody.innerHTML = '';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/statuses`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (loading) loading.style.display = 'none';
+            const files = data.file_statuses || [];
+            
+            if (files.length === 0) {
+                if (empty) empty.style.display = 'block';
+            } else {
+                if (table) table.style.display = 'table';
+                renderCanvasFiles(files);
+            }
+        })
+        .catch(err => {
+            console.error('Error loading Canvas files:', err);
+            if (loading) {
+                loading.innerText = 'Error loading Canvas files.';
+                loading.style.color = 'red';
+            }
+        });
+}
+
+function renderCanvasFiles(files) {
+    const tbody = document.getElementById('canvas-file-list-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    files.forEach(file => {
+        const tr = document.createElement('tr');
+        
+        // Name
+        const tdName = document.createElement('td');
+        tdName.textContent = file.name || file.filename || 'Unknown';
+        tr.appendChild(tdName);
+
+        // Status
+        const tdStatus = document.createElement('td');
+        const statusSpan = document.createElement('span');
+        statusSpan.textContent = formatStatus(file.status);
+        
+        // Use CSS classes for styling
+        let statusClass = 'status-unknown';
+        if (['up_to_date', 'out_of_date', 'missing'].includes(file.status)) {
+            statusClass = `status-${file.status}`;
+        }
+        statusSpan.className = `status-badge ${statusClass}`;
+        
+        tdStatus.appendChild(statusSpan);
+        tr.appendChild(tdStatus);
+
+        // Last Updated
+        const tdUpdated = document.createElement('td');
+        tdUpdated.textContent = file.last_updated ? new Date(file.last_updated).toLocaleDateString() : '-';
+        tr.appendChild(tdUpdated);
+
+        // Action
+        const tdAction = document.createElement('td');
+        const actionBtn = document.createElement('button');
+        
+        // Standardize button style
+        actionBtn.style.width = '100px';
+        actionBtn.style.justifyContent = 'center';
+
+        if (file.status === 'up_to_date') {
+            actionBtn.textContent = 'Synced';
+            actionBtn.disabled = true;
+            actionBtn.className = 'btn-secondary btn-sm';
+            actionBtn.style.opacity = '0.6';
+            actionBtn.style.cursor = 'not-allowed';
+        } else if (file.status === 'out_of_date') {
+            actionBtn.innerHTML = '🔄 Reload';
+            actionBtn.className = 'btn-primary btn-sm';
+            actionBtn.title = 'Refresh file content';
+            actionBtn.onclick = () => refreshCanvasFile(actionBtn, file.id);
+        } else if (file.status === 'missing') {
+            actionBtn.innerHTML = '➕ Add';
+            actionBtn.className = 'btn-primary btn-sm';
+            actionBtn.title = 'Add file to playground';
+            actionBtn.onclick = () => addCanvasFile(actionBtn, file.canvas_id);
+        } else {
+            actionBtn.textContent = '-';
+            actionBtn.disabled = true;
+        }
+        
+        tdAction.appendChild(actionBtn);
+        tr.appendChild(tdAction);
+
+        tbody.appendChild(tr);
+    });
+}
+
+function formatStatus(status) {
+    if (!status) return 'Unknown';
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function refreshCanvasFile(btn, fileId) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Refreshing...';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    })
+    .then(data => {
+        if (data.success) {
+            loadCanvasFiles();
+            document.dispatchEvent(new CustomEvent('files-uploaded'));
+        } else {
+            alert('Error refreshing file: ' + (data.message || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        console.error('Error refreshing file:', err);
+        alert('Error refreshing file.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function addCanvasFile(btn, canvasFileId) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Adding...';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/add`, {
+        method: 'POST',
+        headers: {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    }-Type': 'application/json' },
+        body: JSON.stringify({ canvas_file_id: canvasFileId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadCanvasFiles();
+            document.dispatchEvent(new CustomEvent('files-uploaded'));
+        } else {
+            alert('Error adding file: ' + (data.message || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        console.error('Error adding file:', err);
+        alert('Error adding file.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
 // --- File Manager Logic ---
 
 function loadFiles() {
@@ -41,7 +240,10 @@ function loadFiles() {
     if (empty) empty.style.display = 'none';
     if (table) table.style.display = 'none';
     if (deleteBtn) deleteBtn.disabled = true;
-    if (selectAll) selectAll.checked = false;
+    if (selectAll) se{
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        }ecked = false;
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/files`)
         .then(res => res.json())
@@ -49,6 +251,22 @@ function loadFiles() {
             if (loading) loading.style.display = 'none';
             currentFiles = data.files || [];
             
+            // Handle Canvas Files button state
+            const canvasFilesBtn = document.getElementById('open-canvas-files-btn');
+            if (canvasFilesBtn) {
+                if (data.is_canvas_course) {
+                    canvasFilesBtn.disabled = false;
+                    canvasFilesBtn.title = "Manage Canvas Files";
+                    canvasFilesBtn.style.opacity = '1';
+                    canvasFilesBtn.style.cursor = 'pointer';
+                } else {
+                    canvasFilesBtn.disabled = true;
+                    canvasFilesBtn.title = "This is not a Canvas-linked course";
+                    canvasFilesBtn.style.opacity = '0.5';
+                    canvasFilesBtn.style.cursor = 'not-allowed';
+                }
+            }
+
             if (currentFiles.length === 0) {
                 if (empty) empty.style.display = 'block';
             } else {

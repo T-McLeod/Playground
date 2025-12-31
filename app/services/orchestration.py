@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict
 from .llm_services import get_llm_service
 from .rag_services import get_rag_service
@@ -169,7 +170,121 @@ def remove_files(playground_id: str, file_ids: list[str]):
     for file_id in file_ids:
         firestore_service.delete_file_document(playground_id, file_id)
         logger.info(f"Removed file document {file_id} from Firestore for playground {playground_id}")
+
+
+def get_canvas_file_statuses(playground_id: str) -> list[dict]:
+    """
+    Retrieves the files from the playground's canvas course and checks whether they're up to date.
     
+    Args:
+        playground_id: The Playground document ID
+    Returns:
+        list[dict]: Mapping of file IDs to their status, e.g.
+        [
+            {
+                'id': '123456',
+                'canvas_id': '67890',
+                'name': 'Lecture Notes.pdf',
+                'last_updated': '2023-10-01T12:34:56Z',
+                'status': 'up_to_date'|'out_of_date'|'missing'
+            },
+            ...
+        ]
+    """
+    # get course ID from playground
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+
+    canvas_source_files = canvas_service.get_course_files(
+        course_id=course_id,
+        token=CANVAS_TOKEN,
+        download=False
+    )
+
+    internal_files = firestore_service.get_file_map(playground_id)
+    internal_file_map = {f['source']['canvas_file_id']: f for f in internal_files.values() if f.get('source') and f['source'].get('type') == 'canvas'}
+
+    status_files = []
+
+    for canvas_file in canvas_source_files:
+        source = canvas_file['source']
+        file_id = source['canvas_file_id']
+        internal_file = internal_file_map.get(file_id)
+
+        #  string (in ISO 8601 format) -> datetime
+        source_date = datetime.datetime.fromisoformat(source.get('updated_at'))
+        internal_date = datetime.datetime.fromisoformat(internal_file['source'].get('updated_at')) if internal_file else None
+
+        if not internal_file:
+            status = 'missing'
+        elif source_date > internal_date:
+            status = 'out_of_date'
+        else:
+            status = 'up_to_date'
+
+        status_files.append({
+            'id': internal_file.get('id') if internal_file else None,
+            'canvas_id': file_id,
+            'name': canvas_file.get('name'),
+            'last_updated': source.get('updated_at'),
+            'status': status
+        })
+
+    return status_files
+
+
+def refresh_canvas_file(playground_id: str, file_id: str) -> None:
+    """
+    Refreshes a single Canvas file by re-downloading, uploading to GCS, updating RAG corpus,
+    and re-summarizing the file.
+    
+    Args:
+        playground_id: The Playground document ID
+        file_id: The Canvas file ID to refresh
+    """
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+    file = firestore_service.get_file_by_id(playground_id, file_id)
+
+    if file is None:
+        raise ValueError(f"File with ID {file_id} not found in playground {playground_id}")
+    source = file.get("source")
+    canvas_file_id = source.get("canvas_file_id")
+    if not canvas_file_id:
+        raise ValueError(f"File with ID {file_id} is not a Canvas file")
+
+    canvas_file = canvas_service.get_course_file(course_id, canvas_file_id, token=CANVAS_TOKEN)
+
+    remove_files(playground_id, [file_id])
+    canvas_file['id'] = file_id 
+    uploaded_files = gcs_service.stream_files_to_gcs([canvas_file], playground_id)
+    firestore_service.add_files(playground_id, uploaded_files)
+
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=uploaded_files,
+    )
+
+def add_canvas_file(playground_id: str, canvas_file_id: str) -> None:
+    """
+    Adds a new Canvas file to the RAG corpus and Firestore.
+    
+    Args:
+        playground_id: The Playground document ID
+        canvas_file_id: The Canvas file ID to add
+    """
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+    canvas_file = canvas_service.get_course_file(course_id, canvas_file_id, token=CANVAS_TOKEN)
+    canvas_file['id'] = firestore_service.initialize_file(playground_id)
+
+    uploaded_files = gcs_service.stream_files_to_gcs([canvas_file], playground_id)
+    firestore_service.add_files(playground_id, uploaded_files)
+
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=uploaded_files,
+    )
+
 
 def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:
     """
