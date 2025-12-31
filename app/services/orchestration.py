@@ -247,6 +247,11 @@ def refresh_canvas_file(playground_id: str, file_id: str) -> None:
     uploaded_files = gcs_service.stream_files_to_gcs([canvas_file], playground_id)
     firestore_service.add_files(playground_id, uploaded_files)
 
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=uploaded_files,
+    )
 
 def add_canvas_file(playground_id: str, canvas_file_id: str) -> None:
     """
