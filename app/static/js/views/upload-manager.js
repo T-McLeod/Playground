@@ -90,12 +90,11 @@ function renderFiles(files) {
         tdName.textContent = file.filename || file.name || 'Unknown';
         tr.appendChild(tdName);
 
-        // Status
-        const tdStatus = document.createElement('td');
-        // Map status to user-friendly text/color if needed
-        tdStatus.textContent = file.status || 'Unknown'; 
-        tr.appendChild(tdStatus);
-
+        // Type
+        const tdType = document.createElement('td');
+        // Map type to user-friendly text/color if needed
+        tdType.textContent = file.content_type || 'Unknown'; 
+        tr.appendChild(tdType);
         // Size
         const tdSize = document.createElement('td');
         tdSize.textContent = formatFileSize(file.size);
