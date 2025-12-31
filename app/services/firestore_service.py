@@ -76,6 +76,23 @@ def get_course_state(playground_id: str) -> str:
         return 'NEEDS_INIT'
 
 
+def is_canvas_course(playground_id: str) -> bool:
+    """
+    Checks if the playground is associated with a Canvas course.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        True if associated with a Canvas course, False otherwise
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    if not doc.exists:
+        return False
+    source = doc.get('source')
+    return source.get('type') == 'canvas_course'
+
+
 # Only for playgrounds created from Canvas courses for right now
 def create_playground_doc(display_name: str, course_id: str) -> Any:
     new_id = db.collection("playgrounds").document().id

@@ -250,6 +250,22 @@ function loadFiles() {
             if (loading) loading.style.display = 'none';
             currentFiles = data.files || [];
             
+            // Handle Canvas Files button state
+            const canvasFilesBtn = document.getElementById('open-canvas-files-btn');
+            if (canvasFilesBtn) {
+                if (data.is_canvas_course) {
+                    canvasFilesBtn.disabled = false;
+                    canvasFilesBtn.title = "Manage Canvas Files";
+                    canvasFilesBtn.style.opacity = '1';
+                    canvasFilesBtn.style.cursor = 'pointer';
+                } else {
+                    canvasFilesBtn.disabled = true;
+                    canvasFilesBtn.title = "This is not a Canvas-linked course";
+                    canvasFilesBtn.style.opacity = '0.5';
+                    canvasFilesBtn.style.cursor = 'not-allowed';
+                }
+            }
+
             if (currentFiles.length === 0) {
                 if (empty) empty.style.display = 'block';
             } else {

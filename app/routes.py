@@ -894,6 +894,8 @@ def list_playground_files(playground_id):
     
     Returns:
         {
+            "playground_id": "abc123",
+            "is_canvas_course": true | false,
             "files": [
                 {
                     "id": "file_id",
@@ -915,7 +917,10 @@ def list_playground_files(playground_id):
                 "content_type": file.get("content_type"),
             } for file in files
         ]
+        firestore_service.get_playground_data(playground_id)  # Validate playground exists
         return jsonify({
+            "playground_id": playground_id,
+            "is_canvas_course": firestore_service.is_canvas_course(playground_id),
             "files": sanitize_files
         })
     except Exception as e:
