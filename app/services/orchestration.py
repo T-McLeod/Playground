@@ -226,6 +226,50 @@ def get_canvas_file_statuses(playground_id: str) -> list[dict]:
 
     return status_files
 
+
+def refresh_canvas_file(playground_id: str, file_id: str) -> None:
+    """
+    Refreshes a single Canvas file by re-downloading, uploading to GCS, updating RAG corpus,
+    and re-summarizing the file.
+    
+    Args:
+        playground_id: The Playground document ID
+        canvas_file_id: The Canvas file ID to refresh
+    """
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+    file = firestore_service.get_file_by_id(playground_id, file_id)
+    canvas_file_id = file['source']['canvas_file_id']
+
+    canvas_file = canvas_service.get_course_file(course_id, canvas_file_id, token=CANVAS_TOKEN)
+
+    remove_files(playground_id, [file_id])
+    canvas_file['id'] = file_id 
+    uploaded_files = gcs_service.stream_files_to_gcs([canvas_file], playground_id)
+    firestore_service.add_files(playground_id, uploaded_files)
+
+
+def add_canvas_file(playground_id: str, canvas_file_id: str) -> None:
+    """
+    Adds a new Canvas file to the RAG corpus and Firestore.
+    
+    Args:
+        playground_id: The Playground document ID
+        canvas_file_id: The Canvas file ID to add
+    """
+    course_id = firestore_service.get_canvas_course_id(playground_id)
+    canvas_file = canvas_service.get_course_file(course_id, canvas_file_id, token=CANVAS_TOKEN)
+    canvas_file['id'] = firestore_service.initialize_file(playground_id)
+
+    uploaded_files = gcs_service.stream_files_to_gcs([canvas_file], playground_id)
+    firestore_service.add_files(playground_id, uploaded_files)
+
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=uploaded_files,
+    )
+
+
 def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:
     """
     Intake files from Canvas, upload to GCS, and return a mapping of file identifiers

@@ -160,7 +160,6 @@ def get_canvas_course_id(playground_id: str) -> str | None:
     _ensure_db()
     doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
     if doc.exists:
-        print(doc.to_dict())
         source = doc.get('source')
         return source.get('course_id')
     return None

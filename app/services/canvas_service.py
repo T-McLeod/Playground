@@ -87,21 +87,10 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
                 
                 # Filter for allowed file types
                 if file_ext in ALLOWED_FILE_TYPES:
-                    file_obj = {
-                        'name': filename,
-                        'size': file.get('size', 0),
-                        'content_type': file.get('content-type', 'application/pdf'),
-                        'source': {
-                            'type': 'canvas',
-                            'course_id': course_id,
-                            'download_url': file.get('url'),
-                            'hash': file.get('checksum', ''),
-                            'canvas_file_id': str(file.get('id')),
-                            'updated_at': file.get('updated_at')
-                        },
-                    }
-                    
+                    file_obj = _format_file(course_id, file)
                     files_list.append(file_obj)
+                else:
+                    logger.warning(f"Skipping unsupported file type: {filename}")
             
             # Handle pagination via Link header
             url = None
@@ -128,6 +117,58 @@ def get_course_files(course_id: str, token: str, download: bool = True, output_d
         logger.error(f"Error fetching course files: {str(e)}")
         raise Exception(f"Failed to fetch course files: {str(e)}")
 
+
+def get_course_file(course_id: str, file_id: str, token: str) -> Dict:
+    """
+    Fetches a specific file's metadata from a Canvas course.
+    
+    Args:
+        course_id: The Canvas course ID
+        file_id: The Canvas file ID
+        token: Canvas API access token
+    Returns:
+        Dictionary containing file metadata
+    """
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    url = f"{CANVAS_API_BASE}/courses/{course_id}/files/{file_id}"
+
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        file_data = response.json()
+        logger.info(f"Successfully retrieved file metadata for file ID {file_id}")
+
+        return _format_file(course_id, file_data)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching file {file_id}: {str(e)}")
+        raise Exception(f"Failed to fetch file {file_id}: {str(e)}")
+
+
+def _format_file(course_id: str, file: dict) -> dict:
+    filename = file.get('display_name', '')
+    file_ext = '.' + filename.split('.')[-1].lower() if '.' in filename else ''
+    
+    # Filter for allowed file types
+    if file_ext in ALLOWED_FILE_TYPES:
+        file_obj = {
+            'name': filename,
+            'size': file.get('size', 0),
+            'content_type': file.get('content-type', 'application/pdf'),
+            'source': {
+                'type': 'canvas',
+                'course_id': course_id,
+                'download_url': file.get('url'),
+                'hash': file.get('checksum', ''),
+                'canvas_file_id': str(file.get('id')),
+                'updated_at': file.get('updated_at')
+            },
+        }
+        return file_obj
 
 def _download_files(files: list, token: str, course_id: str, output_dir: str = None) -> None:
     """
@@ -329,45 +370,3 @@ def create_quiz_draft(course_id: str, token: str, title: str, questions: List[Qu
         except requests.exceptions.RequestException as e:
             logger.error(f"Error adding question to quiz: {str(e)}")
             raise Exception(f"Failed to add question to quiz: {str(e)}")
-
-if __name__ == "__main__":
-    # Load environment variables from root .env file
-    from dotenv import load_dotenv
-    import sys
-    
-    # Get the root directory (2 levels up from this file)
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    env_path = os.path.join(root_dir, '.env')
-    
-    # Load environment variables from root .env
-    load_dotenv(env_path)
-    print(f"Loaded environment from: {env_path}")
-    print(f"CANVAS_API_TOKEN: {os.getenv('CANVAS_API_TOKEN', 'NOT SET')[:10]}...")
-    print(f"CANVAS_TEST_COURSE_ID: {os.getenv('CANVAS_TEST_COURSE_ID', 'NOT SET')}")
-    
-    # Example usage - test getting course files
-    course_id = os.getenv('CANVAS_TEST_COURSE_ID')
-    token = os.getenv('CANVAS_API_TOKEN')
-    
-    if not course_id or not token:
-        print("\n⚠️  Please set CANVAS_TEST_COURSE_ID and CANVAS_API_TOKEN in .env")
-        sys.exit(1)
-    
-    question = Quiz_Question(
-        question_type="multiple_choice_question",
-        question_text="What is 2 + 2?",
-        points_possible=1.0,
-        answers=[
-            Quiz_Answer(text="3", weight=0),
-            Quiz_Answer(text="2", weight=0),
-            Quiz_Answer(text="4", weight=100),
-            Quiz_Answer(text="5", weight=0)
-        ]
-    )
-    
-    try:
-        create_quiz_draft(course_id, token, "Sample Quiz", [question])
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
