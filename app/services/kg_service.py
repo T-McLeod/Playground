@@ -211,13 +211,22 @@ def update_node(playground_id: str, node_id: str, updated_fields: dict) -> None:
     """
     node_collection = firestore_service.get_node_collection(playground_id)
     node_doc = node_collection.document(node_id)
-    if node_doc.get().exists:
-        node_doc.update(updated_fields)
-        logger.info(f"Updated node {node_id} in playground {playground_id}")
-    else:
+    snapshot = node_doc.get()
+    if not snapshot.exists:
         logger.warning(f"Node {node_id} not found in playground {playground_id}")
+        return
 
+    node_data = snapshot.to_dict() or {}
+    node_group = node_data.get("group")
+    if node_group != "topic":
+        logger.warning(
+            f"Refusing to update node {node_id} in playground {playground_id} "
+            f"because its group is {node_group!r}, not 'topic'"
+        )
+        return
 
+    node_doc.update(updated_fields)
+    logger.info(f"Updated node {node_id} in playground {playground_id}")
 def fetch_raw_nodes(playground_id: str) -> list:
     """
     Retrieves the knowledge graph nodes for a given playground.
