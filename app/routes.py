@@ -479,7 +479,7 @@ def edit_topic():
             "playground_id": "abc123",
             "node": {
                 "id": "topic_1",
-                "title": "Updated Topic Title",
+                "topic": "Updated Topic Title",
                 "summary": "Updated summary text.",
                 "files": ["abc123", "def456"]  // List of file IDs to associate
             }
