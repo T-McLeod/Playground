@@ -27,6 +27,10 @@ SUMMARY_QUERY_TEMPLATE = (
 )
 
 NUM_TOPICS = 9
+
+# Allowed fields for knowledge graph nodes
+ALLOWED_NODE_FIELDS = {'topic', 'summary', 'files'}
+
 def extract_topics_from_summaries(summaries: List[str], num_topics=NUM_TOPICS) -> List[str]:
     """
     Uses Gemini to extract main course topics from syllabus text.
@@ -209,13 +213,10 @@ def update_node(playground_id: str, node_id: str, updated_fields: dict) -> None:
         node_id: The ID of the node to update
         updated_fields: Dictionary of fields to update in the node
     """
-    # Define allowed fields for knowledge graph nodes
-    ALLOWED_FIELDS = {'topic', 'summary', 'files'}
-    
     # Filter out any fields that are not in the allowed list
     validated_fields = {
         key: value for key, value in updated_fields.items() 
-        if key in ALLOWED_FIELDS
+        if key in ALLOWED_NODE_FIELDS
     }
     
     if not validated_fields:
