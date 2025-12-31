@@ -260,7 +260,7 @@ class TeacherView extends BaseView {
                 files: resourceIds
             };
             
-            const response = await fetch('/api/edit-topic', {
+            await fetch('/api/edit-topic', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
