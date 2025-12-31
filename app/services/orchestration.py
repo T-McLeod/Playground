@@ -1,3 +1,4 @@
+import datetime
 from typing import Dict
 from .llm_services import get_llm_service
 from .rag_services import get_rag_service
@@ -209,9 +210,13 @@ def get_canvas_file_statuses(playground_id: str) -> list[dict]:
         file_id = source['canvas_file_id']
         internal_file = internal_file_map.get(file_id)
 
+        #  string (in ISO 8601 format) -> datetime
+        source_date = datetime.datetime.fromisoformat(source.get('updated_at'))
+        internal_date = datetime.datetime.fromisoformat(internal_file['source'].get('updated_at')) if internal_file else None
+
         if not internal_file:
             status = 'missing'
-        elif source['updated_at'] > internal_file['source'].get('updated_at'):
+        elif source_date > internal_date:
             status = 'out_of_date'
         else:
             status = 'up_to_date'
