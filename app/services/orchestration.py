@@ -83,6 +83,62 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dic
         "corpus_id": corpus_id,
         "files_count": len(files),
     }
+
+
+def upload_file(playground_id: str, file: dict) -> list[dict]:
+    """
+    Uploads additional files to an existing RAG corpus and updates the knowledge graph.
+    
+    Args:
+        playground_id: The Playground document ID
+        files: List of file objects with 'gcs_uri' property
+    Returns:
+        List of file objects with summaries added
+    """
+    file_id = file.get('file_id')
+    filename = file.get('filename')
+    content_type = file.get('content_type', 'application/octet-stream')
+    size = file.get('size', 0)
+    gcs_uri = file.get('gcs_uri')
+    
+    # Verify the file actually exists in GCS
+    if not gcs_service.verify_blob_exists(gcs_uri):
+        raise ValueError(f"File does not exist in GCS: {gcs_uri}")
+    
+    # Update blob metadata with display name
+    gcs_service.update_blob_metadata(gcs_uri, filename, content_type)
+    
+    # Create Firestore document for the file
+    file_doc = {
+        'id': file_id,
+        'name': filename,
+        'size': size,
+        'content_type': content_type,
+        'gcs_uri': gcs_uri,
+        'source': {
+            'type': 'local_upload',
+            'uploaded_at': firestore_service.firestore.SERVER_TIMESTAMP
+        },
+    }
+    
+    # Add to Firestore
+    firestore_service.register_uploaded_file(playground_id, file_id, file_doc)
+    
+    logger.info(f"Registered uploaded file: {filename} ({file_id}) for playground {playground_id}")
+
+    logger.info(f"Uploading 1 file to playground {playground_id}")
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    if not corpus_id:
+        raise ValueError(f"No corpus ID found for playground {playground_id}")
+
+    # Step 1: Import files to RAG corpus
+    rag_service.add_files_to_corpus(
+        corpus_id=corpus_id,
+        files=[file],
+    )
+    logger.info(f"Imported 1 file to RAG corpus {corpus_id}")
+
+    return file
     
 
 def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:

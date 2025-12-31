@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     done();
                 })
                 .catch(err => {
-                    done('Failed to get upload URL');
+                    done('Failed to upload file, please try again later.');
                 });
             },
             

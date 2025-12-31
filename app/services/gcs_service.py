@@ -365,7 +365,7 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
         bucket = client.bucket(bucket_name)
         
         # Store uploads in a dedicated folder
-        blob_path = f"playgrounds/{playground_id}/uploads/{file_id}"
+        blob_path = f"playgrounds/{playground_id}/uploads/{file_id}.pdf"
         blob = bucket.blob(blob_path)
         
         credentials, _ = google.auth.default()
