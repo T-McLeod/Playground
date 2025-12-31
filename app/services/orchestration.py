@@ -182,6 +182,7 @@ def get_canvas_file_statuses(playground_id: str) -> list[dict]:
         [
             {
                 'id': '123456',
+                'canvas_id': '67890',
                 'name': 'Lecture Notes.pdf',
                 'last_updated': '2023-10-01T12:34:56Z',
                 'status': 'up_to_date'|'out_of_date'|'missing'
@@ -216,7 +217,8 @@ def get_canvas_file_statuses(playground_id: str) -> list[dict]:
             status = 'up_to_date'
 
         status_files.append({
-            'id': file_id,
+            'id': internal_file.get('id') if internal_file else None,
+            'canvas_id': file_id,
             'name': canvas_file.get('name'),
             'last_updated': source.get('updated_at'),
             'status': status
