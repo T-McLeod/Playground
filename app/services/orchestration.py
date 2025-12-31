@@ -234,7 +234,7 @@ def refresh_canvas_file(playground_id: str, file_id: str) -> None:
     
     Args:
         playground_id: The Playground document ID
-        canvas_file_id: The Canvas file ID to refresh
+        file_id: The Canvas file ID to refresh
     """
     course_id = firestore_service.get_canvas_course_id(playground_id)
     file = firestore_service.get_file_by_id(playground_id, file_id)
