@@ -7,7 +7,7 @@ from flask import request, render_template, jsonify, session, current_app as app
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
-from .services.orchestration import initialize_course_from_canvas
+from .services.orchestration import initialize_course_from_canvas, upload_file
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
 import os
@@ -704,15 +704,6 @@ def generate_upload_url(playground_id):
         # NOTE: Keep this in sync with the frontend `acceptedFiles` configuration.
         allowed_content_types = {
             "application/pdf",
-            "text/plain",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "image/png",
-            "image/jpeg",
         }
         if content_type not in allowed_content_types:
             return jsonify({
@@ -778,53 +769,26 @@ def register_uploaded_file(playground_id):
         }
     """
     try:
-        data = request.json
-        file_id = data.get('file_id')
-        filename = data.get('filename')
-        content_type = data.get('content_type', 'application/octet-stream')
-        size = data.get('size', 0)
-        gcs_uri = data.get('gcs_uri')
+        file = request.json or {}
+        file_id = file.get('file_id')
+        filename = file.get('filename')
+        content_type = file.get('content_type', 'application/octet-stream')
+        size = file.get('size', 0)
+        gcs_uri = file.get('gcs_uri')
         
         if not file_id or not filename or not gcs_uri:
             return jsonify({
                 "error": "Missing required fields: file_id, filename, gcs_uri"
             }), 400
-        
-        # Verify the file actually exists in GCS
-        if not gcs_service.verify_blob_exists(gcs_uri):
-            return jsonify({
-                "error": "File not found in GCS. Upload may have failed."
-            }), 400
-        
-        # Update blob metadata with display name
-        gcs_service.update_blob_metadata(gcs_uri, filename, content_type)
-        
-        # Create Firestore document for the file
-        file_doc = {
-            'id': file_id,
-            'name': filename,
-            'display_name': filename,
-            'size': size,
-            'content_type': content_type,
-            'gcs_uri': gcs_uri,
-            'source': {
-                'type': 'local_upload',
-                'uploaded_at': firestore_service.firestore.SERVER_TIMESTAMP
-            },
-        }
-        
-        # Add to Firestore
-        firestore_service.register_uploaded_file(playground_id, file_id, file_doc)
-        
-        logger.info(f"Registered uploaded file: {filename} ({file_id}) for playground {playground_id}")
-        
+
+        # Call orchestration service to handle registration and RAG import
+        registered_file = upload_file(playground_id, file)
         return jsonify({
             "success": True,
             "file_id": file_id,
             "status": "uploaded",
-            "message": f"File '{filename}' registered successfully"
         })
-        
+            
     except Exception as e:
         logger.error(f"Failed to register uploaded file: {e}", exc_info=True)
         return jsonify({
