@@ -138,7 +138,7 @@ const ModalManager = {
         const resources = [];
         relatedNodeIds.forEach(nodeId => {
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-            if (node && (node.group === 'file_pdf' || node.group === 'file' || node.group === 'resource')) {
+            if (node && node.group === 'file') {
                 resources.push(node);
             }
         });
