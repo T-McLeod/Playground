@@ -290,7 +290,7 @@ class TeacherView extends BaseView {
             alert('Failed to save changes.');
         } finally {
             saveTopicChangesBtn.disabled = false;
-            saveTopicChangesBtn.textContent = '💾 Save Changes';
+            saveTopicChangesBtn.textContent = 'Save';
         }
     }
 
