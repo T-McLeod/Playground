@@ -108,6 +108,39 @@ def remove_topic_from_graph(playground_id: str, topic_id: str) -> None:
         logger.warning(f"Topic {topic_id} not found in playground {playground_id}")
 
 
+def remove_file_from_graph(playground_id: str, file_id: str) -> None:
+    """
+    Removes a file from all topics in the knowledge graph.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The ID of the file to remove from topics
+    """
+    # 1. Remove the file document itself
+    try:
+        firestore_service.delete_file_document(playground_id, file_id)
+        logger.info(f"Deleted file document {file_id} from playground {playground_id}")
+    except Exception as e:
+        logger.error(f"Error deleting file document {file_id}: {e}")
+
+    # 2. Remove references from graph nodes
+    nodes = fetch_raw_nodes(playground_id)
+    nodes_to_update = []
+    
+    for node in nodes:
+        files = node.get('files', [])
+        if file_id in files:
+            files.remove(file_id)
+            node['files'] = files
+            nodes_to_update.append(node)
+            
+    if nodes_to_update:
+        update_nodes(playground_id, nodes_to_update)
+        logger.info(f"Removed file {file_id} from {len(nodes_to_update)} topics in playground {playground_id}")
+    else:
+        logger.info(f"File {file_id} was not referenced in any topics")
+
+
 SUMMARY_QUERY_TEMPLATE = (
     "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
 )
@@ -234,6 +267,7 @@ def create_node(playground_id: str, node: dict) -> str:
     node['id'] = node_collection.document().id
     node_collection.document(node['id']).set(node)
     return node['id']
+    
 
 
 def render_knowledge_graph(playground_id: str, files_map: dict) -> tuple[list, list, dict]:
