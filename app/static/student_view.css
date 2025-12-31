@@ -734,21 +734,6 @@ body {
     white-space: nowrap;
 }
 
-.btn-icon-small:hover {
-    background-color: #fee2e2;
-    color: #ef4444;
-}
-
-.add-resource-container {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    background: #f9fafb; /* var(--bg-primary) fallback */
-    padding: 10px;
-    border-radius: 0.5rem;
-    border: 1px dashed #d1d5db; /* var(--border-color) fallback */
-}
-
 .add-resource-container .modal-input {
     margin-bottom: 0;
 }
