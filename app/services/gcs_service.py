@@ -256,6 +256,34 @@ def delete_course_files(course_id: str, bucket_name: str = BUCKET_NAME) -> int:
     return delete_count
 
 
+def delete_file(gcs_uri: str) -> bool:
+    """
+    Deletes a single file from GCS.
+    
+    Args:
+        gcs_uri: GCS URI of the file to delete (e.g., 'gs://bucket/path/to/file.pdf')
+    """
+    # Parse GCS URI
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name = parts[0]
+    blob_path = parts[1] if len(parts) > 1 else ''
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        blob.delete()
+        logger.info(f"Deleted file: {gcs_uri}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete file {gcs_uri}: {str(e)}")
+        return False
+
+
 def get_file_info(gcs_uri: str) -> Optional[Dict]:
     """
     Gets metadata for a file in GCS.
@@ -522,49 +550,3 @@ def verify_blob_exists(gcs_uri: str) -> bool:
     except Exception as e:
         logger.error(f"Failed to verify blob existence for {gcs_uri}: {str(e)}")
         return False
-
-
-if __name__ == "__main__":
-    # Test the GCS service
-    from dotenv import load_dotenv
-    import sys
-    
-    # Load environment variables
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    env_path = os.path.join(root_dir, '.env')
-    load_dotenv(env_path)
-
-    PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-    LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-east1')
-    
-    print(f"Loaded environment from: {env_path}")
-    print(f"GOOGLE_CLOUD_PROJECT: {os.getenv('GOOGLE_CLOUD_PROJECT')}")
-    print(f"GCS_BUCKET_NAME: {BUCKET_NAME}")
-    
-    if not PROJECT_ID:
-        print("\n⚠️  Please set GOOGLE_CLOUD_PROJECT in .env")
-        sys.exit(1)
-    
-    try:
-        # Test bucket creation/verification
-        print(f"\nTesting bucket existence...")
-        bucket = ensure_bucket_exists(BUCKET_NAME)
-        print(f"✅ Bucket ready: {bucket.name}")
-        
-        # Test file listing (if any exist)
-        print(f"\nTesting file listing...")
-        test_course_id = "13299557"
-        files = list_course_files(test_course_id, BUCKET_NAME)
-        
-        test_file = files[0]
-        get_file_obj_result = get_file_obj(test_file)
-        if get_file_obj_result:
-            print(f"✅ Retrieved file object for: {test_file} (size: {len(get_file_obj_result.getvalue())} bytes)")
-        else:
-            print(f"❌ Failed to retrieve file object for: {test_file}")
-
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()

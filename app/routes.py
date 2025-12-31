@@ -7,7 +7,7 @@ from flask import request, render_template, jsonify, session, current_app as app
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
-from .services.orchestration import initialize_course_from_canvas, upload_file
+from .services.orchestration import initialize_course_from_canvas, remove_files, upload_file
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
 from .services.llm_services import dukegpt_service
 import os
@@ -795,6 +795,45 @@ def register_uploaded_file(playground_id):
             "error": "Failed to register file",
             "message": str(e)
         }), 500
+    
+
+@app.route('/api/playgrounds/<playground_id>/files/remove', methods=['POST'])
+def remove_playground_file(playground_id):
+    """
+    Removes a file from the RAG corpus and Firestore.
+    
+    Request body:
+        {
+            "file_ids": ["uuid-of-file-to-remove"]
+        }
+    """
+    try:
+        data = request.json
+        file_ids = data.get('file_ids')
+        if not file_ids:
+            return jsonify({
+                "error": "Missing required field: file_ids"
+            }), 400
+        
+        remove_files(playground_id, file_ids)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Files '{file_ids}' removed successfully"
+        })
+        
+    except ValueError as ve:
+        logger.error(f"Validation error: {ve}")
+        return jsonify({
+            "error": "Invalid request",
+            "message": str(ve)
+        }), 400
+    except Exception as e:
+        logger.error(f"Failed to remove file: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to remove file",
+            "message": str(e)
+        }), 500
 
 
 @app.route('/api/playgrounds/<playground_id>/files', methods=['GET'])
@@ -815,9 +854,18 @@ def list_playground_files(playground_id):
         }
     """
     try:
-        files = firestore_service.get_playground_files(playground_id)
+        files_dict = firestore_service.get_file_map(playground_id)
+        files = list(files_dict.values())
+        sanitize_files = [
+            {
+                "id": file.get("id"),
+                "name": file.get("name"),
+                "size": file.get("size"),
+                "content_type": file.get("content_type"),
+            } for file in files
+        ]
         return jsonify({
-            "files": files
+            "files": sanitize_files
         })
     except Exception as e:
         logger.error(f"Failed to list playground files: {e}", exc_info=True)

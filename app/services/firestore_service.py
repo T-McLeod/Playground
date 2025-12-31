@@ -166,7 +166,7 @@ def initialize_file(playground_id: str) -> str:
     return new_file_ref.id
 
 
-REQUIRED_FILE_FIELDS = ["name", "size", "content_type", "source"]
+REQUIRED_FILE_FIELDS = ["name", "size", "gcs_uri", "content_type", "source"]
 def add_files(playground_id: str, files: list[dict]) -> None:
     """
     Adds or updates the indexed_files field in the course document.
@@ -185,10 +185,13 @@ def add_files(playground_id: str, files: list[dict]) -> None:
         for field in REQUIRED_FILE_FIELDS:
             if field not in file:
                 raise ValueError(f"File is missing required field: {field}")
-
-        file_id = file_collection.document().id
-        file_document = file_collection.document(file_id)
-        file['id'] = file_id
+            
+        if 'id' not in file:
+            file_id = file_collection.document().id
+            file_document = file_collection.document(file_id)
+            file['id'] = file_id
+        else:
+            file_document = file_collection.document(file['id'])
         
         batch.set(file_document, file)
 
@@ -307,6 +310,20 @@ def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
     file_data = file_doc.to_dict()
     file_data['doc_id'] = file_doc.id
     return file_data
+
+
+def delete_file_document(playground_id: str, file_id: str) -> None:
+    """
+    Deletes a file document from the files subcollection.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The file document ID to delete
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_ref.delete()
 
 
 def register_uploaded_file(playground_id: str, file_id: str, file_data: dict) -> str:
