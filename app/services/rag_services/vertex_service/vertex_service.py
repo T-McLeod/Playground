@@ -173,7 +173,36 @@ class VertexRAGService(RAGInterface):
         return corpus_id
 
     def remove_files_from_corpus(self, corpus_id: str, file_ids: List[str]):
-        raise NotImplementedError("RAGInterface.remove_files_from_corpus is not implemented in VertexRAGService.")  #TODO: Implement if needed
+        """
+        Removes files from the RAG corpus.
+        
+        Args:
+            corpus_id: The RAG corpus resource name.
+            file_ids: List of file identifiers (filenames) to remove.
+        """
+        try:
+            logger.info(f"Removing {len(file_ids)} files from corpus {corpus_id}...")
+            
+            # List all files in the corpus
+            rag_files = rag.list_files(corpus_name=corpus_id)
+            
+            count = 0
+            for rag_file in rag_files:
+                # Check if this file matches any of the IDs we want to remove
+                # We check if the file_id is contained in the display_name (which is usually the GCS URI)
+                if any(file_id in rag_file.display_name for file_id in file_ids):
+                    try:
+                        rag.delete_file(name=rag_file.name, corpus_name=corpus_id)
+                        logger.info(f"Deleted RAG file: {rag_file.display_name}")
+                        count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to delete file {rag_file.name}: {e}")
+            
+            logger.info(f"Successfully removed {count} files from corpus {corpus_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to remove files from corpus {corpus_id}: {str(e)}")
+            raise
     
 
     def delete_corpus(self, corpus_id: str):

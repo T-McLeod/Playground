@@ -139,6 +139,36 @@ def upload_file(playground_id: str, file: dict) -> list[dict]:
     logger.info(f"Imported 1 file to RAG corpus {corpus_id}")
 
     return file
+
+
+def remove_files(playground_id: str, file_ids: list[str]):
+    """
+    Removes a file from the RAG corpus and Firestore.
+    
+    Args:
+        playground_id: The Playground document ID
+        file_id: The identifier of the file to remove
+    """
+    corpus_id = firestore_service.get_corpus_id(playground_id)
+    if not corpus_id:
+        raise ValueError(f"No corpus ID found for playground {playground_id}")
+
+    # Step 1: Remove file from RAG corpus
+    rag_service.remove_files_from_corpus(
+        corpus_id=corpus_id,
+        file_ids=file_ids,
+    )
+    logger.info(f"Removed files {file_ids} from RAG corpus {corpus_id}")
+
+    # Step 2: delete the file from GCS
+    for file_id in file_ids:
+        gcs_uri = firestore_service.get_file_by_id(playground_id, file_id)['gcs_uri']
+        gcs_service.delete_file(gcs_uri)
+
+    # Step 3: Remove file document from Firestore
+    for file_id in file_ids:
+        firestore_service.delete_file_document(playground_id, file_id)
+        logger.info(f"Removed file document {file_id} from Firestore for playground {playground_id}")
     
 
 def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str) -> list[dict]:
@@ -162,11 +192,14 @@ def _intake_files_from_canvas(playground_id: str, course_id: str, corpus_id: str
     )
     logger.info(f"Retrieved {len(files)} files from Canvas")
 
-    firestore_service.add_files(playground_id, files)
+    for file in files:
+        file['id'] = firestore_service.initialize_file(playground_id)
 
     logger.debug("Step 4: Uploading files to GCS...")
     files = gcs_service.stream_files_to_gcs(files, playground_id)
     logger.info(f"Uploaded {len(files)} files to GCS")
+
+    firestore_service.add_files(playground_id, files)
     
     logger.debug("Step 5: Importing files from GCS to RAG corpus...")
     rag_service.add_files_to_corpus(
