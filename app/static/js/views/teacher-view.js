@@ -88,7 +88,7 @@ class TeacherView extends BaseView {
 
         const { 
             editTopicModal, editTopicTitleInput, editTopicSummaryInput, 
-            editResourceList, addResourceSelect 
+            addResourceSelect 
         } = this.elements;
 
         // Close view modal
