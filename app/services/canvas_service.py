@@ -154,22 +154,23 @@ def _format_file(course_id: str, file: dict) -> dict:
     file_ext = '.' + filename.split('.')[-1].lower() if '.' in filename else ''
     
     # Filter for allowed file types
-    if file_ext in ALLOWED_FILE_TYPES:
-        file_obj = {
-            'name': filename,
-            'size': file.get('size', 0),
-            'content_type': file.get('content-type', 'application/pdf'),
-            'source': {
-                'type': 'canvas',
-                'course_id': course_id,
-                'download_url': file.get('url'),
-                'hash': file.get('checksum', ''),
-                'canvas_file_id': str(file.get('id')),
-                'updated_at': file.get('updated_at')
-            },
-        }
-        return file_obj
+    if file_ext not in ALLOWED_FILE_TYPES:
+        raise ValueError(f"Unsupported file type '{file_ext}' for file '{filename}'.")
 
+    file_obj = {
+        'name': filename,
+        'size': file.get('size', 0),
+        'content_type': file.get('content-type', 'application/pdf'),
+        'source': {
+            'type': 'canvas',
+            'course_id': course_id,
+            'download_url': file.get('url'),
+            'hash': file.get('checksum', ''),
+            'canvas_file_id': str(file.get('id')),
+            'updated_at': file.get('updated_at')
+        },
+    }
+    return file_obj
 def _download_files(files: list, token: str, course_id: str, output_dir: str = None) -> None:
     """
     Internal function to download Canvas files to local storage.
