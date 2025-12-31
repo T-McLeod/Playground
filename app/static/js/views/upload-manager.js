@@ -148,12 +148,12 @@ function renderCanvasFiles(files) {
             actionBtn.innerHTML = '🔄 Reload';
             actionBtn.className = 'btn-primary btn-sm';
             actionBtn.title = 'Refresh file content';
-            actionBtn.onclick = () => alert('Refresh functionality coming soon!');
+            actionBtn.onclick = () => refreshCanvasFile(actionBtn, file.id);
         } else if (file.status === 'missing') {
             actionBtn.innerHTML = '➕ Add';
             actionBtn.className = 'btn-primary btn-sm';
             actionBtn.title = 'Add file to playground';
-            actionBtn.onclick = () => alert('Add file functionality coming soon!');
+            actionBtn.onclick = () => addCanvasFile(actionBtn, file.canvas_id);
         } else {
             actionBtn.textContent = '-';
             actionBtn.disabled = true;
@@ -169,6 +169,64 @@ function renderCanvasFiles(files) {
 function formatStatus(status) {
     if (!status) return 'Unknown';
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function refreshCanvasFile(btn, fileId) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Refreshing...';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadCanvasFiles();
+            document.dispatchEvent(new CustomEvent('files-uploaded'));
+        } else {
+            alert('Error refreshing file: ' + (data.message || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        console.error('Error refreshing file:', err);
+        alert('Error refreshing file.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function addCanvasFile(btn, canvasFileId) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Adding...';
+
+    fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canvas_file_id: canvasFileId })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadCanvasFiles();
+            document.dispatchEvent(new CustomEvent('files-uploaded'));
+        } else {
+            alert('Error adding file: ' + (data.message || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        console.error('Error adding file:', err);
+        alert('Error adding file.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
 }
 
 // --- File Manager Logic ---
