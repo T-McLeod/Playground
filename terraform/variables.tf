@@ -34,3 +34,13 @@ variable "canvas_base_url" {
   type        = string
   default     = "https://canvas.instructure.com/api/v1"
 }
+
+variable "subdomain" {
+  description = "The subdomain name for the application (e.g. 'dev' in [dev].playground-learning.space)"
+  type        = string
+}
+
+variable "dns_managed_zone" {
+  description = "The DNS managed zone name in Cloud DNS"
+  type        = string
+}
