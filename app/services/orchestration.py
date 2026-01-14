@@ -42,7 +42,7 @@ def initialize_course_from_canvas(course_id: str, topics: list[str] = [], parent
     logger.debug("Step 1: Creating Firestore document...")
     playground_id = firestore_service.create_playground_entity(
         name=f"Canvas Course {course_id}",
-        source_type="canvas",
+        source_type="canvas_course",
         course_id=course_id
     )
     logger.info(f"Firestore document created for course {course_id}")
