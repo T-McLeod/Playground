@@ -45,7 +45,7 @@ module "networking" {
 }
 
 data "google_dns_managed_zone" "env_dns_zone" {
-  name = "playground-root-zone" # Must match the manual name in Console
+  name = var.dns_managed_zone # Must match the manual name in Console
 }
 
 # 1. Create the Domain Mapping in Cloud Run
