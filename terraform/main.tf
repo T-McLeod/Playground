@@ -50,7 +50,7 @@ data "google_dns_managed_zone" "env_dns_zone" {
 
 # 1. Create the Domain Mapping in Cloud Run
 resource "google_cloud_run_domain_mapping" "app_mapping" {
-  location = "us-east1"
+  location = var.region
   name     = "${var.subdomain}.playground-learning.space"
 
   metadata {
