@@ -35,8 +35,8 @@ const DOM = {
     breadcrumbs: document.getElementById('breadcrumbs'),
     
     // Buttons
-    newInstanceBtn: document.getElementById('new-instance-btn'),
-    newFolderBtn: document.getElementById('new-folder-btn'),
+    newMenuBtn: document.getElementById('new-menu-btn'),
+    newMenuDropdown: document.getElementById('new-menu-dropdown'),
     emptyNewInstanceBtn: document.getElementById('empty-new-instance-btn'),
     
     // Modal
@@ -208,7 +208,7 @@ function renderBreadcrumbs() {
  */
 function renderItemCard(item) {
     const isFolder = item.type === 'folder';
-    const icon = isFolder ? '📁' : '🤖';
+    const icon = isFolder ? '<i class="fas fa-folder"></i>' : '<i class="fas fa-robot"></i>';
     const typeClass = isFolder ? 'folder' : 'bot';
     
     // Build status badge for bots
@@ -356,9 +356,9 @@ function handleItemOpen(card) {
     if (type === 'folder') {
         // Navigate into folder using fs_id
         navigateToFolder(fsId);
-    } else if (type === 'playground') {
-        // Navigate to editor using playground_id
-        window.location.href = `/launch?playground_id=${playgroundId}&role=professor`;
+    } else if (type === 'bot') {
+        // Open playground in new tab using playground_id
+        window.open(`/launch?playground_id=${playgroundId}&role=professor`, '_blank');
     }
 }
 
@@ -527,7 +527,8 @@ async function handleContextAction(action) {
             if (target.type === 'folder') {
                 navigateToFolder(target.fsId);
             } else {
-                window.location.href = `/launch?playground_id=${target.playgroundId}&role=professor`;
+                // Open playground in new tab
+                window.open(`/launch?playground_id=${target.playgroundId}&role=professor`, '_blank');
             }
             break;
             
@@ -600,12 +601,34 @@ function escapeHtml(str) {
 // =============================================================================
 
 function initEventListeners() {
-    // New Instance buttons
-    DOM.newInstanceBtn.addEventListener('click', () => openModal('instance'));
-    DOM.emptyNewInstanceBtn.addEventListener('click', () => openModal('instance'));
+    // New menu dropdown toggle
+    DOM.newMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        DOM.newMenuDropdown.classList.toggle('hidden');
+    });
     
-    // New Folder button
-    DOM.newFolderBtn.addEventListener('click', () => openModal('folder'));
+    // New menu dropdown items
+    DOM.newMenuDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const action = item.dataset.action;
+            DOM.newMenuDropdown.classList.add('hidden');
+            
+            if (action === 'new-instance') {
+                openModal('instance');
+            } else if (action === 'new-folder') {
+                openModal('folder');
+            }
+        });
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', () => {
+        DOM.newMenuDropdown.classList.add('hidden');
+    });
+    
+    // Empty state button
+    DOM.emptyNewInstanceBtn.addEventListener('click', () => openModal('instance'));
     
     // Modal controls
     DOM.modalCloseBtn.addEventListener('click', closeModal);

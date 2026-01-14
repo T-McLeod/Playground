@@ -98,6 +98,7 @@ body {
 
 .logo-icon {
     font-size: 24px;
+    color: var(--color-primary);
 }
 
 .logo-text {
@@ -106,30 +107,84 @@ body {
     color: var(--color-text);
 }
 
-.new-instance-btn {
+/* New Menu Dropdown */
+.new-menu-container {
+    position: relative;
+    margin: var(--spacing-md);
+}
+
+.new-menu-btn {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    width: 100%;
     gap: var(--spacing-sm);
-    margin: var(--spacing-md);
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background: var(--color-primary);
+    color: white;
+    border: none;
     border-radius: 24px;
     font-size: 14px;
     font-weight: 500;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.new-menu-btn:hover {
+    background: var(--color-primary-hover);
+}
+
+.new-menu-btn i {
+    font-size: 14px;
+}
+
+.dropdown-icon {
+    font-size: 10px;
+    margin-left: auto;
+}
+
+.new-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: var(--spacing-xs);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--card-radius);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    z-index: 100;
+}
+
+.new-menu-dropdown.hidden {
+    display: none;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: transparent;
+    border: none;
+    font-size: 14px;
     color: var(--color-text);
     cursor: pointer;
-    transition: box-shadow var(--transition-fast), background var(--transition-fast);
+    text-align: left;
+    transition: background var(--transition-fast);
 }
 
-.new-instance-btn:hover {
+.dropdown-item:hover {
     background: var(--color-bg);
-    box-shadow: var(--card-shadow);
 }
 
-.new-instance-btn .plus-icon {
-    font-size: 18px;
-    color: var(--color-primary);
+.dropdown-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    color: var(--color-text-secondary);
 }
 
 .sidebar-nav {
@@ -327,7 +382,8 @@ body {
 .empty-icon {
     font-size: 64px;
     margin-bottom: var(--spacing-md);
-    opacity: 0.5;
+    opacity: 0.3;
+    color: var(--color-text-secondary);
 }
 
 .empty-state h2 {
@@ -391,13 +447,12 @@ body {
 }
 
 .item-icon {
-    font-size: 48px;
+    font-size: 40px;
     margin-bottom: var(--spacing-md);
-    opacity: 0.9;
 }
 
 .item-card.folder .item-icon {
-    color: #f4b400;
+    color: #fbbf24;
 }
 
 .item-card.bot .item-icon {
