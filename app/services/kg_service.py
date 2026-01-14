@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 llm_service = get_llm_service()
 rag_service = get_rag_service()
 
-SUMMARY_QUERY_TEMPLATE = (
-    "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
-)
 
 NUM_TOPICS = 9
 def extract_topics_from_summaries(summaries: List[str], num_topics=NUM_TOPICS) -> List[str]:
