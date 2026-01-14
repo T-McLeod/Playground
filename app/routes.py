@@ -36,6 +36,28 @@ def health_check():
     }), 200
 
 
+# =============================================================================
+# Admin File Explorer Routes
+# =============================================================================
+
+@app.route('/admin/browse', methods=['GET'])
+@app.route('/admin/browse/<folder_id>', methods=['GET'])
+def admin_browse_page(folder_id=None):
+    """
+    Serves the admin file explorer page.
+    
+    URL Patterns:
+        /admin/browse         -> Root folder
+        /admin/browse/{id}    -> Specific folder
+    
+    The folder_id is passed to the frontend to load the correct directory.
+    """
+    return render_template(
+        'admin_browse.html',
+        folder_id=folder_id or 'root'
+    )
+
+
 @app.route('/launch', methods=['GET', 'POST'])
 def launch():
     """
