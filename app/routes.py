@@ -8,7 +8,7 @@ from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
 from .services.orchestration import add_canvas_file, initialize_course_from_canvas, upload_file, get_canvas_file_statuses, refresh_canvas_file
-from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service
+from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, filesystem_service
 from .services.llm_services import dukegpt_service
 import os
 import logging
@@ -1021,5 +1021,260 @@ def refresh_canvas_file_endpoint(playground_id):
         logger.error(f"Failed to refresh Canvas files: {e}", exc_info=True)
         return jsonify({
             "error": "Failed to refresh Canvas file",
+            "message": str(e)
+        }), 500
+
+
+# =============================================================================
+# Admin File System Routes
+# =============================================================================
+
+@app.route('/api/admin/browse', methods=['GET'])
+def admin_browse():
+    """
+    Gets directory contents with enriched bot metadata and breadcrumbs.
+    Implements the "Double Fetch" pattern for efficient data retrieval.
+    
+    Query Params:
+        parent_id (optional): Folder ID to browse. Defaults to "root".
+    
+    Returns:
+        {
+            "items": [
+                { "fs_id": "...", "type": "folder"|"bot", "name": "...", 
+                  "playground_id": null|"...", "preview": null|{...} }
+            ],
+            "breadcrumbs": [
+                { "id": "root", "name": "Root" },
+                ...
+            ]
+        }
+    """
+    try:
+        parent_id = request.args.get('parent_id', 'root')
+        
+        # Validate parent exists
+        if parent_id != "root" and not filesystem_service.folder_exists(parent_id):
+            return jsonify({
+                "error": "Folder not found"
+            }), 404
+        
+        result = filesystem_service.get_directory_contents(parent_id)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Failed to browse directory: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to browse directory",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/admin/folders', methods=['POST'])
+def admin_create_folder():
+    """
+    Creates a new folder in the file system.
+    
+    Request body:
+        {
+            "name": "Folder Name",
+            "parent_id": "parent_folder_id" (optional, defaults to "root")
+        }
+    
+    Returns:
+        The created folder item (201 Created)
+    """
+    try:
+        data = request.json or {}
+        name = data.get('name')
+        parent_id = data.get('parent_id', 'root')
+        
+        if not name:
+            return jsonify({
+                "error": "Missing required field: name"
+            }), 400
+        
+        folder = filesystem_service.create_folder(name, parent_id)
+        return jsonify(folder), 201
+        
+    except ValueError as ve:
+        logger.error(f"Validation error creating folder: {ve}")
+        return jsonify({
+            "error": "Invalid request",
+            "message": str(ve)
+        }), 400
+    except Exception as e:
+        logger.error(f"Failed to create folder: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to create folder",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/admin/playgrounds', methods=['POST'])
+def admin_create_playground():
+    """
+    Creates a new playground (bot) with atomic file system pointer creation.
+    
+    Request body:
+        {
+            "name": "Bot Name",
+            "parent_id": "parent_folder_id" (optional, defaults to "root")
+        }
+    
+    Returns:
+        The created bot item including playground_id (201 Created)
+    """
+    try:
+        data = request.json or {}
+        name = data.get('name')
+        parent_id = data.get('parent_id', 'root')
+        
+        if not name:
+            return jsonify({
+                "error": "Missing required field: name"
+            }), 400
+        
+        bot = filesystem_service.create_playground(name, parent_id)
+        return jsonify(bot), 201
+        
+    except ValueError as ve:
+        logger.error(f"Validation error creating playground: {ve}")
+        return jsonify({
+            "error": "Invalid request",
+            "message": str(ve)
+        }), 400
+    except Exception as e:
+        logger.error(f"Failed to create playground: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to create playground",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/admin/move', methods=['PATCH'])
+def admin_move_item():
+    """
+    Moves an item (folder or bot) to a new parent folder.
+    
+    Request body:
+        {
+            "fs_id": "item_file_system_id",
+            "new_parent_id": "target_folder_id"
+        }
+    
+    Returns:
+        { "status": "success" } (200 OK)
+    """
+    try:
+        data = request.json or {}
+        fs_id = data.get('fs_id')
+        new_parent_id = data.get('new_parent_id')
+        
+        if not fs_id or not new_parent_id:
+            return jsonify({
+                "error": "Missing required fields: fs_id and new_parent_id"
+            }), 400
+        
+        result = filesystem_service.move_item(fs_id, new_parent_id)
+        return jsonify(result)
+        
+    except ValueError as ve:
+        logger.error(f"Validation error moving item: {ve}")
+        return jsonify({
+            "error": "Invalid request",
+            "message": str(ve)
+        }), 400
+    except Exception as e:
+        logger.error(f"Failed to move item: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to move item",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/admin/items', methods=['DELETE'])
+def admin_delete_item():
+    """
+    Deletes an item from the file system.
+    For bots, also cleans up the underlying playground document.
+    Folders must be empty to be deleted.
+    
+    Query Params:
+        fs_id: The file system ID of the item to delete
+    
+    Returns:
+        204 No Content on success
+        409 Conflict if folder is not empty
+    """
+    try:
+        fs_id = request.args.get('fs_id')
+        
+        if not fs_id:
+            return jsonify({
+                "error": "Missing required parameter: fs_id"
+            }), 400
+        
+        filesystem_service.delete_item(fs_id)
+        return '', 204
+        
+    except ValueError as ve:
+        logger.error(f"Item not found: {ve}")
+        return jsonify({
+            "error": "Item not found",
+            "message": str(ve)
+        }), 404
+    except PermissionError as pe:
+        logger.error(f"Cannot delete non-empty folder: {pe}")
+        return jsonify({
+            "error": "Folder not empty",
+            "message": "Cannot delete a folder that contains items. Please empty the folder first."
+        }), 409
+    except Exception as e:
+        logger.error(f"Failed to delete item: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to delete item",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/admin/items/rename', methods=['PATCH'])
+def admin_rename_item():
+    """
+    Renames an item in the file system.
+    For bots, also updates the playground display_name.
+    
+    Request body:
+        {
+            "fs_id": "item_file_system_id",
+            "name": "New Name"
+        }
+    
+    Returns:
+        The updated item (200 OK)
+    """
+    try:
+        data = request.json or {}
+        fs_id = data.get('fs_id')
+        new_name = data.get('name')
+        
+        if not fs_id or not new_name:
+            return jsonify({
+                "error": "Missing required fields: fs_id and name"
+            }), 400
+        
+        item = filesystem_service.rename_item(fs_id, new_name)
+        return jsonify(item)
+        
+    except ValueError as ve:
+        logger.error(f"Item not found: {ve}")
+        return jsonify({
+            "error": "Item not found",
+            "message": str(ve)
+        }), 404
+    except Exception as e:
+        logger.error(f"Failed to rename item: {e}", exc_info=True)
+        return jsonify({
+            "error": "Failed to rename item",
             "message": str(e)
         }), 500
