@@ -188,16 +188,18 @@ def create_folder(name: str, parent_id: str = "root") -> dict:
     }
 
 
-def create_playground(name: str, parent_id: str = "root") -> dict:
+def create_bot_pointer(name: str, playground_id: str, parent_id: str = "root") -> dict:
     """
-    Atomically creates a playground and its file system pointer.
+    Creates a file system pointer for an existing playground.
+    This function only handles the organizational hierarchy, not playground creation.
     
     Args:
-        name: Display name for the bot
+        name: Display name for the bot in the file system
+        playground_id: The ID of the already-created playground entity
         parent_id: Parent folder ID (defaults to root)
         
     Returns:
-        The created bot item with playground_id
+        The created bot item with fs_id and playground_id
     """
     _ensure_db()
     
@@ -209,43 +211,26 @@ def create_playground(name: str, parent_id: str = "root") -> dict:
         if parent_doc.to_dict().get('type') != 'folder':
             raise ValueError("Parent must be a folder")
     
-    # Use a batch to ensure atomicity
-    batch = db.batch()
-    
-    # Step 1: Create the playground document
-    playground_ref = db.collection(PLAYGROUNDS_COLLECTION).document()
-    playground_data = {
-        'display_name': name,
-        'created_at': firestore.SERVER_TIMESTAMP,
-        'last_modified_at': firestore.SERVER_TIMESTAMP,
-        'source': {
-            'type': 'standalone'
-        },
-        'status': 'draft'
-    }
-    batch.set(playground_ref, playground_data)
-    
-    # Step 2: Create the file system pointer
+    # Create the file system pointer
     fs_ref = db.collection(FILE_SYSTEM_COLLECTION).document()
     fs_data = {
         'type': 'bot',
         'name': name,
         'parent_id': parent_id,
-        'playground_id': playground_ref.id,
+        'playground_id': playground_id,
         'created_at': firestore.SERVER_TIMESTAMP
     }
-    batch.set(fs_ref, fs_data)
+    fs_ref.set(fs_data)
     
-    # Commit both operations
-    batch.commit()
+    logger.info(f"Created bot pointer: {fs_ref.id} -> playground {playground_id}")
     
     return {
         'fs_id': fs_ref.id,
         'type': 'bot',
         'name': name,
-        'playground_id': playground_ref.id,
+        'playground_id': playground_id,
         'preview': {
-            'status': 'draft',
+            'status': 'CREATED',
             'last_modified': None
         }
     }

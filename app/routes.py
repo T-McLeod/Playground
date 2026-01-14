@@ -7,7 +7,7 @@ from flask import request, render_template, jsonify, session, current_app as app
 from app.models.canvas_models import Quiz_Answer, Quiz_Question
 from .services.llm_services import get_llm_service
 from .services.rag_services import get_rag_service
-from .services.orchestration import add_canvas_file, initialize_course_from_canvas, upload_file, get_canvas_file_statuses, refresh_canvas_file
+from .services.orchestration import add_canvas_file, initialize_course_from_canvas, upload_file, get_canvas_file_statuses, refresh_canvas_file, create_standalone_playground
 from .services import firestore_service, kg_service, canvas_service, gcs_service, analytics_logging_service, filesystem_service
 from .services.llm_services import dukegpt_service
 import os
@@ -1135,7 +1135,7 @@ def admin_create_playground():
                 "error": "Missing required field: name"
             }), 400
         
-        bot = filesystem_service.create_playground(name, parent_id)
+        bot = create_standalone_playground(name, parent_id)
         return jsonify(bot), 201
         
     except ValueError as ve:

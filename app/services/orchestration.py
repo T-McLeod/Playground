@@ -2,7 +2,7 @@ import datetime
 from typing import Dict
 from .llm_services import get_llm_service
 from .rag_services import get_rag_service
-from . import firestore_service, kg_service, canvas_service, gcs_service
+from . import firestore_service, kg_service, canvas_service, gcs_service, filesystem_service
 import os
 import logging
 
@@ -12,38 +12,59 @@ rag_service = get_rag_service()
 
 logger = logging.getLogger(__name__)
 
-def initialize_course_from_canvas(course_id: str, topics: list[str] = []) -> dict:
+def initialize_course_from_canvas(course_id: str, topics: list[str] = [], parent_id: str = "root") -> dict:
     """
-    Kicks off the entire RAG + KG pipeline.
+    Kicks off the entire RAG + KG pipeline for a Canvas course.
     This is a long-running request triggered by the professor.
     
     Pipeline:
-    1. Create Firestore doc with status: GENERATING
+    1. Create Firestore playground entity
     2. Create RAG corpus
-    3. Fetch files from Canvas to download url
-    4. Upload files to Google Cloud Storage (GCS)
-    5. Import files from GCS to RAG corpus
-    6. Summarize each file using LLM
-    7. Extract topics from summaries (if not provided)
-    8. Build knowledge graph using RAG context
-    9. Finalize Firestore doc with status: ACTIVE
+    3. Create file system pointer
+    4. Fetch files from Canvas to download url
+    5. Upload files to Google Cloud Storage (GCS)
+    6. Import files from GCS to RAG corpus
+    7. Summarize each file using LLM
+    8. Extract topics from summaries (if not provided)
+    9. Build knowledge graph using RAG context
+    10. Finalize Firestore doc with status: ACTIVE
+    
+    Args:
+        course_id: The Canvas course ID
+        topics: Optional list of topic strings
+        parent_id: Parent folder ID in the file system (defaults to root)
     
     Returns:
         JSON response with status and corpus info
     """
     logger.info(f"Starting initialization for course {course_id}")
-    rollback_actions = []
 
-    # Step 1: Create Firestore doc with status: GENERATING
+    # Step 1: Create standardized Firestore entity
     logger.debug("Step 1: Creating Firestore document...")
-    playground_id = firestore_service.create_playground_doc(f"Canvas Course {course_id}", course_id)
+    playground_id = firestore_service.create_playground_entity(
+        name=f"Canvas Course {course_id}",
+        source_type="canvas",
+        course_id=course_id
+    )
     logger.info(f"Firestore document created for course {course_id}")
+    
+    # Update status to GENERATING
+    firestore_service.update_status(playground_id, 'GENERATING')
 
+    # Step 2: Provision RAG corpus
     logger.debug("Step 2: Provisioning RAG corpus...")
     corpus_id = rag_service.create_and_provision_corpus(playground_id)
     logger.info(f"RAG corpus provisioned for course {course_id}")
-
     firestore_service.add_corpus_id(playground_id, corpus_id)
+    
+    # Step 3: Create file system pointer
+    logger.debug("Step 3: Creating file system pointer...")
+    filesystem_service.create_bot_pointer(
+        name=f"Canvas Course {course_id}",
+        playground_id=playground_id,
+        parent_id=parent_id
+    )
+    logger.info(f"File system pointer created for playground {playground_id}")
 
     try:
         files = _intake_files_from_canvas(playground_id, course_id, corpus_id)
@@ -348,3 +369,60 @@ def _summarize_files(course_id: str, files: list[dict]) -> list[dict]:
         logger.debug(f"File Name: {display_name}\nSummary: {summary}")
 
     return files
+
+
+def create_standalone_playground(name: str, parent_id: str = "root") -> dict:
+    """
+    Creates a new standalone playground with full infrastructure provisioning.
+    This is the unified entry point for creating empty playgrounds.
+    
+    Pipeline:
+    1. Create Firestore playground entity
+    2. Provision RAG corpus (empty but ready)
+    3. Create file system pointer
+    
+    Args:
+        name: Display name for the playground
+        parent_id: Parent folder ID in the file system (defaults to root)
+        
+    Returns:
+        Dict with fs_id, playground_id, and other metadata
+    """
+    logger.info(f"Creating standalone playground: {name}")
+    
+    # Step 1: Create standardized Firestore entity
+    logger.debug("Step 1: Creating Firestore document...")
+    playground_id = firestore_service.create_playground_entity(
+        name=name,
+        source_type="standalone"
+    )
+    logger.info(f"Firestore document created: {playground_id}")
+    
+    # Step 2: Provision RAG corpus (empty but ready for files)
+    logger.debug("Step 2: Provisioning RAG corpus...")
+    corpus_id = rag_service.create_and_provision_corpus(playground_id)
+    firestore_service.add_corpus_id(playground_id, corpus_id)
+    logger.info(f"RAG corpus provisioned: {corpus_id}")
+    
+    # Step 3: Create file system pointer
+    logger.debug("Step 3: Creating file system pointer...")
+    bot_pointer = filesystem_service.create_bot_pointer(
+        name=name,
+        playground_id=playground_id,
+        parent_id=parent_id
+    )
+    logger.info(f"File system pointer created: {bot_pointer['fs_id']}")
+    
+    # Update status to ACTIVE (empty but usable)
+    firestore_service.update_status(playground_id, 'ACTIVE')
+    
+    return {
+        'fs_id': bot_pointer['fs_id'],
+        'type': 'bot',
+        'name': name,
+        'playground_id': playground_id,
+        'preview': {
+            'status': 'ACTIVE',
+            'last_modified': None
+        }
+    }
