@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 llm_service = get_llm_service()
 rag_service = get_rag_service()
 
-SUMMARY_QUERY_TEMPLATE = (
-    "Write a 1-paragraph summary for the topic. Make clear what likely are the learning objectives and what student should focus on during the course: {topic}. Go straight to the summary, no intro or outro."
-)
 
 NUM_TOPICS = 9
 def extract_topics_from_summaries(summaries: List[str], num_topics=NUM_TOPICS) -> List[str]:
@@ -57,7 +54,7 @@ Summaries: {all_summaries}"""
         raise
 
 
-def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None, files: list = []) -> None:
+def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None, files: list = None) -> None:
     """
     Adds a new topic to an existing knowledge graph.
     
@@ -72,6 +69,7 @@ def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None,
     Returns:
         Tuple of (updated_nodes_json, updated_edges_json, updated_data_json)
     """
+    files = files if files is not None else []
     for file in files:
         if 'id' not in file or 'name' not in file:
             raise ValueError("Each file must have 'id' and 'name' fields")

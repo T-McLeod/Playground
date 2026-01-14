@@ -2,7 +2,6 @@
 Firestore Service
 Handles all Cloud Firestore operations for course data persistence.
 """
-from typing import Any
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud.firestore_v1.collection import CollectionReference
@@ -93,22 +92,57 @@ def is_canvas_course(playground_id: str) -> bool:
     return source.get('type') == 'canvas_course'
 
 
-# Only for playgrounds created from Canvas courses for right now
-def create_playground_doc(display_name: str, course_id: str) -> Any:
-    new_id = db.collection("playgrounds").document().id
-
-    db.collection("playgrounds").document(new_id).set({
-        'display_name': display_name,
+def create_playground_entity(
+    name: str,
+    source_type: str = "standalone",
+    course_id: str = None
+) -> str:
+    """
+    Creates a standardized playground document in Firestore.
+    This is the single source of truth for playground entity creation.
+    
+    Args:
+        name: Display name for the playground
+        source_type: Either "standalone" or "canvas"
+        course_id: Canvas course ID (required if source_type is "canvas")
+        
+    Returns:
+        playground_id: The generated document ID
+    """
+    _ensure_db()
+    
+    # Build source metadata based on type
+    if source_type == "canvas":
+        if not course_id:
+            raise ValueError("course_id is required for canvas source type")
+        source = {
+            'type': 'canvas',
+            'course_id': course_id
+        }
+    else:
+        source = {
+            'type': 'standalone'
+        }
+    
+    # Create the playground document with standardized schema
+    playground_ref = db.collection(PLAYGROUNDS_COLLECTION).document()
+    playground_data = {
+        'display_name': name,
         'created_at': firestore.SERVER_TIMESTAMP,
         'last_modified_at': firestore.SERVER_TIMESTAMP,
-        'source': {
-            'type': 'canvas_course',
-            'course_id': course_id
-        },
-        'status': 'GENERATING',
-    })
-
-    return new_id
+        'source': source,
+        'status': 'CREATED',
+        'corpus_id': None,  # Will be set after RAG provisioning
+        'config': {
+            'model': 'default',
+            'temperature': 0.7
+        }
+    }
+    
+    playground_ref.set(playground_data)
+    logger.info(f"Created playground entity: {playground_ref.id} ({name})")
+    
+    return playground_ref.id
 
 
 def add_init_log(course_id: str, message: str, level: str = 'info') -> None:
