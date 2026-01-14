@@ -18,7 +18,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from app.models.canvas_models import Quiz_Answer, Quiz_Question
+from app.models.canvas_models import Quiz_Question
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
