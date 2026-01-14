@@ -450,16 +450,15 @@ def create_quiz():
 
     
     try:
-        quiz_info = canvas_service.create_quiz_draft(
+        canvas_service.create_quiz_draft(
             course_id=course_id,
             title=quiz_title,
             questions=quiz_questions,
             token=CANVAS_TOKEN
         )
-        
+
         return jsonify({
-            "success": True,
-            "quiz_info": quiz_info
+            "success": True
         })
     except Exception as e:
         logger.error(f"Failed to create Canvas quiz: {e}", exc_info=True)
@@ -822,7 +821,6 @@ def register_uploaded_file(playground_id):
         file = request.json or {}
         file_id = file.get('file_id')
         filename = file.get('filename')
-        content_type = file.get('content_type', 'application/octet-stream')
         size = file.get('size', 0)
         gcs_uri = file.get('gcs_uri')
         

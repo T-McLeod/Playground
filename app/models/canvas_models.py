@@ -31,7 +31,7 @@ class Quiz_Question():
     points_possible: float
     answers: List[Quiz_Answer]
 
-    def __init__(self, question_type: str, question_text: str, points_possible: float, answers: List[Quiz_Answer]):
+    def __init__(self, question_type: str, question_text: str, points_possible: float, answers: List[Quiz_Answer], id=None):
         self.id = id
         self.question_type = question_type
         self.question_text = question_text
