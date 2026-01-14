@@ -2,6 +2,7 @@
 summarize_file: |
   Summarize this file in one paragraph, specifically the topics that are covered, both broad and specific.
   Someone reading the summary should understand what subjects are discussed in the file and what the learning objectives likely are. Don't get too detailed.
+  
   Begin the summary now with "This file discusses..."
 
 # Used in: generate_answer_with_context()
@@ -48,3 +49,23 @@ suggested_questions: |
   Topic: {topic}
 
   Questions:
+
+
+summarize_topic: |
+  Summarize the following topic in one paragraph, highlighting the key concepts and important details.
+
+  Topic: {{topic}}
+
+  {% if context %}
+  Here is the context to use for your answer:
+  ---------------------
+  {% for chunk in context %}
+  {{ chunk }}
+
+  {% endfor %}
+  ---------------------
+  {% else %}
+  (No context was retrieved for this question. Answer based on general knowledge.)
+  {% endif %}
+
+  Summary:

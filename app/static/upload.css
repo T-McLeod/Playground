@@ -1,0 +1,234 @@
+/* Upload Modal Styles */
+.upload-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.upload-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.upload-modal-content-wide {
+    max-width: 900px;
+}
+
+.upload-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.upload-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-up_to_date {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-out_of_date {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-missing {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-unknown {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.upload-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.upload-modal-close:hover {
+    color: #111827;
+}
+
+.upload-modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.upload-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e5e7eb;
+    text-align: right;
+}
+
+/* Dropzone Customization */
+#file-dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    background: #f9fafb;
+    min-height: 200px;
+}
+
+#file-dropzone.dz-drag-hover {
+    border-color: #4F46E5;
+    background: #EEF2FF;
+}
+
+#file-dropzone .dz-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+#file-dropzone .dz-message span {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* File preview styling */
+#file-dropzone .dz-preview {
+    margin: 10px;
+}
+
+/* File Manager Styles */
+.file-manager-list-container {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.file-manager-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.file-manager-table th,
+.file-manager-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.file-manager-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.file-manager-table tr:hover {
+    background-color: #f9fafb;
+}
+
+.file-manager-upload-section {
+    margin-top: 10px;
+}
+
+.skinny-dropzone {
+    min-height: 80px !important;
+    padding: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+
+.skinny-dropzone .dz-message {
+    margin: 0 !important;
+    padding: 10px !important;
+}
+
+.skinny-dropzone .dz-preview {
+    margin: 5px !important;
+    min-height: 60px !important;
+}
+
+.skinny-dropzone .dz-image {
+    width: 60px !important;
+    height: 60px !important;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.btn-danger:disabled {
+    background-color: #fca5a5;
+    cursor: not-allowed;
+}
+
+#file-dropzone .dz-preview .dz-progress {
+    height: 6px;
+    border-radius: 3px;
+}
+
+#file-dropzone .dz-preview .dz-progress .dz-upload {
+    background: #4F46E5;
+}
+
+#file-dropzone .dz-preview.dz-success .dz-progress .dz-upload {
+    background: #10B981;
+}
+
+#file-dropzone .dz-preview.dz-error .dz-progress .dz-upload {
+    background: #EF4444;
+}

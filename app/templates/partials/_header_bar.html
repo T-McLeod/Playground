@@ -1,0 +1,20 @@
+<!-- Header Bar Partial -->
+<div class="header-bar">
+    <h1 class="course-title">{% block title %}Playground AI{% endblock %}</h1>
+    
+    <!-- View Toggle -->
+    <div class="view-toggle">
+        <button id="graph-view-btn" class="view-btn active">
+            {% block graph_btn_icon %}{% endblock %}Graph
+        </button>
+        <button id="cards-view-btn" class="view-btn">
+            {% block cards_btn_icon %}{% endblock %}Cards
+        </button>
+    </div>
+    
+    <div class="user-info">
+        {% block header_extra %}{% endblock %}
+        <span class="user-name">{{ user_id }}</span>
+        <span class="role-badge">{% block role_badge %}{% endblock %}</span>
+    </div>
+</div>

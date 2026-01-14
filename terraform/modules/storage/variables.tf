@@ -12,3 +12,9 @@ variable "location" {
     description = "The location"
     type        = string
 }
+
+variable "cors_origins" {
+    description = "List of origins allowed to make CORS requests to the bucket"
+    type        = list(string)
+    default     = ["*"]
+}

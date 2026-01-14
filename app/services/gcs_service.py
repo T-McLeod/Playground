@@ -63,7 +63,7 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
         return bucket
 
 
-def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> Dict[str, Dict]:
+def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
     """
     Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
     Files are organized in the bucket as: courses/{course_id}/{filename}
@@ -78,16 +78,18 @@ def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str
         Updated dictionary of file objects with 'gcs_uri' property added
     """
     bucket = ensure_bucket_exists(bucket_name)
-    for file_id, file in files.items():
-        display_name = file.get('display_name', f"file_{file_id}")
-        download_url = file.get('url')
+
+    for file in files:
+        display_name = file.get('display_name', f"file_{file.get('id')}")
+        file_id = file.get('id')
+        download_url = file['source']['download_url']
 
         logger.debug(f"Starting upload for file: {display_name}")
         logger.debug(file)
         with requests.get(download_url, stream=True) as response:
             response.raise_for_status()
             
-            blob_path = f"courses/{course_id}/{display_name}"
+            blob_path = f"playgrounds/{playground_id}/{file_id}.pdf"
             blob = bucket.blob(blob_path)
             gcs_uri = f"gs://{bucket_name}/{blob_path}"
 
@@ -96,6 +98,8 @@ def stream_files_to_gcs(files: Dict[str, Dict], course_id: str, bucket_name: str
                 response.raw, 
                 content_type=response.headers.get('Content-Type')
             )
+            blob.content_disposition = f'inline; filename="{display_name}"'
+            blob.patch()
             file['gcs_uri'] = gcs_uri
             logger.info(f"Successfully uploaded {blob_path}")
 
@@ -252,6 +256,34 @@ def delete_course_files(course_id: str, bucket_name: str = BUCKET_NAME) -> int:
     return delete_count
 
 
+def delete_file(gcs_uri: str) -> bool:
+    """
+    Deletes a single file from GCS.
+    
+    Args:
+        gcs_uri: GCS URI of the file to delete (e.g., 'gs://bucket/path/to/file.pdf')
+    """
+    # Parse GCS URI
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name = parts[0]
+    blob_path = parts[1] if len(parts) > 1 else ''
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        blob.delete()
+        logger.info(f"Deleted file: {gcs_uri}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete file {gcs_uri}: {str(e)}")
+        return False
+
+
 def get_file_info(gcs_uri: str) -> Optional[Dict]:
     """
     Gets metadata for a file in GCS.
@@ -331,6 +363,67 @@ def get_file_obj(gcs_uri: str) -> Optional[io.BytesIO]:
         return None
 
 
+def generate_signed_upload_url(playground_id: str, file_id: str, content_type: str = 'application/octet-stream', 
+                                expiration_minutes: int = 15, bucket_name: str = BUCKET_NAME) -> dict:
+    """
+    Generates a signed URL for uploading a file directly to GCS.
+    This bypasses Cloud Run memory limits by allowing direct browser-to-GCS uploads.
+    
+    Args:
+        playground_id: The playground ID to organize uploads
+        file_id: Unique file ID (UUID) for the uploaded file
+        content_type: MIME type of the file to upload
+        expiration_minutes: URL expiration time in minutes (default: 15)
+        bucket_name: GCS bucket name
+        
+    Returns:
+        Dictionary with upload_url and gcs_uri
+        
+    Example:
+        result = generate_signed_upload_url('playground123', 'file-uuid', 'application/pdf')
+        # Returns: {
+        #   'upload_url': 'https://storage.googleapis.com/...?X-Goog-Signature=...',
+        #   'gcs_uri': 'gs://bucket/playgrounds/playground123/uploads/file-uuid'
+        # }
+    """
+    from datetime import timedelta
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        
+        # Store uploads in a dedicated folder
+        blob_path = f"playgrounds/{playground_id}/uploads/{file_id}.pdf"
+        blob = bucket.blob(blob_path)
+        
+        credentials, _ = google.auth.default()
+        
+        logger.info(f"Generating signed upload URL for {blob_path}")
+        
+        # Generate signed URL for PUT (upload)
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=expiration_minutes),
+            method="PUT",
+            content_type=content_type,
+            service_account_email=credentials.service_account_email,
+            access_token=credentials.token
+        )
+
+        gcs_uri = f"gs://{bucket_name}/{blob_path}"
+        
+        logger.info(f"Generated signed upload URL for {blob_path} (expires in {expiration_minutes} min)")
+        
+        return {
+            'upload_url': url,
+            'gcs_uri': gcs_uri
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to generate signed upload URL: {str(e)}")
+        raise
+
+
 def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
     """
     Generates a signed URL for downloading a file from GCS.
@@ -387,47 +480,73 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         raise
 
 
-if __name__ == "__main__":
-    # Test the GCS service
-    from dotenv import load_dotenv
-    import sys
+def update_blob_metadata(gcs_uri: str, display_name: str, content_type: str = None, 
+                         bucket_name: str = BUCKET_NAME) -> bool:
+    """
+    Updates the metadata of a blob in GCS after upload.
+    Sets content disposition for proper filename display when downloading.
     
-    # Load environment variables
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    env_path = os.path.join(root_dir, '.env')
-    load_dotenv(env_path)
-
-    PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-    LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-east1')
-    
-    print(f"Loaded environment from: {env_path}")
-    print(f"GOOGLE_CLOUD_PROJECT: {os.getenv('GOOGLE_CLOUD_PROJECT')}")
-    print(f"GCS_BUCKET_NAME: {BUCKET_NAME}")
-    
-    if not PROJECT_ID:
-        print("\n⚠️  Please set GOOGLE_CLOUD_PROJECT in .env")
-        sys.exit(1)
-    
+    Args:
+        gcs_uri: GCS URI of the uploaded file
+        display_name: Human-readable filename for Content-Disposition
+        content_type: Optional MIME type to set
+        bucket_name: GCS bucket name
+        
+    Returns:
+        True if successful, False otherwise
+    """
     try:
-        # Test bucket creation/verification
-        print(f"\nTesting bucket existence...")
-        bucket = ensure_bucket_exists(BUCKET_NAME)
-        print(f"✅ Bucket ready: {bucket.name}")
+        # Parse GCS URI
+        if not gcs_uri.startswith('gs://'):
+            raise ValueError(f"Invalid GCS URI: {gcs_uri}")
         
-        # Test file listing (if any exist)
-        print(f"\nTesting file listing...")
-        test_course_id = "13299557"
-        files = list_course_files(test_course_id, BUCKET_NAME)
+        parts = gcs_uri[5:].split('/', 1)
+        parsed_bucket_name = parts[0]
+        blob_path = parts[1] if len(parts) > 1 else ''
         
-        test_file = files[0]
-        get_file_obj_result = get_file_obj(test_file)
-        if get_file_obj_result:
-            print(f"✅ Retrieved file object for: {test_file} (size: {len(get_file_obj_result.getvalue())} bytes)")
-        else:
-            print(f"❌ Failed to retrieve file object for: {test_file}")
-
+        client = get_storage_client()
+        bucket = client.bucket(parsed_bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        # Update metadata
+        blob.content_disposition = f'inline; filename="{display_name}"'
+        if content_type:
+            blob.content_type = content_type
+        blob.patch()
+        
+        logger.info(f"Updated metadata for {blob_path}: display_name={display_name}")
+        return True
+        
     except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Failed to update blob metadata for {gcs_uri}: {str(e)}")
+        return False
+
+
+def verify_blob_exists(gcs_uri: str) -> bool:
+    """
+    Verifies that a blob exists in GCS.
+    
+    Args:
+        gcs_uri: GCS URI of the file to check
+        
+    Returns:
+        True if the blob exists, False otherwise
+    """
+    try:
+        # Parse GCS URI
+        if not gcs_uri.startswith('gs://'):
+            return False
+        
+        parts = gcs_uri[5:].split('/', 1)
+        bucket_name = parts[0]
+        blob_path = parts[1] if len(parts) > 1 else ''
+        
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        return blob.exists()
+        
+    except Exception as e:
+        logger.error(f"Failed to verify blob existence for {gcs_uri}: {str(e)}")
+        return False

@@ -1,0 +1,40 @@
+<!-- Edit Topic Modal Partial -->
+<div id="edit-topic-modal" class="topic-modal hidden">
+    <div class="modal-content">
+        <button class="modal-close" id="edit-topic-close">&times;</button>
+        <div class="modal-header">
+            <div class="modal-title-container">
+                <label for="edit-topic-title-input" class="modal-label">Topic Name</label>
+                <input type="text" id="edit-topic-title-input" class="modal-input modal-title-input">
+            </div>
+            <div class="topic-icon" id="edit-topic-icon">📚</div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-section">
+                <label for="edit-topic-summary-input" class="modal-label">Summary</label>
+                <textarea id="edit-topic-summary-input" class="modal-textarea" rows="6" placeholder="Enter topic summary..."></textarea>
+            </div>
+
+            <div class="related-resources">
+                <h3>📎 Manage Resources</h3>
+                
+                <!-- List of currently linked resources -->
+                <ul id="edit-resource-list" class="editable-resource-list">
+                    <!-- Items will be populated by JS -->
+                </ul>
+
+                <!-- Add new resource section -->
+                <div class="add-resource-container">
+                    <select id="add-resource-select" class="modal-input resource-select">
+                        <option value="">Select a file to link...</option>
+                    </select>
+                    <button id="add-resource-btn" class="btn-secondary add-resource-btn">➕ Add</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="save-topic-changes-btn" class="btn-primary">Save</button>
+            <button id="cancel-topic-changes-btn" class="btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>

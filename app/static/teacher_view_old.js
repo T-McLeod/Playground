@@ -27,13 +27,6 @@ const resourceList = document.getElementById('resource-list');
 const modalClose = document.getElementById('modal-close');
 const chatPrompt = document.getElementById('chat-prompt');
 const promptInput = document.getElementById('prompt-input');
-const chatExpandFab = document.getElementById('chat-expand-fab');
-const chatContainer = document.getElementById('chat-container');
-const chatCollapseBtn = document.getElementById('chat-collapse');
-const chatHeader = document.querySelector('.chat-header');
-const chatMessagesContainer = document.getElementById('chat-messages');
-const chatInput = document.getElementById('chat-input');
-const sendBtn = document.getElementById('send-btn');
 const typingIndicator = document.getElementById('typing-indicator');
 const loadingOverlay = document.getElementById('loading-overlay');
 const modalChatInput = document.getElementById('modal-chat-input');
@@ -74,7 +67,7 @@ function renderMarkdownWithMath(content) {
 // ===========================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Student View initialized for course:', COURSE_ID);
+    console.log('Teacher View initialized for playground:', PLAYGROUND_ID);
     console.log('User:', USER_ID);
 
     initializeEventListeners();
@@ -103,6 +96,69 @@ function initializeEventListeners() {
         // Close if clicking directly on the modal (not the content)
         if (e.target === topicModal) closeModal();
     });
+    
+    // Remove topic button handler
+    const removeTopicBtn = document.getElementById('remove-topic-btn');
+    if (removeTopicBtn) {
+        removeTopicBtn.addEventListener('click', async () => {
+            if (!currentTopic) {
+                alert("No topic selected");
+                return;
+            }
+            
+            // Confirm deletion
+            const topicName = currentTopic.label;
+            const confirmed = confirm(`Are you sure you want to remove the topic "${topicName}"?\n\nThis action cannot be undone.`);
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                // Show loading state
+                removeTopicBtn.disabled = true;
+                removeTopicBtn.textContent = "Removing...";
+                
+                // POST to backend
+                const response = await fetch('/api/remove-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playground_id: PLAYGROUND_ID,
+                        topic_id: currentTopic.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    console.log("Topic removed successfully:", data);
+                    
+                    // Close modal
+                    closeModal();
+                    
+                    // Reload the knowledge graph to reflect the removal
+                    await loadKnowledgeGraph();
+                    
+                    // Show success message
+                    alert(`Topic "${topicName}" removed successfully!`);
+                } else {
+                    console.error("Failed to remove topic:", data);
+                    alert(`Error: ${data.error || data.message || 'Failed to remove topic'}`);
+                }
+            } catch (error) {
+                console.error("Error removing topic:", error);
+                alert("Failed to remove topic. Please try again.");
+            } finally {
+                // Reset button state
+                removeTopicBtn.disabled = false;
+                removeTopicBtn.textContent = "🗑️ Remove Topic";
+            }
+        });
+    }
+    
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (isChatExpanded) {
@@ -124,47 +180,10 @@ function initializeEventListeners() {
         });
     }
 
-    // Floating expand button
-    if (chatExpandFab) {
-        chatExpandFab.addEventListener('click', expandChat);
-    }
 
 
-    // Chat collapse/expand toggle
-    chatCollapseBtn.addEventListener('click', toggleChat);
-    if (chatHeader) {
-        chatHeader.addEventListener('click', toggleChat);
-    }
 
-    // Chat input handlers
-    sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
 
-    // Auto-resize textarea
-    chatInput.addEventListener('input', () => {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = chatInput.scrollHeight + 'px';
-    });
-
-    // Modal chat handlers
-    if (modalSendBtn && modalChatInput) {
-        modalSendBtn.addEventListener('click', sendModalMessage);
-        modalChatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendModalMessage();
-            }
-        });
-        modalChatInput.addEventListener('input', () => {
-            modalChatInput.style.height = 'auto';
-            modalChatInput.style.height = modalChatInput.scrollHeight + 'px';
-        });
-    }
 }
 
 // ===========================
@@ -175,7 +194,7 @@ async function loadKnowledgeGraph() {
     showLoading('Loading knowledge graph...');
 
     try {
-        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`);
+        const response = await fetch(`/api/get-graph?playground_id=${PLAYGROUND_ID}`);
         if (!response.ok) {
             throw new Error(`Failed to load graph: ${response.statusText}`);
         }
@@ -186,8 +205,7 @@ async function loadKnowledgeGraph() {
         knowledgeGraph = {
             kg_nodes: JSON.parse(data.nodes),
             kg_edges: JSON.parse(data.edges),
-            kg_data: JSON.parse(data.data),
-            indexed_files: data.indexed_files || {}  // File metadata with gcs_uri
+            kg_data: JSON.parse(data.data)
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
@@ -271,58 +289,93 @@ function renderTopicCards() {
         topicsGrid.appendChild(card);
     });
 }
+document.addEventListener("DOMContentLoaded", () => {
 
-// ===========================
-// CHAT INTERFACE
-// ===========================
+    const addTopicBtn = document.getElementById("add-topic-btn");
+    const addTopicModal = document.getElementById("add-topic-modal");
+    const addTopicClose = document.getElementById("add-topic-close");
+    const addTopicCancel = document.getElementById("add-topic-cancel-btn");
+    const addTopicSave = document.getElementById("add-topic-save-btn");
 
-function toggleChat() {
-    if (isChatExpanded) {
-        collapseChat();
-    } else {
-        expandChat();
-    }
-}
-
-function expandChat() {
-    isChatExpanded = true;
-    chatContainer.classList.remove('collapsed');
-    chatContainer.classList.add('expanded');
-    
-    // Hide floating button when chat is expanded
-    if (chatExpandFab) {
-        chatExpandFab.classList.remove('visible');
-    }    
-    // Rotate arrow
-    const collapseIcon = document.getElementById('collapse-icon');
-    if (collapseIcon) {
-        collapseIcon.style.transform = 'rotate(180deg)';
-    }
-    
-    collapseIcon.onclick = collapseChat;
-    
-    // Focus on chat input
-    setTimeout(() => chatInput.focus(), 300);
-}
-
-function collapseChat() {
-    isChatExpanded = false;
-    chatContainer.classList.remove('expanded');
-    chatContainer.classList.add('collapsed');
-    
-    // Show floating button when chat is collapsed
-    if (chatExpandFab) {
-        chatExpandFab.classList.add('visible');
+    function openAddTopicModal() {
+        addTopicModal.classList.remove("hidden");
+        setTimeout(() => addTopicModal.classList.add("show"), 10);
     }
 
-    
-    // Rotate arrow back
-    const collapseIcon = document.getElementById('collapse-icon');
-    if (collapseIcon) {
-        collapseIcon.style.transform = 'rotate(0deg)';
+    function closeAddTopicModal() {
+        addTopicModal.classList.remove("show");
+        setTimeout(() => addTopicModal.classList.add("hidden"), 300);
     }
-    collapseIcon.onclick = expandChat;
-}
+
+    if (addTopicBtn) addTopicBtn.addEventListener("click", openAddTopicModal);
+    if (addTopicClose) addTopicClose.addEventListener("click", closeAddTopicModal);
+    if (addTopicCancel) addTopicCancel.addEventListener("click", closeAddTopicModal);
+
+    // Hook for save button
+    if (addTopicSave) {
+        addTopicSave.addEventListener("click", async () => {
+            const name = document.getElementById("new-topic-name").value.trim();
+            const summary = document.getElementById("new-topic-summary").value.trim();
+            
+            if (!name) {
+                alert("Please enter a topic name");
+                return;
+            }
+            
+            console.log("Adding topic:", { name, summary });
+
+            try {
+                // Show loading state
+                addTopicSave.disabled = true;
+                addTopicSave.textContent = "Adding...";
+                
+                // POST to backend
+                const response = await fetch('/api/add-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playground_id: PLAYGROUND_ID,
+                        topic_name: name,
+                        summary: summary || undefined // Only include if provided
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    console.log("Topic added successfully:", data);
+                    
+                    // Close modal
+                    closeAddTopicModal();
+                    
+                    // Clear inputs
+                    document.getElementById("new-topic-name").value = "";
+                    document.getElementById("new-topic-summary").value = "";
+                    
+                    // Reload the knowledge graph to show new topic
+                    await loadKnowledgeGraph();
+                    
+                    // Show success message
+                    alert(`Topic "${name}" added successfully!`);
+                } else {
+                    console.error("Failed to add topic:", data);
+                    alert(`Error: ${data.error || 'Failed to add topic'}`);
+                }
+            } catch (error) {
+                console.error("Error adding topic:", error);
+                alert("Failed to add topic. Please try again.");
+            } finally {
+                // Reset button state
+                addTopicSave.disabled = false;
+                addTopicSave.textContent = "Save";
+            }
+        });
+    }
+});
+
+
 
 // ===========================
 // GRAPH VISUALIZATION
@@ -343,35 +396,32 @@ function renderGraph() {
             label: node.label,
             title: node.label, // Tooltip
             group: node.group,
-            // Swap colors: topics darker/richer, sources lavender with grey text
             color: isTopicNode ? {
-                background: '#7c3aed',  // Rich purple for topics
-                border: '#6d28d9',
+                background: '#6366f1',
+                border: '#4f46e5',
                 highlight: {
-                    background: '#8b5cf6',
-                    border: '#7c3aed'
+                    background: '#818cf8',
+                    border: '#6366f1'
                 }
             } : {
-                background: '#d4c5f9',  // Light lavender for sources
-                border: '#c4b5fd',
+                background: '#10b981',
+                border: '#059669',
                 highlight: {
-                    background: '#e9d5ff',
-                    border: '#d8b4fe'
+                    background: '#34d399',
+                    border: '#10b981'
                 }
             },
             font: {
-                color: isTopicNode ? '#ffffff' : '#4b5563',  // White for topics, grey for sources
-                // Topics bigger, sources slightly bigger too
-                size: isTopicNode ? 20 : 15,
+                color: '#ffffff',
+                size: isTopicNode ? 18 : 15,
                 face: 'Arial',
                 bold: isTopicNode ? true : false
             },
             shape: isTopicNode ? 'box' : 'ellipse',
-            // Topics larger, sources slightly bigger
-            size: isTopicNode ? 30 : 20,
+            size: isTopicNode ? 25 : 20,
             borderWidth: 2,
             shadow: true,
-            margin: isTopicNode ? 18 : 8
+            margin: isTopicNode ? 15 : 10
         };
     });
 
@@ -414,23 +464,22 @@ function renderGraph() {
         physics: {
             enabled: true,
             barnesHut: {
-                gravitationalConstant: -1200,  // Reduced repulsion (was -2000)
-                centralGravity: 0.05,
-                springLength: 250,
-                springConstant: 0.005,  // Much lower stiffness for flexible, flowing edges (was 0.015)
-                damping: 0.25,  // Lower damping for more liveliness (was 0.35)
-                avoidOverlap: 0.2  // Slightly reduced to allow more natural overlap (was 0.3)
+                gravitationalConstant: -2000,  // Much stronger repulsion for wider spread
+                centralGravity: 0.05,  // Very weak center pull - allows horizontal spread
+                springLength: 250,  // Even longer edges for more spacing
+                springConstant: 0.015,  // Lower stiffness for less pull
+                damping: 0.35,  // Higher damping for stability
+                avoidOverlap: 0.3  // Strong overlap avoidance
             },
             stabilization: {
-                iterations: 300,
+                iterations: 300,  // More iterations for better settling
                 updateInterval: 25
             }
         },
         edges: {
             smooth: {
                 type: 'dynamic',
-                forceDirection: 'horizontal',
-                roundness: 0.5  // Smoother curves
+                forceDirection: 'horizontal'  // Encourage horizontal spread
             },
             endPointOffset: {
                 from: 0,
@@ -488,35 +537,13 @@ function renderGraph() {
 
     // Handle node clicks - only if not dragging
     network.on('click', function(params) {
-        // Only open modal/link if we didn't drag and clicked on a node
+        // Only open modal if we didn't drag and clicked on a topic node
         if (!isDragging && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
             
-            console.log('Node clicked:', nodeId, node);
-            
-            if (node) {
-                if (node.group === 'topic') {
-                    // Open topic modal
-                    openTopicModal(node);
-                } else if (node.group === 'file_pdf' || node.group === 'file') {
-                    // Open source file - get the file's GCS URI from indexed_files
-                    console.log('File node clicked, indexed_files:', knowledgeGraph.indexed_files);
-                    console.log('Looking for file ID:', nodeId);
-                    
-                    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[nodeId]) {
-                        const fileData = knowledgeGraph.indexed_files[nodeId];
-                        console.log('File data found:', fileData);
-                        
-                        if (fileData.gcs_uri) {
-                            downloadSource(fileData.gcs_uri, fileData.display_name || node.label);
-                        } else {
-                            console.error('No gcs_uri in file data');
-                        }
-                    } else {
-                        console.error('File not found in indexed_files');
-                    }
-                }
+            if (node && node.group === 'topic') {
+                openTopicModal(node);
             }
         }
     });
@@ -541,8 +568,14 @@ async function openTopicModal(topic) {
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
     
+    // Get icon based on topic index
+    const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
+    const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
+    const icon = icons[topicIndex % icons.length];
+
     // Update modal content
     modalTitle.textContent = topic.label;
+    modalIcon.textContent = icon;
     modalSummary.innerHTML = renderMarkdownWithMath(summary);
 
     // Get related resources
@@ -588,11 +621,11 @@ function getRelatedResources(topicId) {
         if (edge.to === topicId) relatedNodeIds.add(edge.from);
     });
 
-    // Get node details - look for file nodes (group 'file_pdf' or 'file')
+    // Get node details
     const resources = [];
     relatedNodeIds.forEach(nodeId => {
         const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-        if (node && (node.group === 'file_pdf' || node.group === 'file' || node.group === 'resource')) {
+        if (node && node.group === 'resource') {
             resources.push(node);
         }
     });
@@ -617,91 +650,21 @@ function renderRelatedResources(resources) {
 }
 
 function openResource(resource) {
-    // For file nodes, get the file's GCS URI from indexed_files and download
-    const fileId = resource.id;
-    
-    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[fileId]) {
-        const fileData = knowledgeGraph.indexed_files[fileId];
-        if (fileData.gcs_uri) {
-            downloadSource(fileData.gcs_uri, fileData.display_name || resource.label);
-            return;
-        }
+    // Get resource data
+    const resourceData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[resource.id] 
+        ? knowledgeGraph.kg_data[resource.id] 
+        : {};
+
+    if (resourceData.url) {
+        window.open(resourceData.url, '_blank');
+    } else {
+        alert(`Resource: ${resource.label}\n\nNo URL available for this resource.`);
     }
-    
-    console.error('Could not find GCS URI for file:', resource);
-    alert(`Could not open ${resource.label}. File may not be available.`);
 }
 
 // ===========================
 // CHAT FUNCTIONALITY
 // ===========================
-
-async function sendMessage() {
-    const query = chatInput.value.trim();
-    if (!query) return;
-
-    // Expand chat if not already expanded
-    if (!isChatExpanded) {
-        expandChat();
-    }
-
-    // Disable input while sending
-    chatInput.disabled = true;
-    sendBtn.disabled = true;
-
-    // Add user message to chat
-    addMessage({
-        role: 'user',
-        content: query
-    });
-
-    // Clear input
-    chatInput.value = '';
-    chatInput.style.height = 'auto';
-
-    // Show typing indicator
-    typingIndicator.classList.remove('hidden');
-
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                course_id: COURSE_ID,
-                query: query
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Chat request failed: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Add bot response
-        addMessage({
-            role: 'assistant',
-            content: data.answer || data.response || 'I received your question but had trouble generating an answer.',
-            sources: data.sources || [],
-            log_doc_id: data.log_doc_id  // Include log_doc_id for rating
-        });
-
-    } catch (error) {
-        console.error('Error sending message:', error);
-        addMessage({
-            role: 'assistant',
-            content: 'Sorry, I encountered an error processing your question. Please try again.',
-            sources: []
-        });
-    } finally {
-        typingIndicator.classList.add('hidden');
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        chatInput.focus();
-    }
-}
 
 // Modal chat functionality
 async function sendModalMessage() {
@@ -740,7 +703,7 @@ async function sendModalMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 query: contextualQuery
             })
         });
@@ -852,6 +815,10 @@ function addMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${message.role === 'user' ? 'user-message' : 'bot-message'}`;
 
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+
     const content = document.createElement('div');
     content.className = 'message-content';
 
@@ -906,13 +873,13 @@ function addMessage(message) {
         
         const likeBtn = document.createElement('button');
         likeBtn.className = 'rating-btn like-btn';
-        likeBtn.textContent = 'Helpful';
+        likeBtn.innerHTML = '👍';
         likeBtn.title = 'Helpful';
         likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
         
         const dislikeBtn = document.createElement('button');
         dislikeBtn.className = 'rating-btn dislike-btn';
-        dislikeBtn.textContent = 'Not Helpful';
+        dislikeBtn.innerHTML = '👎';
         dislikeBtn.title = 'Not helpful';
         dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
         
@@ -921,6 +888,7 @@ function addMessage(message) {
         content.appendChild(ratingDiv);
     }
 
+    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
 
     chatMessagesContainer.appendChild(messageDiv);
@@ -974,7 +942,7 @@ async function rateAnswer(logDocId, rating, ratingDiv) {
         }
 
         // Show feedback and disable buttons
-        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback!</span>`;
+        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback! ${rating === 'helpful' ? '👍' : '👎'}</span>`;
         
     } catch (error) {
         console.error('Error rating answer:', error);
@@ -994,11 +962,11 @@ async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 node_id: nodeId,
                 node_label: nodeLabel,
                 node_type: nodeType,
-                user_id: '',
+                user_id: USER_ID,
                 timestamp: new Date().toISOString()
             })
         });

@@ -52,7 +52,7 @@ def get_query_vector(query_text: str) -> list:
 # LOGGING FUNCTIONS
 # ============================================================================
 
-def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sources: list = None) -> str:
+def log_chat_query(playground_id: str, query_text: str, answer_text: str = None, sources: list = None) -> str:
     """
     Logs a chat query event with its embedding for later analysis.
     
@@ -60,7 +60,7 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
     It generates an embedding of the query and stores it for clustering analysis.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         query_text: The student's question
         answer_text: Optional - the generated answer
         sources: Optional - list of source files used
@@ -70,14 +70,14 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         
     Example:
         doc_id = log_chat_query(
-            course_id="12345",
+            playground_id="abc123",
             query_text="What is machine learning?",
             answer_text="Machine learning is...",
             sources=["Chapter1.pdf"]
         )
     """
     try:
-        logger.info(f"Logging chat query for course {course_id}: {query_text[:50]}...")
+        logger.info(f"Logging chat query for playground {playground_id}: {query_text[:50]}...")
         
         # Get embedding vector for the query
         query_vector = get_query_vector(query_text)
@@ -85,7 +85,7 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         # Prepare the log data
         log_data = {
             'type': 'chat',
-            'course_id': course_id,
+            'course_id': playground_id,  # TODO: Consider renaming field to playground_id in Firestore
             'query_text': query_text,
             'answer_text': answer_text,
             'sources': sources or [],
@@ -106,14 +106,14 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         return None
 
 
-def log_kg_node_click(course_id: str, node_id: str, node_label: str, node_type: str = None) -> str:
+def log_kg_node_click(playground_id: str, node_id: str, node_label: str, node_type: str = None) -> str:
     """
     Logs a knowledge graph node click event.
     
     This tracks which topics students are exploring in the knowledge graph.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         node_id: The unique identifier of the clicked node
         node_label: The display name of the node (topic name or file name)
         node_type: Optional - 'topic' or 'file'
@@ -123,19 +123,19 @@ def log_kg_node_click(course_id: str, node_id: str, node_label: str, node_type: 
         
     Example:
         log_kg_node_click(
-            course_id="12345",
+            playground_id="abc123",
             node_id="topic_1",
             node_label="Machine Learning",
             node_type="topic"
         )
     """
     try:
-        logger.info(f"Logging KG click for course {course_id}: {node_label}")
+        logger.info(f"Logging KG click for playground {playground_id}: {node_label}")
         
         # Prepare the log data
         log_data = {
             'type': 'kg_click',
-            'course_id': course_id,
+            'playground_id': playground_id,
             'node_id': node_id,
             'node_label': node_label,
             'node_type': node_type,

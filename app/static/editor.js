@@ -8,7 +8,7 @@
     async function loadGraphData() {
         try {
             console.log('Loading graph data for editor...');
-            const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`);
+            const response = await fetch(`/api/get-graph?playground_id=${PLAYGROUND_ID}`);
             const data = await response.json();
             
             editorGraphData = {

@@ -77,16 +77,17 @@ class VertexRAGService(RAGInterface):
             raise
         
         # Extract unique source files from source URI
-        source_names = set()
+        source_ids = set()
         sources = []
         for context in contexts:
             if hasattr(context, 'source_uri') and context.source_uri:
                 source_path = context.source_uri
-                filename = source_path.split('/')[-1] if '/' in source_path else source_path
-                if filename and filename not in source_names:
-                    source_names.add(filename)
+                file_name = source_path.split('/')[-1] if '/' in source_path else source_path
+                file_id = file_name.split('.')[0]
+                if file_id and file_id not in source_ids:
+                    source_ids.add(file_id)
                     sources.append({
-                        'filename': filename,
+                        'file_id': file_id,
                         'source_uri': context.source_uri,
                         'distance': context.distance
                     })
@@ -130,9 +131,9 @@ class VertexRAGService(RAGInterface):
             logger.error(f"Failed to generate embedding: {e}", exc_info=True)
             raise
 
-    def add_files_to_corpus(self, corpus_id: str, files: Dict[str, Dict]):
-        upload_count = 0
-        for file_id, file in files.items():
+    def add_files_to_corpus(self, corpus_id: str, files: List[Dict]):
+        valid_uris = []
+        for file in files:
             gcs_uri = file.get('gcs_uri', None)
             display_name = file.get('display_name', 'unknown')
             
@@ -140,27 +141,68 @@ class VertexRAGService(RAGInterface):
             if not gcs_uri or not gcs_uri.startswith('gs://'):
                 logger.warning(f"Invalid GCS URI for file {display_name}: {gcs_uri}, skipping")
                 continue
+            
+            valid_uris.append(gcs_uri)
+            logger.info(f"Queueing file for import: {display_name} (URI: {gcs_uri})")
 
-            logger.info(f"Importing file from GCS: {display_name} (ID: {file_id})")
-            logger.info(f"  GCS URI: {gcs_uri}")
-            try:
-                rag.import_files(
-                    corpus_name=corpus_id,
-                    paths=[gcs_uri],  # Use GCS URI instead of local path
-                    chunk_size=512,  # Optimal chunk size for retrieval
-                    chunk_overlap=100  # Overlap for context continuity
-                )
-                
-                upload_count += 1
-            except Exception as e:
-                logger.error(f"Failed to import file {display_name} (ID: {file_id}, GCS URI: {gcs_uri}): {str(e)}")
-                continue
-        
-        logger.info(f"Corpus provisioning complete: {corpus_id} ({upload_count}/{len(files)} files uploaded)")
+        if not valid_uris:
+            logger.warning("No valid GCS URIs found to import.")
+            return corpus_id
+
+        try:
+            logger.info(f"Starting import of {len(valid_uris)} files to corpus {corpus_id}...")
+
+            response = rag.import_files(
+                corpus_name=corpus_id,
+                paths=valid_uris,
+                chunk_size=512,  # Optimal chunk size for retrieval
+                chunk_overlap=100,  # Overlap for context continuity
+            )
+            
+            logger.info(f"Import operation complete. Response: {response}")
+            
+            if response.failed_rag_files_count > 0:
+                logger.error(f"Failed to import {response.failed_rag_files_count} files. Check Vertex AI Service Agent permissions on GCS bucket.")
+
+            logger.info(f"Corpus provisioning complete: {corpus_id} ({len(valid_uris)} files processed)")
+            
+        except Exception as e:
+            logger.error(f"Failed to import files to corpus {corpus_id}: {str(e)}")
+            raise
+
         return corpus_id
 
     def remove_files_from_corpus(self, corpus_id: str, file_ids: List[str]):
-        raise NotImplementedError("RAGInterface.remove_files_from_corpus is not implemented in VertexRAGService.")  #TODO: Implement if needed
+        """
+        Removes files from the RAG corpus.
+        
+        Args:
+            corpus_id: The RAG corpus resource name.
+            file_ids: List of file identifiers (filenames) to remove.
+        """
+        try:
+            logger.info(f"Removing {len(file_ids)} files from corpus {corpus_id}...")
+            
+            # List all files in the corpus
+            rag_files = rag.list_files(corpus_name=corpus_id)
+            
+            count = 0
+            for rag_file in rag_files:
+                # Check if this file matches any of the IDs we want to remove
+                # We check if the file_id is contained in the display_name (which is usually the GCS URI)
+                if any(file_id in rag_file.display_name for file_id in file_ids):
+                    try:
+                        rag.delete_file(name=rag_file.name, corpus_name=corpus_id)
+                        logger.info(f"Deleted RAG file: {rag_file.display_name}")
+                        count += 1
+                    except Exception as e:
+                        logger.error(f"Failed to delete file {rag_file.name}: {e}")
+            
+            logger.info(f"Successfully removed {count} files from corpus {corpus_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to remove files from corpus {corpus_id}: {str(e)}")
+            raise
     
 
     def delete_corpus(self, corpus_id: str):
