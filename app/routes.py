@@ -821,7 +821,6 @@ def register_uploaded_file(playground_id):
         file = request.json or {}
         file_id = file.get('file_id')
         filename = file.get('filename')
-        content_type = file.get('content_type', 'application/octet-stream')
         size = file.get('size', 0)
         gcs_uri = file.get('gcs_uri')
         
