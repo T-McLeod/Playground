@@ -57,7 +57,7 @@ Summaries: {all_summaries}"""
         raise
 
 
-def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None, files: list = []) -> None:
+def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None, files: list = None) -> None:
     """
     Adds a new topic to an existing knowledge graph.
     
@@ -72,6 +72,7 @@ def add_topic_to_graph(playground_id: str, topic_name: str, summary: str = None,
     Returns:
         Tuple of (updated_nodes_json, updated_edges_json, updated_data_json)
     """
+    files = files if files is not None else []
     for file in files:
         if 'id' not in file or 'name' not in file:
             raise ValueError("Each file must have 'id' and 'name' fields")
