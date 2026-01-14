@@ -202,13 +202,13 @@ function addCanvasFile(btn, canvasFileId) {
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/canvas-files/add`, {
         method: 'POST',
-        headers: {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-    }-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ canvas_file_id: canvasFileId })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.json();
+    })
     .then(data => {
         if (data.success) {
             loadCanvasFiles();
@@ -240,13 +240,13 @@ function loadFiles() {
     if (empty) empty.style.display = 'none';
     if (table) table.style.display = 'none';
     if (deleteBtn) deleteBtn.disabled = true;
-    if (selectAll) se{
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-            return res.json();
-        }ecked = false;
+    if (selectAll) selectAll.checked = false;
 
     fetch(`/api/playgrounds/${PLAYGROUND_ID}/files`)
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             if (loading) loading.style.display = 'none';
             currentFiles = data.files || [];
