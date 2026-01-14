@@ -69,5 +69,5 @@ resource "google_dns_record_set" "app_dns_records" {
   name    = "${var.subdomain}.${data.google_dns_managed_zone.env_dns_zone.dns_name}"
   type    = "CNAME"
   ttl     = 300
-  rrdatas = ["ghs.googlehosted.com."] 
+  rrdatas = ["ghs.googlehosted.com."]
 }
