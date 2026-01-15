@@ -464,25 +464,34 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
 
-        # 2. Get Credentials & Add Required IAM Scope
+        # DEBUG START: Inspect initial auth state
         credentials, _ = google.auth.default()
+        logger.info(f"DEBUG: Initial Credential Type: {type(credentials)}")
+        logger.info(f"DEBUG: Initial Scopes: {credentials.scopes}")
+
+        # 2. Add Required IAM Scope
         iam_scope = "https://www.googleapis.com/auth/iam"
-        
-        # Cloud Run needs the token refreshed with the specific IAM scope
         if iam_scope not in (credentials.scopes or []):
+            logger.info("DEBUG: IAM scope missing. Re-scoping credentials...")
             credentials = credentials.with_scopes([iam_scope])
         
-        # 3. Refresh the token
+        # 3. Force Refresh with Transport Request
+        # This is where the 'default' identity should resolve to a real email
+        logger.info("DEBUG: Refreshing credentials via metadata server...")
         auth_request = auth_requests.Request()
         credentials.refresh(auth_request)
 
+        # DEBUG: Verify Refresh Success
+        logger.info(f"DEBUG: Credentials valid after refresh: {credentials.valid}")
+        logger.info(f"DEBUG: Scopes after refresh: {credentials.scopes}")
+
         # 4. Resolve the email
         service_account_email = _resolve_service_account_email(credentials)
-        
-        # 5. THE FIX: Generate the URL
-        # We pass BOTH 'service_account_email' and 'credentials'.
-        # This tells the GCS library: "I have an identity and the token 
-        # to prove it; use the IAM signBlob API instead of a private key."
+        logger.info(f"DEBUG: Resolved Service Account Email: {service_account_email}")
+
+        # 5. Generate the URL
+        # Note: We pass 'credentials' directly. The library checks if 
+        # this object can sign. If it fails here, the logs above will tell us why.
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
@@ -491,10 +500,15 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
             credentials=credentials
         )
         
+        logger.info(f"SUCCESS: Generated signed URL for {blob_path}")
         return url
         
     except Exception as e:
-        logger.error(f"Failed to generate signed URL for {gcs_uri}: {str(e)}")
+        # LOGGING THE ERROR WITH FULL TYPE INFO
+        logger.error(f"CRITICAL FAILURE: {type(e).__name__}: {str(e)}")
+        # Check if we are accidentally in 'Local Key' mode
+        import os
+        logger.info(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS env: {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
         raise
 
 
