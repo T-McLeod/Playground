@@ -10,6 +10,7 @@ This service provides functions to:
 
 All files are organized by course_id for easy management.
 """
+from datetime import timedelta
 import io
 from google.cloud import storage
 import os
@@ -17,6 +18,7 @@ import logging
 from typing import List, Dict, Optional
 import requests
 import google.auth
+from google.auth.transport import requests as auth_requests
 
 
 # Configure logging
@@ -406,7 +408,6 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
             expiration=timedelta(minutes=expiration_minutes),
             method="PUT",
             content_type=content_type,
-            service_account_email=service_account_email,
         )
 
         gcs_uri = f"gs://{bucket_name}/{blob_path}"
@@ -452,57 +453,68 @@ def _resolve_service_account_email(credentials) -> str:
 
 def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
     """
-    Generates a signed URL for downloading a file from GCS.
-    
-    Args:
-        gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
-        expiration_minutes: URL expiration time in minutes (default: 60)
-        
-    Returns:
-        Signed URL string that allows temporary public access
-        
-    Raises:
-        ValueError: If GCS URI is invalid
-        Exception: If signed URL generation fails
-        
-    Example:
-        url = generate_signed_url('gs://my-bucket/file.pdf', 30)
-        # Returns: https://storage.googleapis.com/my-bucket/file.pdf?X-Goog-Signature=...
+    Generates a v4 signed URL using the IAM SignBlob API.
+    Explicitly passes the access_token to bypass the 'private key' requirement on Cloud Run.
     """
-    from datetime import timedelta
-    
-    # Parse GCS URI
+    # 1. Standard Parsing
     if not gcs_uri.startswith('gs://'):
         raise ValueError(f"Invalid GCS URI: {gcs_uri}")
     
     parts = gcs_uri[5:].split('/', 1)
-    bucket_name = parts[0]
-    blob_path = parts[1] if len(parts) > 1 else ''
+    bucket_name, blob_path = parts[0], parts[1] if len(parts) > 1 else ''
     
     try:
+        # Initialize GCS Objects
         client = get_storage_client()
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
 
+        # 2. Get Credentials & Add Required IAM Scope
         credentials, _ = google.auth.default()
+        logger.info(f"DEBUG: Credential Type: {type(credentials)}")
 
-        service_account_email = _resolve_service_account_email(credentials)
-        logger.info(f"Generating signed URL for {service_account_email}")
-
+        iam_scope = "https://www.googleapis.com/auth/iam"
+        if iam_scope not in (credentials.scopes or []):
+            logger.info("DEBUG: Adding IAM scope to credentials...")
+            credentials = credentials.with_scopes([iam_scope])
         
-        # Generate signed URL with expiration using IAM signing
+        # 3. Force Refresh to populate the access token
+        logger.info("DEBUG: Refreshing token via metadata server...")
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
+
+        # 4. Resolve the email
+        service_account_email = _resolve_service_account_email(credentials)
+        logger.info(f"DEBUG: Resolved Email: {service_account_email}")
+
+        if credentials.token:
+            # Log only the first/last few characters to confirm it's there
+            masked_token = f"{credentials.token[:5]}...{credentials.token[-5:]}"
+            logger.info(f"DEBUG: Token is present (Masked: {masked_token})")
+            logger.info(f"DEBUG: Token expiry: {credentials.expiry}")
+        else:
+            logger.warning("DEBUG: Token is MISSING after refresh!")
+
+        # 5. Generate the URL using access_token
+        # This is the 'Surefire' fix. By providing the token, we tell the library
+        # to use the IAM Credentials API instead of trying to find a local key file.
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
             service_account_email=service_account_email,
+            access_token=credentials.token # CRITICAL: Tells library to use SignBlob
         )
         
-        logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
+        logger.info(f"SUCCESS: Generated signed URL for {blob_path}")
         return url
         
     except Exception as e:
-        logger.error(f"Failed to generate signed URL for {gcs_uri}: {str(e)}")
+        # Detailed error logging for debugging
+        logger.error(f"CRITICAL FAILURE: {type(e).__name__}: {str(e)}")
+        logger.info(f"DEBUG: Credentials valid: {getattr(credentials, 'valid', 'Unknown')}")
+        logger.info(f"DEBUG: Scopes: {getattr(credentials, 'scopes', 'None')}")
+        logger.info(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS: {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
         raise
 
 
