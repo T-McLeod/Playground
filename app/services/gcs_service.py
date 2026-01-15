@@ -53,14 +53,10 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
     
     try:
         bucket = client.get_bucket(bucket_name)
-        logger.info(f"Bucket '{bucket_name}' already exists")
         return bucket
-    except Exception:
-        # Bucket doesn't exist, create it
-        logger.info(f"Creating bucket '{bucket_name}' in location '{LOCATION}'...")
-        bucket = client.create_bucket(bucket_name, location=LOCATION)
-        logger.info(f"Bucket '{bucket_name}' created successfully")
-        return bucket
+    except Exception as e:
+        logger.error(f"Bucket '{bucket_name}' does not exist or cannot be accessed. Error: {e}")
+        raise
 
 
 def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
