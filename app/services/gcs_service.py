@@ -502,6 +502,7 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
+            credentials=credentials
         )
         
         logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
