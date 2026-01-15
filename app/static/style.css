@@ -2329,27 +2329,72 @@ button:hover {
     gap: 8px;
 }
 
+/* Main View Button - Duke Blue Accent */
+.btn-main-view {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(168, 200, 240, 0.25) 0%, rgba(168, 200, 240, 0.4) 100%);
+    color: #1e293b;
+    border: 1px solid #a8c8f0;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-main-view:hover {
+    background: #a8c8f0;
+    border-color: #a8c8f0;
+    transform: translateY(-1px);
+}
+
+/* Regenerate Button - Primary Duke Blue */
+.btn-regenerate {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #001A57;
+    color: white;
+    border: 1px solid #001A57;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-regenerate:hover {
+    background: #00134a;
+    border-color: #00134a;
+    transform: translateY(-1px);
+}
+
+/* Legacy btn-explorer - kept for compatibility */
 .btn-explorer {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, #6366f1, #ec4899);
-    color: white;
-    padding: 10px 24px;
-    border: none;
-    border-radius: 6px;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(168, 200, 240, 0.25) 0%, rgba(168, 200, 240, 0.4) 100%);
+    color: #1e293b;
+    border: 1px solid #a8c8f0;
+    padding: 10px 20px;
+    border-radius: 8px;
     text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-explorer:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    opacity: 0.9;
+    background: #a8c8f0;
+    border-color: #a8c8f0;
+    transform: translateY(-1px);
 }
 
 .btn-explorer:active {

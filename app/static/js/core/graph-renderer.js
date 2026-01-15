@@ -157,7 +157,7 @@ const GraphRenderer = {
             interaction: {
                 hover: true,
                 tooltipDelay: 100,
-                navigationButtons: true,
+                navigationButtons: false,
                 keyboard: true,
                 zoomView: true,
                 dragView: true

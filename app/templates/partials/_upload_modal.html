@@ -3,7 +3,14 @@
     <div class="upload-modal-overlay" onclick="closeUploadModal()"></div>
     <div class="upload-modal-content">
         <div class="upload-modal-header">
-            <h2>📁 File Manager</h2>
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    style="display:inline-block;vertical-align:middle;margin-right:8px;">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                File Manager
+            </h2>
             <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
         </div>
         <div class="upload-modal-body">
@@ -41,10 +48,20 @@
         </div>
         <div class="upload-modal-footer">
             <div style="float: left; display: flex; gap: 10px;">
-                <button id="open-canvas-files-btn" class="btn-primary" onclick="openCanvasFilesModal()">
-                    🎓 Canvas Files
+                <button id="open-canvas-files-btn" class="btn-canvas-files" onclick="openCanvasFilesModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                    </svg>
+                    Canvas Files
                 </button>
-                <button id="delete-files-btn" class="btn-danger" disabled onclick="deleteSelectedFiles()">
+                <button id="delete-files-btn" class="btn-delete-files" disabled onclick="deleteSelectedFiles()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                     Delete Selected
                 </button>
             </div>
