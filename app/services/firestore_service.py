@@ -112,11 +112,11 @@ def create_playground_entity(
     _ensure_db()
     
     # Build source metadata based on type
-    if source_type == "canvas":
+    if source_type == "canvas_course":
         if not course_id:
             raise ValueError("course_id is required for canvas source type")
         source = {
-            'type': 'canvas',
+            'type': 'canvas_course',
             'course_id': course_id
         }
     else:
