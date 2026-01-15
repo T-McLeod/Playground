@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='explorer.css') }}">
 </head>
+
 <body>
     <!-- Inject server-side data -->
     <script>
@@ -17,10 +19,10 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <i class="fas fa-robot logo-icon"></i>
+                <img src="{{ url_for('static', filename='img/playground_logo.png') }}" class="logo-image" alt="Logo">
                 <h1 class="logo-text">Playground AI</h1>
             </div>
-            
+
             <div class="new-menu-container">
                 <button id="new-menu-btn" class="new-menu-btn">
                     <i class="fas fa-plus"></i>
@@ -38,7 +40,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-view="home">
                     <i class="fas fa-home nav-icon"></i>
@@ -53,9 +55,9 @@
                     <span class="nav-label">Starred</span>
                 </a>
             </nav>
-            
+
             <div class="sidebar-divider"></div>
-            
+
             <nav class="sidebar-nav secondary">
                 <a href="#" class="nav-item" data-view="archive">
                     <i class="fas fa-archive nav-icon"></i>
@@ -76,7 +78,7 @@
                 <nav class="breadcrumbs" id="breadcrumbs">
                     <a href="#" class="breadcrumb-item" data-id="root">Home</a>
                 </nav>
-                
+
                 <!-- Actions -->
                 <div class="toolbar-actions">
                     <!-- Actions moved to sidebar New menu -->
@@ -156,4 +158,5 @@
 
     <script src="{{ url_for('static', filename='js/explorer.js') }}"></script>
 </body>
+
 </html>

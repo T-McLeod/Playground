@@ -1,33 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block page_title %}Course Explorer{% endblock %} - {{ playground_id }}</title>
-    
+
     <!-- Shared CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='student_view.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    
+
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
     <!-- Knowledge Graph Exploration Area -->
     <div class="exploration-container">
         <!-- Header Bar -->
         <div class="header-bar">
-            <h1 class="course-title">{% block title %}Playground AI{% endblock %}</h1>
-            
+            <div class="header-brand">
+                <img src="{{ url_for('static', filename='img/playground_logo.png') }}" alt="Playground AI"
+                    class="header-logo">
+                <h1 class="course-title">{% block title %}Playground AI{% endblock %}</h1>
+            </div>
+
             <!-- View Toggle -->
             <div class="view-toggle">
                 <button id="graph-view-btn" class="view-btn active">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
                     {% block graph_btn_content %}Graph{% endblock %}
                 </button>
                 <button id="cards-view-btn" class="view-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
                     {% block cards_btn_content %}Cards{% endblock %}
                 </button>
             </div>
-            
+
             <div class="user-info">
                 {% block header_extra %}{% endblock %}
                 <span class="user-name">{{ user_id }}</span>
@@ -58,7 +79,7 @@
                         <h3>{% block resources_header %}Related Resources{% endblock %}</h3>
                         <ul id="resource-list"></ul>
                     </div>
-                    
+
                     {% block modal_extra %}{% endblock %}
                 </div>
                 {% block modal_footer %}{% endblock %}
@@ -101,4 +122,5 @@
 
     {% block init_script %}{% endblock %}
 </body>
+
 </html>

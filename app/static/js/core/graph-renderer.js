@@ -6,24 +6,24 @@
 const GraphRenderer = {
     network: null,
     isDragging: false,
-    
+
     /**
      * Node styling configuration
      */
     nodeStyles: {
         topic: {
             color: {
-                background: '#7c3aed',  // Rich purple for topics
-                border: '#6d28d9',
+                background: '#001A57',  // Duke Blue for topics
+                border: '#00134a',
                 highlight: {
-                    background: '#8b5cf6',
-                    border: '#7c3aed'
+                    background: '#1e3a6e',
+                    border: '#001A57'
                 }
             },
             font: {
                 color: '#ffffff',
                 size: 20,
-                face: 'Arial',
+                face: 'Inter, Arial, sans-serif',
                 bold: true
             },
             shape: 'box',
@@ -34,17 +34,17 @@ const GraphRenderer = {
         },
         file: {
             color: {
-                background: '#d4c5f9',  // Light lavender for sources
-                border: '#c4b5fd',
+                background: '#a8c8f0',  // Pastel blue for sources
+                border: '#7eb0e8',
                 highlight: {
-                    background: '#e9d5ff',
-                    border: '#d8b4fe'
+                    background: '#d4e4f7',
+                    border: '#a8c8f0'
                 }
             },
             font: {
-                color: '#4b5563',  // Grey for sources
+                color: '#1e293b',
                 size: 15,
-                face: 'Arial',
+                face: 'Inter, Arial, sans-serif',
                 bold: false
             },
             shape: 'ellipse',
@@ -83,7 +83,7 @@ const GraphRenderer = {
         return nodes.map(node => {
             const isTopicNode = node.group === 'topic';
             const style = isTopicNode ? this.nodeStyles.topic : this.nodeStyles.file;
-            
+
             return {
                 id: node.id,
                 label: node.label,
@@ -118,7 +118,7 @@ const GraphRenderer = {
             },
             color: {
                 color: '#cbd5e1',
-                highlight: '#6366f1'
+                highlight: '#001A57'
             },
             width: 2,
             smooth: {
@@ -204,17 +204,17 @@ const GraphRenderer = {
         };
 
         const networkOptions = this.getNetworkOptions(options.physics);
-        
+
         // Create network
         this.network = new vis.Network(container, data, networkOptions);
 
         // Track dragging to prevent opening modal on drag
         this.isDragging = false;
-        
+
         this.network.on('dragStart', () => {
             this.isDragging = true;
         });
-        
+
         this.network.on('dragEnd', () => {
             setTimeout(() => {
                 this.isDragging = false;
@@ -226,7 +226,7 @@ const GraphRenderer = {
             if (!this.isDragging && params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
                 const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-                
+
                 if (node) {
                     if (node.group === 'topic' && callbacks.onTopicClick) {
                         callbacks.onTopicClick(node);

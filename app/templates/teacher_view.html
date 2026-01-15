@@ -1,14 +1,20 @@
 {% extends "base_view.html" %}
 
 {% block page_title %}Teacher View{% endblock %}
-{% block title %}🎓 Teacher View{% endblock %}
+{% block title %}Teacher View{% endblock %}
 
-{% block graph_btn_content %}<span>🕸️</span> Graph{% endblock %}
-{% block cards_btn_content %}<span>📱</span> Cards{% endblock %}
+{% block graph_btn_content %}Graph{% endblock %}
+{% block cards_btn_content %}Cards{% endblock %}
 
 {% block header_extra %}
 <a href="/analytics/{{ playground_id }}" class="analytics-toggle-btn" title="View Analytics">
-    <span>📊</span> Analytics
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"></line>
+        <line x1="12" y1="20" x2="12" y2="4"></line>
+        <line x1="6" y1="20" x2="6" y2="14"></line>
+    </svg>
+    <span>Analytics</span>
 </a>
 {% endblock %}
 
@@ -16,15 +22,15 @@
 {% block view_mode %}teacher{% endblock %}
 
 {% block modal_icon %}
-<div class="topic-icon" id="modal-topic-icon">📚</div>
+<div class="topic-icon" id="modal-topic-icon"></div>
 {% endblock %}
 
-{% block resources_header %}📎 Related Resources{% endblock %}
+{% block resources_header %}Related Resources{% endblock %}
 
 {% block modal_footer %}
 <div class="modal-footer">
-    <button id="edit-topic-btn" class="btn-primary">✏️ Edit Topic</button>
-    <button id="remove-topic-btn" class="btn-danger">🗑️ Remove Topic</button>
+    <button id="edit-topic-btn" class="btn-primary">Edit Topic</button>
+    <button id="remove-topic-btn" class="btn-danger">Remove Topic</button>
 </div>
 {% endblock %}
 
@@ -38,26 +44,18 @@
         <button class="modal-close" id="add-topic-close">&times;</button>
         <div class="modal-header">
             <h2 class="modal-title">Add New Topic</h2>
-            <div class="topic-icon">➕</div>
+            <div class="topic-icon"></div>
         </div>
 
         <div class="modal-body">
             <label for="new-topic-name">Topic Name: <span style="color: red;">*</span></label>
-            <input 
-                type="text" 
-                id="new-topic-name" 
-                placeholder="e.g., Graph Theory, Machine Learning"
-                class="modal-input"
-                required
-            />
+            <input type="text" id="new-topic-name" placeholder="e.g., Graph Theory, Machine Learning"
+                class="modal-input" required />
 
             <label for="new-topic-summary">Summary (Optional):</label>
-            <textarea 
-                id="new-topic-summary" 
-                rows="4" 
+            <textarea id="new-topic-summary" rows="4"
                 placeholder="Provide a custom summary, or leave blank to auto-generate from course materials"
-                class="modal-textarea"
-            ></textarea>
+                class="modal-textarea"></textarea>
         </div>
 
         <div class="modal-footer">
@@ -80,9 +78,29 @@
 {% block extra_ui %}
 <!-- Bottom container for teacher actions -->
 <div class="bottom-bar">
-    <button id="upload-files-btn" class="upload-files-btn">📁 File Manager</button>
-    <button id="add-topic-btn" class="add-topic-btn">➕ Add New Topic</button>
-    <button id="init-course-btn" class="init-course-btn">🔄 Initialize Course</button>
+    <button id="upload-files-btn" class="upload-files-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        File Manager
+    </button>
+    <button id="add-topic-btn" class="add-topic-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Add New Topic
+    </button>
+    <button id="init-course-btn" class="init-course-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Initialize Course
+    </button>
 </div>
 {% endblock %}
 
@@ -100,7 +118,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         console.log('Teacher View initialized for playground:', PLAYGROUND_ID);
         console.log('User:', USER_ID);
-        
+
         const view = new TeacherView(PLAYGROUND_ID, USER_ID);
         view.init();
     });
