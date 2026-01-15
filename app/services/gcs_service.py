@@ -17,6 +17,7 @@ import logging
 from typing import List, Dict, Optional
 import requests
 import google.auth
+from google.auth.transport.requests import Request
 
 
 # Configure logging
@@ -484,6 +485,13 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         blob = bucket.blob(blob_path)
 
         credentials, _ = google.auth.default()
+
+        iam_scope = "https://www.googleapis.com/auth/iam"
+        if iam_scope not in (credentials.scopes or []):
+            credentials = credentials.with_scopes([iam_scope])
+        
+        if not credentials.token:
+            credentials.refresh(Request())
 
         service_account_email = _resolve_service_account_email(credentials)
         logger.info(f"Generating signed URL for {service_account_email}")
