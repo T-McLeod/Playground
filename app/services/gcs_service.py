@@ -406,7 +406,6 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
             expiration=timedelta(minutes=expiration_minutes),
             method="PUT",
             content_type=content_type,
-            service_account_email=service_account_email,
         )
 
         gcs_uri = f"gs://{bucket_name}/{blob_path}"
@@ -495,7 +494,6 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
-            service_account_email=service_account_email,
         )
         
         logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
