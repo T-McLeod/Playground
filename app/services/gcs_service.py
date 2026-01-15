@@ -396,14 +396,14 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
         
         logger.info(f"Generating signed upload URL for {blob_path}")
         
-        # Generate signed URL for PUT (upload)
+        # Generate signed URL for PUT (upload) using IAM signing
+        # We pass service_account_email to trigger IAM signing via the IAMCredentials API
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="PUT",
             content_type=content_type,
             service_account_email=credentials.service_account_email,
-            access_token=credentials.token
         )
 
         gcs_uri = f"gs://{bucket_name}/{blob_path}"
@@ -459,13 +459,12 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         logger.info(f"Generating signed URL for {credentials.service_account_email}")
 
         
-        # Generate signed URL with expiration
+        # Generate signed URL with expiration using IAM signing
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
             service_account_email=credentials.service_account_email,
-            access_token=credentials.token
         )
         
         logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")

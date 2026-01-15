@@ -4,6 +4,18 @@ resource "google_project_iam_member" "storage_access" {
   member  = "serviceAccount:${google_service_account.app_sa.email}"
 }
 
+resource "google_project_iam_member" "storage_bucket_access" {
+  project = var.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.app_sa.email}"
+}
+
+resource "google_service_account_iam_member" "token_creator" {
+  service_account_id = google_service_account.app_sa.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.app_sa.email}"
+}
+
 resource "google_project_iam_member" "firestore_access" {
   project = var.project_id
   role    = "roles/datastore.user"
