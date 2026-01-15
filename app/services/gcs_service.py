@@ -10,6 +10,7 @@ This service provides functions to:
 
 All files are organized by course_id for easy management.
 """
+from datetime import timedelta
 import io
 from google.cloud import storage
 import os
@@ -17,7 +18,7 @@ import logging
 from typing import List, Dict, Optional
 import requests
 import google.auth
-from google.auth.transport.requests import Request
+from google.auth.transport import requests as auth_requests
 
 
 # Configure logging
@@ -451,61 +452,45 @@ def _resolve_service_account_email(credentials) -> str:
 
 
 def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
-    """
-    Generates a signed URL for downloading a file from GCS.
-    
-    Args:
-        gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
-        expiration_minutes: URL expiration time in minutes (default: 60)
-        
-    Returns:
-        Signed URL string that allows temporary public access
-        
-    Raises:
-        ValueError: If GCS URI is invalid
-        Exception: If signed URL generation fails
-        
-    Example:
-        url = generate_signed_url('gs://my-bucket/file.pdf', 30)
-        # Returns: https://storage.googleapis.com/my-bucket/file.pdf?X-Goog-Signature=...
-    """
-    from datetime import timedelta
-    
-    # Parse GCS URI
+    # 1. Standard Parsing
     if not gcs_uri.startswith('gs://'):
         raise ValueError(f"Invalid GCS URI: {gcs_uri}")
     
     parts = gcs_uri[5:].split('/', 1)
-    bucket_name = parts[0]
-    blob_path = parts[1] if len(parts) > 1 else ''
+    bucket_name, blob_path = parts[0], parts[1] if len(parts) > 1 else ''
     
     try:
         client = get_storage_client()
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
 
+        # 2. Get Credentials & Add Required IAM Scope
         credentials, _ = google.auth.default()
-
         iam_scope = "https://www.googleapis.com/auth/iam"
+        
+        # Cloud Run needs the token refreshed with the specific IAM scope
         if iam_scope not in (credentials.scopes or []):
             credentials = credentials.with_scopes([iam_scope])
         
-        if not credentials.token:
-            credentials.refresh(Request())
+        # 3. Refresh the token
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
 
+        # 4. Resolve the email
         service_account_email = _resolve_service_account_email(credentials)
-        logger.info(f"Generating signed URL for {service_account_email}")
-
         
-        # Generate signed URL with expiration using IAM signing
+        # 5. THE FIX: Generate the URL
+        # We pass BOTH 'service_account_email' and 'credentials'.
+        # This tells the GCS library: "I have an identity and the token 
+        # to prove it; use the IAM signBlob API instead of a private key."
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
+            service_account_email=service_account_email,
             credentials=credentials
         )
         
-        logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
         return url
         
     except Exception as e:
