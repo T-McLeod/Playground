@@ -393,6 +393,9 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
         blob = bucket.blob(blob_path)
         
         credentials, _ = google.auth.default()
+
+        service_account_email = _resolve_service_account_email(credentials)
+        logger.info(f"Using service account email: {service_account_email}")
         
         logger.info(f"Generating signed upload URL for {blob_path}")
         
@@ -403,7 +406,7 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
             expiration=timedelta(minutes=expiration_minutes),
             method="PUT",
             content_type=content_type,
-            service_account_email=credentials.service_account_email,
+            service_account_email=service_account_email,
         )
 
         gcs_uri = f"gs://{bucket_name}/{blob_path}"
@@ -418,6 +421,33 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
     except Exception as e:
         logger.error(f"Failed to generate signed upload URL: {str(e)}")
         raise
+
+
+def _resolve_service_account_email(credentials) -> str:
+    """
+    Helper to resolve the actual service account email.
+    Cloud Run credentials often have 'default' as the email, but the IAM API
+    requires the actual email address for signing.
+    """
+    if hasattr(credentials, 'service_account_email') and credentials.service_account_email != 'default':
+        return credentials.service_account_email
+        
+    # Attempt to fetch from metadata server
+    try:
+        logger.info("Fetching service account email from metadata server...")
+        resp = requests.get(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email',
+            headers={'Metadata-Flavor': 'Google'},
+            timeout=2
+        )
+        if resp.status_code == 200:
+            email = resp.text.strip()
+            logger.info(f"Resolved service account email: {email}")
+            return email
+    except Exception as e:
+        logger.warning(f"Failed to fetch service account email from metadata: {e}")
+        
+    return 'default'
 
 
 def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
@@ -456,7 +486,8 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
 
         credentials, _ = google.auth.default()
 
-        logger.info(f"Generating signed URL for {credentials.service_account_email}")
+        service_account_email = _resolve_service_account_email(credentials)
+        logger.info(f"Generating signed URL for {service_account_email}")
 
         
         # Generate signed URL with expiration using IAM signing
@@ -464,7 +495,7 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="GET",
-            service_account_email=credentials.service_account_email,
+            service_account_email=service_account_email,
         )
         
         logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
