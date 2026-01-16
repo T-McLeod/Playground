@@ -754,7 +754,14 @@ function showModalTypingIndicator() {
 
     const avatar = document.createElement('div');
     avatar.className = 'typing-avatar';
-    avatar.textContent = '🤖';
+    // Use Playground logo instead of emoji
+    const logoImg = document.createElement('img');
+    logoImg.src = '/static/img/playground_logo.png';
+    logoImg.alt = 'Playground AI';
+    logoImg.style.width = '100%';
+    logoImg.style.height = '100%';
+    logoImg.style.objectFit = 'contain';
+    avatar.appendChild(logoImg);
 
     const dotsContainer = document.createElement('div');
     dotsContainer.className = 'typing-dots';
@@ -787,9 +794,16 @@ function addModalMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `modal-chat-message ${message.role === 'user' ? 'user' : 'bot'}`;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'modal-chat-avatar';
-    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+    // Only add avatar for bot messages
+    if (message.role !== 'user') {
+        const avatar = document.createElement('div');
+        avatar.className = 'modal-chat-avatar';
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        avatar.appendChild(logoImg);
+        messageDiv.appendChild(avatar);
+    }
 
     const content = document.createElement('div');
     content.className = 'modal-chat-content';
@@ -801,7 +815,6 @@ function addModalMessage(message) {
         content.innerHTML = renderMarkdownWithMath(message.content);
     }
 
-    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
     modalChatMessages.appendChild(messageDiv);
 
@@ -817,7 +830,15 @@ function addMessage(message) {
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
-    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+    if (message.role === 'user') {
+        const initial = (typeof USER_ID === 'string' && USER_ID.length > 0) ? USER_ID.charAt(0).toUpperCase() : 'U';
+        avatar.textContent = initial;
+    } else {
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        avatar.appendChild(logoImg);
+    }
 
     const content = document.createElement('div');
     content.className = 'message-content';

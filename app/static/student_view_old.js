@@ -51,21 +51,21 @@ const modalChatMessages = document.getElementById('modal-chat-messages');
 function renderMarkdownWithMath(content) {
     // First, render markdown
     let html = marked.parse(content);
-    
+
     // Create a temporary div to manipulate the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Render all math expressions using KaTeX
     renderMathInElement(tempDiv, {
         delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
         ],
         throwOnError: false,
         trust: true
     });
-    
+
     return tempDiv.innerHTML;
 }
 
@@ -85,7 +85,7 @@ function initializeEventListeners() {
     // View toggle handlers
     cardsViewBtn.addEventListener('click', () => switchView('cards'));
     graphViewBtn.addEventListener('click', () => switchView('graph'));
-    
+
     // Graph controls
     fitGraphBtn.addEventListener('click', () => {
         if (network) network.fit();
@@ -181,7 +181,7 @@ async function loadKnowledgeGraph() {
         }
 
         const data = await response.json();
-        
+
         // Parse the JSON strings into objects
         knowledgeGraph = {
             kg_nodes: data.nodes,
@@ -191,7 +191,7 @@ async function loadKnowledgeGraph() {
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
-        
+
         // Render both views (only one will be visible)
         renderTopicCards();
         renderGraph();
@@ -209,13 +209,13 @@ async function loadKnowledgeGraph() {
 
 function switchView(view) {
     currentView = view;
-    
+
     if (view === 'cards') {
         topicsGrid.classList.add('view-active');
         topicsGrid.classList.remove('view-hidden');
         graphContainer.classList.add('view-hidden');
         graphContainer.classList.remove('view-active');
-        
+
         cardsViewBtn.classList.add('active');
         graphViewBtn.classList.remove('active');
     } else {
@@ -223,10 +223,10 @@ function switchView(view) {
         graphContainer.classList.remove('view-hidden');
         topicsGrid.classList.add('view-hidden');
         topicsGrid.classList.remove('view-active');
-        
+
         graphViewBtn.classList.add('active');
         cardsViewBtn.classList.remove('active');
-        
+
         // Fit graph when switching to it
         if (network) {
             setTimeout(() => network.fit(), 100);
@@ -250,7 +250,7 @@ function renderTopicCards() {
     topicNodes.forEach(topic => {
         const card = document.createElement('div');
         card.className = 'topic-card';
-        
+
         // Count connections (related resources)
         const connections = knowledgeGraph.kg_edges.filter(
             edge => edge.from === topic.id || edge.to === topic.id
@@ -288,19 +288,19 @@ function expandChat() {
     isChatExpanded = true;
     chatContainer.classList.remove('collapsed');
     chatContainer.classList.add('expanded');
-    
+
     // Hide floating button when chat is expanded
     if (chatExpandFab) {
         chatExpandFab.classList.remove('visible');
-    }    
+    }
     // Rotate arrow
     const collapseIcon = document.getElementById('collapse-icon');
     if (collapseIcon) {
         collapseIcon.style.transform = 'rotate(180deg)';
     }
-    
+
     collapseIcon.onclick = collapseChat;
-    
+
     // Focus on chat input
     setTimeout(() => chatInput.focus(), 300);
 }
@@ -309,13 +309,13 @@ function collapseChat() {
     isChatExpanded = false;
     chatContainer.classList.remove('expanded');
     chatContainer.classList.add('collapsed');
-    
+
     // Show floating button when chat is collapsed
     if (chatExpandFab) {
         chatExpandFab.classList.add('visible');
     }
 
-    
+
     // Rotate arrow back
     const collapseIcon = document.getElementById('collapse-icon');
     if (collapseIcon) {
@@ -337,7 +337,7 @@ function renderGraph() {
     // Prepare nodes for vis-network
     const nodes = knowledgeGraph.kg_nodes.map(node => {
         const isTopicNode = node.group === 'topic';
-        
+
         return {
             id: node.id,
             label: node.label,
@@ -474,27 +474,27 @@ function renderGraph() {
     // Track dragging to prevent opening modal on drag
     let isDragging = false;
     let clickPosition = null;
-    
-    network.on('dragStart', function(params) {
+
+    network.on('dragStart', function (params) {
         isDragging = true;
         clickPosition = params.pointer.canvas;
     });
-    
-    network.on('dragEnd', function() {
+
+    network.on('dragEnd', function () {
         setTimeout(() => {
             isDragging = false;
         }, 100);
     });
 
     // Handle node clicks - only if not dragging
-    network.on('click', function(params) {
+    network.on('click', function (params) {
         // Only open modal/link if we didn't drag and clicked on a node
         if (!isDragging && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-            
+
             console.log('Node clicked:', nodeId, node);
-            
+
             if (node) {
                 if (node.group === 'topic') {
                     // Open topic modal
@@ -503,11 +503,11 @@ function renderGraph() {
                     // Open source file - get the file's GCS URI from indexed_files
                     console.log('File node clicked, indexed_files:', knowledgeGraph.indexed_files);
                     console.log('Looking for file ID:', nodeId);
-                    
+
                     if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[nodeId]) {
                         const fileData = knowledgeGraph.indexed_files[nodeId];
                         console.log('File data found:', fileData);
-                        
+
                         if (fileData.gcs_uri) {
                             downloadSource(fileData.gcs_uri, fileData.display_name || node.label);
                         } else {
@@ -522,7 +522,7 @@ function renderGraph() {
     });
 
     // Fit graph after stabilization
-    network.once('stabilizationIterationsDone', function() {
+    network.once('stabilizationIterationsDone', function () {
         network.fit();
     });
 }
@@ -535,12 +535,12 @@ async function openTopicModal(topic) {
     currentTopic = topic;
 
     // Get topic data
-    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id] 
-        ? knowledgeGraph.kg_data[topic.id] 
+    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id]
+        ? knowledgeGraph.kg_data[topic.id]
         : {};
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
-    
+
     // Update modal content
     modalTitle.textContent = topic.label;
     modalSummary.innerHTML = renderMarkdownWithMath(summary);
@@ -557,7 +557,7 @@ async function openTopicModal(topic) {
         modalChatInput.value = '';
         modalChatInput.style.height = 'auto';
     }
-    
+
     // Ensure typing indicator is hidden
     hideModalTypingIndicator();
 
@@ -581,7 +581,7 @@ function getRelatedResources(topicId) {
     if (!knowledgeGraph.kg_edges || !knowledgeGraph.kg_nodes) return [];
 
     const relatedNodeIds = new Set();
-    
+
     // Find all connected nodes
     knowledgeGraph.kg_edges.forEach(edge => {
         if (edge.from === topicId) relatedNodeIds.add(edge.to);
@@ -619,7 +619,7 @@ function renderRelatedResources(resources) {
 function openResource(resource) {
     // For file nodes, get the file's GCS URI from indexed_files and download
     const fileId = resource.id;
-    
+
     if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[fileId]) {
         const fileData = knowledgeGraph.indexed_files[fileId];
         if (fileData.gcs_uri) {
@@ -627,7 +627,7 @@ function openResource(resource) {
             return;
         }
     }
-    
+
     console.error('Could not find GCS URI for file:', resource);
     alert(`Could not open ${resource.label}. File may not be available.`);
 }
@@ -706,7 +706,7 @@ async function sendMessage() {
 // Modal chat functionality
 async function sendModalMessage() {
     if (!modalChatInput || !modalSendBtn) return;
-    
+
     const query = modalChatInput.value.trim();
     if (!query) return;
 
@@ -763,10 +763,10 @@ async function sendModalMessage() {
 
     } catch (error) {
         console.error('Error sending modal message:', error);
-        
+
         // Hide typing indicator
         hideModalTypingIndicator();
-        
+
         addModalMessage({
             role: 'assistant',
             content: 'Sorry, I encountered an error processing your question. Please try again.',
@@ -781,29 +781,36 @@ async function sendModalMessage() {
 
 function showModalTypingIndicator() {
     if (!modalChatMessages) return;
-    
+
     // Remove existing typing indicator if any
     hideModalTypingIndicator();
-    
+
     const typingIndicator = document.createElement('div');
     typingIndicator.className = 'modal-typing-indicator';
     typingIndicator.id = 'modal-typing-indicator';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'typing-avatar';
-    avatar.textContent = '🤖';
-    
+    // Use Playground logo instead of emoji
+    const logoImg = document.createElement('img');
+    logoImg.src = '/static/img/playground_logo.png';
+    logoImg.alt = 'Playground AI';
+    logoImg.style.width = '100%';
+    logoImg.style.height = '100%';
+    logoImg.style.objectFit = 'contain';
+    avatar.appendChild(logoImg);
+
     const dotsContainer = document.createElement('div');
     dotsContainer.className = 'typing-dots';
     for (let i = 0; i < 3; i++) {
         const dot = document.createElement('span');
         dotsContainer.appendChild(dot);
     }
-    
+
     typingIndicator.appendChild(avatar);
     typingIndicator.appendChild(dotsContainer);
     modalChatMessages.appendChild(typingIndicator);
-    
+
     // Scroll to bottom
     setTimeout(() => {
         modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
@@ -824,13 +831,20 @@ function addModalMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `modal-chat-message ${message.role === 'user' ? 'user' : 'bot'}`;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'modal-chat-avatar';
-    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+    // Only add avatar for bot messages
+    if (message.role !== 'user') {
+        const avatar = document.createElement('div');
+        avatar.className = 'modal-chat-avatar';
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        avatar.appendChild(logoImg);
+        messageDiv.appendChild(avatar);
+    }
 
     const content = document.createElement('div');
     content.className = 'modal-chat-content';
-    
+
     // Render markdown with math for assistant messages, plain text for user messages
     if (message.role === 'user') {
         content.textContent = message.content;
@@ -838,7 +852,6 @@ function addModalMessage(message) {
         content.innerHTML = renderMarkdownWithMath(message.content);
     }
 
-    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
     modalChatMessages.appendChild(messageDiv);
 
@@ -869,7 +882,7 @@ function addMessage(message) {
         const sourcesDiv = document.createElement('div');
         sourcesDiv.className = 'message-sources';
         sourcesDiv.innerHTML = '<strong>Sources:</strong>';
-        
+
         message.sources.forEach(source => {
             // Handle both old string format and new object format
             if (typeof source === 'string') {
@@ -885,13 +898,13 @@ function addMessage(message) {
                 sourceLink.textContent = source.filename;
                 sourceLink.href = '#';
                 sourceLink.title = `Download ${source.filename}`;
-                
+
                 // Add click handler to get signed URL and download
                 sourceLink.addEventListener('click', async (e) => {
                     e.preventDefault();
                     await downloadSource(source.source_uri, source.filename);
                 });
-                
+
                 sourcesDiv.appendChild(sourceLink);
             }
         });
@@ -903,19 +916,19 @@ function addMessage(message) {
     if (message.role === 'assistant' && message.log_doc_id) {
         const ratingDiv = document.createElement('div');
         ratingDiv.className = 'message-rating';
-        
+
         const likeBtn = document.createElement('button');
         likeBtn.className = 'rating-btn like-btn';
         likeBtn.textContent = 'Helpful';
         likeBtn.title = 'Helpful';
         likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
-        
+
         const dislikeBtn = document.createElement('button');
         dislikeBtn.className = 'rating-btn dislike-btn';
         dislikeBtn.textContent = 'Not Helpful';
         dislikeBtn.title = 'Not helpful';
         dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
-        
+
         ratingDiv.appendChild(likeBtn);
         ratingDiv.appendChild(dislikeBtn);
         content.appendChild(ratingDiv);
@@ -936,17 +949,17 @@ async function downloadSource(gcsUri, filename) {
     try {
         // Fetch signed URL from backend
         const response = await fetch(`/api/download-source?gcs_uri=${encodeURIComponent(gcsUri)}`);
-        
+
         if (!response.ok) {
             throw new Error('Failed to get download URL');
         }
-        
+
         const data = await response.json();
         const downloadUrl = data.download_url;
-        
+
         // Open the signed URL in a new tab to trigger download
         window.open(downloadUrl, '_blank');
-        
+
     } catch (error) {
         console.error('Error downloading source:', error);
         alert(`Failed to download ${filename}. Please try again.`);
@@ -975,7 +988,7 @@ async function rateAnswer(logDocId, rating, ratingDiv) {
 
         // Show feedback and disable buttons
         ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback!</span>`;
-        
+
     } catch (error) {
         console.error('Error rating answer:', error);
         alert('Failed to submit rating. Please try again.');
