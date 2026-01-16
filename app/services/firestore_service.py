@@ -267,6 +267,42 @@ def add_files(playground_id: str, files: list[dict]) -> None:
     batch.commit()
 
 
+def get_files_metadata(playground_id: str, file_ids: list[str]) -> dict[str, dict]:
+    """
+    Retrieves metadata for a list of file IDs within a playground.
+    
+    Args:
+        playground_id: The playground document ID
+        file_ids: List of file IDs to retrieve
+        
+    Returns:
+        Dictionary mapping file_id to file metadata (filtered to name/display_name)
+    """
+    _ensure_db()
+    if not file_ids:
+        return {}
+        
+    files_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+    
+    # Firestore 'in' query supports up to 10/30 items depending on API version.
+    # Safe approach is to look them up individually or in batches if list is long.
+    # Given chat sources (usually < 5-10), fetching all by doc ref is efficient.
+    
+    refs = [files_ref.document(fid) for fid in file_ids]
+    snapshots = db.get_all(refs)
+    
+    result = {}
+    for snap in snapshots:
+        if snap.exists:
+            data = snap.to_dict()
+            # Prefer 'display_name', fallback to 'name'
+            result[snap.id] = {
+                'name': data.get('display_name') or data.get('name', 'Unknown File')
+            }
+            
+    return result
+
+
 def update_status(course_id: str, status: str) -> None:
     """
     Updates the status field in the course document.

@@ -250,6 +250,18 @@ def chat():
             query=query,
             context=context
         )
+
+        # Enrich sources with filenames from Firestore
+        if sources:
+            file_ids = list(set(s['file_id'] for s in sources if 'file_id' in s))
+            if file_ids:
+                files_meta = firestore_service.get_files_metadata(playground_id, file_ids)
+                for source in sources:
+                    fid = source.get('file_id')
+                    if fid and fid in files_meta:
+                        source['filename'] = files_meta[fid]['name']
+
+        
     except Exception as e:
         print(f"[CHAT ERROR] {str(e)}")
         import traceback
