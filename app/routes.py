@@ -246,6 +246,14 @@ def chat():
             query=query
         )
 
+        if not context or not context[0]:
+            logger.info(f"No context retrieved for query: {query[:50]}")
+            return jsonify({
+                "answer": "I'm sorry, I couldn't find the relevant information to answer your question. Please try rephrasing or asking about a different topic related to the course.",
+                "sources": [],
+                "log_doc_id": None,
+            })
+
         answer, sources  = llm_service.generate_answer(
             query=query,
             context=context
