@@ -44,21 +44,21 @@ const modalChatMessages = document.getElementById('modal-chat-messages');
 function renderMarkdownWithMath(content) {
     // First, render markdown
     let html = marked.parse(content);
-    
+
     // Create a temporary div to manipulate the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Render all math expressions using KaTeX
     renderMathInElement(tempDiv, {
         delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
         ],
         throwOnError: false,
         trust: true
     });
-    
+
     return tempDiv.innerHTML;
 }
 
@@ -78,7 +78,7 @@ function initializeEventListeners() {
     // View toggle handlers
     cardsViewBtn.addEventListener('click', () => switchView('cards'));
     graphViewBtn.addEventListener('click', () => switchView('graph'));
-    
+
     // Graph controls
     fitGraphBtn.addEventListener('click', () => {
         if (network) network.fit();
@@ -96,7 +96,7 @@ function initializeEventListeners() {
         // Close if clicking directly on the modal (not the content)
         if (e.target === topicModal) closeModal();
     });
-    
+
     // Remove topic button handler
     const removeTopicBtn = document.getElementById('remove-topic-btn');
     if (removeTopicBtn) {
@@ -105,20 +105,20 @@ function initializeEventListeners() {
                 alert("No topic selected");
                 return;
             }
-            
+
             // Confirm deletion
             const topicName = currentTopic.label;
             const confirmed = confirm(`Are you sure you want to remove the topic "${topicName}"?\n\nThis action cannot be undone.`);
-            
+
             if (!confirmed) {
                 return;
             }
-            
+
             try {
                 // Show loading state
                 removeTopicBtn.disabled = true;
                 removeTopicBtn.textContent = "Removing...";
-                
+
                 // POST to backend
                 const response = await fetch('/api/remove-topic', {
                     method: 'POST',
@@ -130,18 +130,18 @@ function initializeEventListeners() {
                         topic_id: currentTopic.id
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     console.log("Topic removed successfully:", data);
-                    
+
                     // Close modal
                     closeModal();
-                    
+
                     // Reload the knowledge graph to reflect the removal
                     await loadKnowledgeGraph();
-                    
+
                     // Show success message
                     alert(`Topic "${topicName}" removed successfully!`);
                 } else {
@@ -154,11 +154,11 @@ function initializeEventListeners() {
             } finally {
                 // Reset button state
                 removeTopicBtn.disabled = false;
-                removeTopicBtn.textContent = "🗑️ Remove Topic";
+                removeTopicBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Remove Topic`;
             }
         });
     }
-    
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (isChatExpanded) {
@@ -200,7 +200,7 @@ async function loadKnowledgeGraph() {
         }
 
         const data = await response.json();
-        
+
         // Parse the JSON strings into objects
         knowledgeGraph = {
             kg_nodes: JSON.parse(data.nodes),
@@ -209,7 +209,7 @@ async function loadKnowledgeGraph() {
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
-        
+
         // Render both views (only one will be visible)
         renderTopicCards();
         renderGraph();
@@ -227,13 +227,13 @@ async function loadKnowledgeGraph() {
 
 function switchView(view) {
     currentView = view;
-    
+
     if (view === 'cards') {
         topicsGrid.classList.add('view-active');
         topicsGrid.classList.remove('view-hidden');
         graphContainer.classList.add('view-hidden');
         graphContainer.classList.remove('view-active');
-        
+
         cardsViewBtn.classList.add('active');
         graphViewBtn.classList.remove('active');
     } else {
@@ -241,10 +241,10 @@ function switchView(view) {
         graphContainer.classList.remove('view-hidden');
         topicsGrid.classList.add('view-hidden');
         topicsGrid.classList.remove('view-active');
-        
+
         graphViewBtn.classList.add('active');
         cardsViewBtn.classList.remove('active');
-        
+
         // Fit graph when switching to it
         if (network) {
             setTimeout(() => network.fit(), 100);
@@ -268,7 +268,7 @@ function renderTopicCards() {
     topicNodes.forEach(topic => {
         const card = document.createElement('div');
         card.className = 'topic-card';
-        
+
         // Count connections (related resources)
         const connections = knowledgeGraph.kg_edges.filter(
             edge => edge.from === topic.id || edge.to === topic.id
@@ -316,19 +316,19 @@ document.addEventListener("DOMContentLoaded", () => {
         addTopicSave.addEventListener("click", async () => {
             const name = document.getElementById("new-topic-name").value.trim();
             const summary = document.getElementById("new-topic-summary").value.trim();
-            
+
             if (!name) {
                 alert("Please enter a topic name");
                 return;
             }
-            
+
             console.log("Adding topic:", { name, summary });
 
             try {
                 // Show loading state
                 addTopicSave.disabled = true;
                 addTopicSave.textContent = "Adding...";
-                
+
                 // POST to backend
                 const response = await fetch('/api/add-topic', {
                     method: 'POST',
@@ -341,22 +341,22 @@ document.addEventListener("DOMContentLoaded", () => {
                         summary: summary || undefined // Only include if provided
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     console.log("Topic added successfully:", data);
-                    
+
                     // Close modal
                     closeAddTopicModal();
-                    
+
                     // Clear inputs
                     document.getElementById("new-topic-name").value = "";
                     document.getElementById("new-topic-summary").value = "";
-                    
+
                     // Reload the knowledge graph to show new topic
                     await loadKnowledgeGraph();
-                    
+
                     // Show success message
                     alert(`Topic "${name}" added successfully!`);
                 } else {
@@ -390,7 +390,7 @@ function renderGraph() {
     // Prepare nodes for vis-network
     const nodes = knowledgeGraph.kg_nodes.map(node => {
         const isTopicNode = node.group === 'topic';
-        
+
         return {
             id: node.id,
             label: node.label,
@@ -523,25 +523,25 @@ function renderGraph() {
     // Track dragging to prevent opening modal on drag
     let isDragging = false;
     let clickPosition = null;
-    
-    network.on('dragStart', function(params) {
+
+    network.on('dragStart', function (params) {
         isDragging = true;
         clickPosition = params.pointer.canvas;
     });
-    
-    network.on('dragEnd', function() {
+
+    network.on('dragEnd', function () {
         setTimeout(() => {
             isDragging = false;
         }, 100);
     });
 
     // Handle node clicks - only if not dragging
-    network.on('click', function(params) {
+    network.on('click', function (params) {
         // Only open modal if we didn't drag and clicked on a topic node
         if (!isDragging && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-            
+
             if (node && node.group === 'topic') {
                 openTopicModal(node);
             }
@@ -549,7 +549,7 @@ function renderGraph() {
     });
 
     // Fit graph after stabilization
-    network.once('stabilizationIterationsDone', function() {
+    network.once('stabilizationIterationsDone', function () {
         network.fit();
     });
 }
@@ -562,20 +562,20 @@ async function openTopicModal(topic) {
     currentTopic = topic;
 
     // Get topic data
-    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id] 
-        ? knowledgeGraph.kg_data[topic.id] 
+    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id]
+        ? knowledgeGraph.kg_data[topic.id]
         : {};
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
-    
+
     // Get icon based on topic index
     const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
-    const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
+    const icons = ['<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>'];
     const icon = icons[topicIndex % icons.length];
 
     // Update modal content
     modalTitle.textContent = topic.label;
-    modalIcon.textContent = icon;
+    modalIcon.innerHTML = icon;
     modalSummary.innerHTML = renderMarkdownWithMath(summary);
 
     // Get related resources
@@ -590,7 +590,7 @@ async function openTopicModal(topic) {
         modalChatInput.value = '';
         modalChatInput.style.height = 'auto';
     }
-    
+
     // Ensure typing indicator is hidden
     hideModalTypingIndicator();
 
@@ -614,7 +614,7 @@ function getRelatedResources(topicId) {
     if (!knowledgeGraph.kg_edges || !knowledgeGraph.kg_nodes) return [];
 
     const relatedNodeIds = new Set();
-    
+
     // Find all connected nodes
     knowledgeGraph.kg_edges.forEach(edge => {
         if (edge.from === topicId) relatedNodeIds.add(edge.to);
@@ -651,8 +651,8 @@ function renderRelatedResources(resources) {
 
 function openResource(resource) {
     // Get resource data
-    const resourceData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[resource.id] 
-        ? knowledgeGraph.kg_data[resource.id] 
+    const resourceData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[resource.id]
+        ? knowledgeGraph.kg_data[resource.id]
         : {};
 
     if (resourceData.url) {
@@ -669,7 +669,7 @@ function openResource(resource) {
 // Modal chat functionality
 async function sendModalMessage() {
     if (!modalChatInput || !modalSendBtn) return;
-    
+
     const query = modalChatInput.value.trim();
     if (!query) return;
 
@@ -726,10 +726,10 @@ async function sendModalMessage() {
 
     } catch (error) {
         console.error('Error sending modal message:', error);
-        
+
         // Hide typing indicator
         hideModalTypingIndicator();
-        
+
         addModalMessage({
             role: 'assistant',
             content: 'Sorry, I encountered an error processing your question. Please try again.',
@@ -744,29 +744,29 @@ async function sendModalMessage() {
 
 function showModalTypingIndicator() {
     if (!modalChatMessages) return;
-    
+
     // Remove existing typing indicator if any
     hideModalTypingIndicator();
-    
+
     const typingIndicator = document.createElement('div');
     typingIndicator.className = 'modal-typing-indicator';
     typingIndicator.id = 'modal-typing-indicator';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'typing-avatar';
     avatar.textContent = '🤖';
-    
+
     const dotsContainer = document.createElement('div');
     dotsContainer.className = 'typing-dots';
     for (let i = 0; i < 3; i++) {
         const dot = document.createElement('span');
         dotsContainer.appendChild(dot);
     }
-    
+
     typingIndicator.appendChild(avatar);
     typingIndicator.appendChild(dotsContainer);
     modalChatMessages.appendChild(typingIndicator);
-    
+
     // Scroll to bottom
     setTimeout(() => {
         modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
@@ -793,7 +793,7 @@ function addModalMessage(message) {
 
     const content = document.createElement('div');
     content.className = 'modal-chat-content';
-    
+
     // Render markdown with math for assistant messages, plain text for user messages
     if (message.role === 'user') {
         content.textContent = message.content;
@@ -836,7 +836,7 @@ function addMessage(message) {
         const sourcesDiv = document.createElement('div');
         sourcesDiv.className = 'message-sources';
         sourcesDiv.innerHTML = '<strong>Sources:</strong>';
-        
+
         message.sources.forEach(source => {
             // Handle both old string format and new object format
             if (typeof source === 'string') {
@@ -852,13 +852,13 @@ function addMessage(message) {
                 sourceLink.textContent = source.filename;
                 sourceLink.href = '#';
                 sourceLink.title = `Download ${source.filename}`;
-                
+
                 // Add click handler to get signed URL and download
                 sourceLink.addEventListener('click', async (e) => {
                     e.preventDefault();
                     await downloadSource(source.source_uri, source.filename);
                 });
-                
+
                 sourcesDiv.appendChild(sourceLink);
             }
         });
@@ -870,19 +870,19 @@ function addMessage(message) {
     if (message.role === 'assistant' && message.log_doc_id) {
         const ratingDiv = document.createElement('div');
         ratingDiv.className = 'message-rating';
-        
+
         const likeBtn = document.createElement('button');
         likeBtn.className = 'rating-btn like-btn';
         likeBtn.innerHTML = '👍';
         likeBtn.title = 'Helpful';
         likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
-        
+
         const dislikeBtn = document.createElement('button');
         dislikeBtn.className = 'rating-btn dislike-btn';
         dislikeBtn.innerHTML = '👎';
         dislikeBtn.title = 'Not helpful';
         dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
-        
+
         ratingDiv.appendChild(likeBtn);
         ratingDiv.appendChild(dislikeBtn);
         content.appendChild(ratingDiv);
@@ -904,17 +904,17 @@ async function downloadSource(gcsUri, filename) {
     try {
         // Fetch signed URL from backend
         const response = await fetch(`/api/download-source?gcs_uri=${encodeURIComponent(gcsUri)}`);
-        
+
         if (!response.ok) {
             throw new Error('Failed to get download URL');
         }
-        
+
         const data = await response.json();
         const downloadUrl = data.download_url;
-        
+
         // Open the signed URL in a new tab to trigger download
         window.open(downloadUrl, '_blank');
-        
+
     } catch (error) {
         console.error('Error downloading source:', error);
         alert(`Failed to download ${filename}. Please try again.`);
@@ -943,7 +943,7 @@ async function rateAnswer(logDocId, rating, ratingDiv) {
 
         // Show feedback and disable buttons
         ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback! ${rating === 'helpful' ? '👍' : '👎'}</span>`;
-        
+
     } catch (error) {
         console.error('Error rating answer:', error);
         alert('Failed to submit rating. Please try again.');

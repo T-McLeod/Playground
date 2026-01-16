@@ -41,9 +41,35 @@
             <div class="file-manager-upload-section">
                 <form id="file-dropzone" class="dropzone skinny-dropzone">
                     <div class="dz-message">
-                        <span>Drop files here to upload</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Drop files here or click to select</span>
                     </div>
                 </form>
+                <div class="upload-actions">
+                    <button id="upload-files-confirm-btn" class="btn-upload-confirm" disabled
+                        onclick="uploadQueuedFiles()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload Files (<span id="queued-file-count">0</span>)
+                    </button>
+                    <button id="clear-queue-btn" class="btn-clear-queue" disabled onclick="clearFileQueue()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
             </div>
         </div>
         <div class="upload-modal-footer">

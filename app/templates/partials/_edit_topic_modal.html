@@ -1,23 +1,32 @@
 <!-- Edit Topic Modal Partial -->
 <div id="edit-topic-modal" class="topic-modal hidden">
     <div class="modal-content">
-        <button class="modal-close" id="edit-topic-close">&times;</button>
         <div class="modal-header">
             <div class="modal-title-container">
                 <label for="edit-topic-title-input" class="modal-label">Topic Name</label>
                 <input type="text" id="edit-topic-title-input" class="modal-input modal-title-input">
             </div>
-            <div class="topic-icon" id="edit-topic-icon">📚</div>
+            <button class="modal-close" id="edit-topic-close">&times;</button>
         </div>
         <div class="modal-body">
             <div class="modal-section">
                 <label for="edit-topic-summary-input" class="modal-label">Summary</label>
-                <textarea id="edit-topic-summary-input" class="modal-textarea" rows="6" placeholder="Enter topic summary..."></textarea>
+                <textarea id="edit-topic-summary-input" class="modal-textarea" rows="6"
+                    placeholder="Enter topic summary..."></textarea>
             </div>
 
             <div class="related-resources">
-                <h3>📎 Manage Resources</h3>
-                
+                <h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        style="vertical-align: middle; margin-right: 6px;">
+                        <path
+                            d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                        </path>
+                    </svg>
+                    Manage Resources
+                </h3>
+
                 <!-- List of currently linked resources -->
                 <ul id="edit-resource-list" class="editable-resource-list">
                     <!-- Items will be populated by JS -->
@@ -28,13 +37,36 @@
                     <select id="add-resource-select" class="modal-input resource-select">
                         <option value="">Select a file to link...</option>
                     </select>
-                    <button id="add-resource-btn" class="btn-secondary add-resource-btn">➕ Add</button>
+                    <button id="add-resource-btn" class="btn-secondary add-resource-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                            style="vertical-align: middle; margin-right: 4px;">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Add
+                    </button>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button id="save-topic-changes-btn" class="btn-primary">Save</button>
-            <button id="cancel-topic-changes-btn" class="btn-secondary">Cancel</button>
+            <button id="save-topic-changes-btn" class="btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save
+            </button>
+            <button id="cancel-topic-changes-btn" class="btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Cancel
+            </button>
         </div>
     </div>
 </div>

@@ -15,11 +15,11 @@ class TeacherView extends BaseView {
      */
     cacheDOMElements() {
         super.cacheDOMElements();
-        
+
         // Topic management elements
         this.elements.removeTopicBtn = document.getElementById('remove-topic-btn');
         this.elements.editTopicBtn = document.getElementById('edit-topic-btn');
-        
+
         // Edit Modal Elements
         this.elements.editTopicModal = document.getElementById('edit-topic-modal');
         this.elements.editTopicClose = document.getElementById('edit-topic-close');
@@ -45,7 +45,7 @@ class TeacherView extends BaseView {
      */
     initializeEventListeners() {
         super.initializeEventListeners();
-        
+
         this.initRemoveTopicHandler();
         this.initEditTopicHandlers();
         this.initAddTopicHandlers();
@@ -55,11 +55,11 @@ class TeacherView extends BaseView {
      * Initialize edit topic handlers
      */
     initEditTopicHandlers() {
-        const { 
+        const {
             editTopicBtn, editTopicClose, saveTopicChangesBtn, cancelTopicChangesBtn,
             addResourceBtn
         } = this.elements;
-        
+
         if (editTopicBtn) {
             editTopicBtn.addEventListener('click', () => this.openEditTopicModal());
         }
@@ -86,9 +86,9 @@ class TeacherView extends BaseView {
 
         this.editingTopic = currentTopic; // Store for saving later
 
-        const { 
-            editTopicModal, editTopicTitleInput, editTopicSummaryInput, 
-            addResourceSelect 
+        const {
+            editTopicModal, editTopicTitleInput, editTopicSummaryInput,
+            addResourceSelect
         } = this.elements;
 
         // Close view modal
@@ -96,7 +96,7 @@ class TeacherView extends BaseView {
 
         // Populate fields
         editTopicTitleInput.value = currentTopic.label;
-        
+
         const topicData = this.knowledgeGraph &&
             this.knowledgeGraph.kg_data &&
             this.knowledgeGraph.kg_data[currentTopic.id]
@@ -126,7 +126,7 @@ class TeacherView extends BaseView {
             setTimeout(() => {
                 editTopicModal.classList.add('hidden');
                 this.editingTopic = null; // Clear stored topic
-                
+
                 // Reopen view modal if we have a topic
                 if (topicToReopen) {
                     ModalManager.openTopicModal(topicToReopen, this.knowledgeGraph);
@@ -143,10 +143,10 @@ class TeacherView extends BaseView {
         if (!editResourceList) return;
 
         editResourceList.innerHTML = '';
-        
+
         // Get current resources
         const currentResources = ModalManager.getRelatedResources(topicId, this.knowledgeGraph);
-        
+
         // Render current resources
         currentResources.forEach(resource => {
             this.addResourceToEditList(resource);
@@ -154,14 +154,14 @@ class TeacherView extends BaseView {
 
         // Populate Select Dropdown
         addResourceSelect.innerHTML = '<option value="">Select a file to link...</option>';
-        
+
         const currentResourceIds = new Set(currentResources.map(r => r.id));
         const allFiles = Object.values(this.knowledgeGraph.indexed_files || {});
         const fileNodes = this.knowledgeGraph.kg_nodes.filter(n => n.group === 'file');
         const availableFiles = allFiles.length > 0 ? allFiles : fileNodes;
 
         availableFiles.forEach(file => {
-            const fileId = file.id || file.file_id; 
+            const fileId = file.id || file.file_id;
             if (!currentResourceIds.has(fileId)) {
                 const option = document.createElement('option');
                 option.value = fileId;
@@ -178,13 +178,13 @@ class TeacherView extends BaseView {
         const { editResourceList } = this.elements;
         const li = document.createElement('li');
         li.className = 'editable-resource-item';
-        
+
         const span = document.createElement('span');
         span.textContent = resource.label;
         li.appendChild(span);
-        
+
         const removeBtn = document.createElement('button');
-        removeBtn.innerHTML = '❌';
+        removeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
         removeBtn.className = 'btn-icon-small';
         removeBtn.title = 'Remove connection';
         removeBtn.onclick = (e) => {
@@ -193,10 +193,10 @@ class TeacherView extends BaseView {
             // Add back to dropdown if needed (optional enhancement)
         };
         li.appendChild(removeBtn);
-        
+
         // Store ID for saving
         li.dataset.resourceId = resource.id;
-        
+
         editResourceList.appendChild(li);
     }
 
@@ -207,21 +207,21 @@ class TeacherView extends BaseView {
         const { addResourceSelect } = this.elements;
         const selectedId = addResourceSelect.value;
         if (!selectedId) return;
-        
+
         const allFiles = Object.values(this.knowledgeGraph.indexed_files || {});
         const fileNodes = this.knowledgeGraph.kg_nodes.filter(n => n.group === 'file');
         const availableFiles = allFiles.length > 0 ? allFiles : fileNodes;
 
         const selectedFile = availableFiles.find(f => (f.id || f.file_id) === selectedId);
-        
+
         if (selectedFile) {
             const resourceObj = {
                 id: selectedId,
                 label: selectedFile.filename || selectedFile.label || selectedFile.name
             };
-            
+
             this.addResourceToEditList(resourceObj);
-            
+
             // Remove from select
             const optionToRemove = addResourceSelect.querySelector(`option[value="${selectedId}"]`);
             if (optionToRemove) optionToRemove.remove();
@@ -235,15 +235,15 @@ class TeacherView extends BaseView {
     async saveTopicChanges() {
         const { saveTopicChangesBtn, editTopicTitleInput, editTopicSummaryInput, editResourceList } = this.elements;
         const currentTopic = this.editingTopic;
-        
+
         if (!currentTopic) {
             console.error('No topic being edited');
             return;
         }
-        
+
         const newTitle = editTopicTitleInput.value.trim();
         const newSummary = editTopicSummaryInput.value.trim();
-        
+
         // Gather resources
         const resourceItems = editResourceList.querySelectorAll('li');
         const resourceIds = [];
@@ -261,22 +261,22 @@ class TeacherView extends BaseView {
                 summary: newSummary,
                 files: resourceIds
             };
-            
+
             const response = await fetch('/api/edit-topic', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        playground_id: PLAYGROUND_ID,
-                        node: node_data
-                    })
-                });
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    playground_id: PLAYGROUND_ID,
+                    node: node_data
+                })
+            });
 
             if (!response.ok) {
                 throw new Error('Failed to update topic');
             }
-            
+
             // Reload the knowledge graph to get updated data
             await this.loadKnowledgeGraph();
 
@@ -285,9 +285,9 @@ class TeacherView extends BaseView {
             if (updatedTopic) {
                 this.editingTopic = updatedTopic;
             }
-            
+
             UIHelpers.showSuccess('Topic updated successfully!');
-            
+
             // Close edit modal (which reopens view modal with updated data)
             this.closeEditTopicModal();
 
@@ -305,7 +305,7 @@ class TeacherView extends BaseView {
      */
     initRemoveTopicHandler() {
         const { removeTopicBtn } = this.elements;
-        
+
         if (removeTopicBtn) {
             removeTopicBtn.addEventListener('click', () => this.handleRemoveTopic());
         }
@@ -320,15 +320,15 @@ class TeacherView extends BaseView {
         if (addTopicBtn) {
             addTopicBtn.addEventListener('click', () => this.openAddTopicModal());
         }
-        
+
         if (addTopicClose) {
             addTopicClose.addEventListener('click', () => this.closeAddTopicModal());
         }
-        
+
         if (addTopicCancel) {
             addTopicCancel.addEventListener('click', () => this.closeAddTopicModal());
         }
-        
+
         if (addTopicSave) {
             addTopicSave.addEventListener('click', () => this.handleAddTopic());
         }
@@ -361,35 +361,35 @@ class TeacherView extends BaseView {
      */
     async handleAddTopic() {
         const { addTopicSave, newTopicName, newTopicSummary } = this.elements;
-        
+
         const name = newTopicName.value.trim();
         const summary = newTopicSummary.value.trim();
-        
+
         if (!name) {
             alert('Please enter a topic name');
             return;
         }
-        
+
         console.log('Adding topic:', { name, summary });
 
         try {
             addTopicSave.disabled = true;
             addTopicSave.textContent = 'Adding...';
-            
+
             await ApiClient.addTopic(this.playgroundId, name, summary);
-            
+
             console.log('Topic added successfully');
-            
+
             // Close modal and clear inputs
             this.closeAddTopicModal();
             newTopicName.value = '';
             newTopicSummary.value = '';
-            
+
             // Reload the knowledge graph
             await this.loadKnowledgeGraph();
-            
+
             UIHelpers.showSuccess(`Topic "${name}" added successfully!`);
-            
+
         } catch (error) {
             console.error('Error adding topic:', error);
             alert(error.message || 'Failed to add topic. Please try again.');
@@ -405,41 +405,41 @@ class TeacherView extends BaseView {
     async handleRemoveTopic() {
         const { removeTopicBtn } = this.elements;
         const currentTopic = ModalManager.getCurrentTopic();
-        
+
         if (!currentTopic) {
             alert('No topic selected');
             return;
         }
-        
+
         const topicName = currentTopic.label;
         const confirmed = confirm(`Are you sure you want to remove the topic "${topicName}"?\n\nThis action cannot be undone.`);
-        
+
         if (!confirmed) {
             return;
         }
-        
+
         try {
             removeTopicBtn.disabled = true;
             removeTopicBtn.textContent = 'Removing...';
-            
+
             await ApiClient.removeTopic(this.playgroundId, currentTopic.id);
-            
+
             console.log('Topic removed successfully');
-            
+
             // Close modal
             ModalManager.closeModal();
-            
+
             // Reload the knowledge graph
             await this.loadKnowledgeGraph();
-            
+
             UIHelpers.showSuccess(`Topic "${topicName}" removed successfully!`);
-            
+
         } catch (error) {
             console.error('Error removing topic:', error);
             alert(error.message || 'Failed to remove topic. Please try again.');
         } finally {
             removeTopicBtn.disabled = false;
-            removeTopicBtn.textContent = '🗑️ Remove Topic';
+            removeTopicBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Remove Topic`;
         }
     }
 }

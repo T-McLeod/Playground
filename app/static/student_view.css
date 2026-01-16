@@ -644,10 +644,7 @@ body {
 }
 
 .modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: var(--bg-primary);
+    background: rgba(255, 255, 255, 0.2);
     border: none;
     width: 2.5rem;
     height: 2.5rem;
@@ -658,13 +655,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
-    z-index: 10;
+    color: white;
+    flex-shrink: 0;
 }
 
 .modal-close:hover {
-    background: var(--danger-color);
-    color: white;
+    background: rgba(255, 255, 255, 0.3);
     transform: rotate(90deg);
 }
 
@@ -675,6 +671,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     flex-shrink: 0;
 }
@@ -683,6 +680,7 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     flex: 1;
+    margin: 0;
 }
 
 .modal-body {

@@ -18,12 +18,9 @@
 </a>
 {% endblock %}
 
+
 {% block role_badge %}Teacher{% endblock %}
 {% block view_mode %}teacher{% endblock %}
-
-{% block modal_icon %}
-<div class="topic-icon" id="modal-topic-icon"></div>
-{% endblock %}
 
 {% block resources_header %}Related Resources{% endblock %}
 
@@ -55,10 +52,9 @@
 <!-- Add Topic Modal -->
 <div id="add-topic-modal" class="topic-modal hidden">
     <div class="modal-content">
-        <button class="modal-close" id="add-topic-close">&times;</button>
         <div class="modal-header">
             <h2 class="modal-title">Add New Topic</h2>
-            <div class="topic-icon"></div>
+            <button class="modal-close" id="add-topic-close">&times;</button>
         </div>
 
         <div class="modal-body">
