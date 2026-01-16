@@ -16,7 +16,7 @@ class StudentView extends BaseView {
      */
     cacheDOMElements() {
         super.cacheDOMElements();
-        
+
         // Chat-specific elements
         this.elements.chatPrompt = document.getElementById('chat-prompt');
         this.elements.promptInput = document.getElementById('prompt-input');
@@ -28,7 +28,7 @@ class StudentView extends BaseView {
         this.elements.chatInput = document.getElementById('chat-input');
         this.elements.sendBtn = document.getElementById('send-btn');
         this.elements.typingIndicator = document.getElementById('typing-indicator');
-        
+
         // Modal chat elements
         this.elements.modalChatInput = document.getElementById('modal-chat-input');
         this.elements.modalSendBtn = document.getElementById('modal-send-btn');
@@ -40,7 +40,7 @@ class StudentView extends BaseView {
      */
     initializeEventListeners() {
         super.initializeEventListeners();
-        
+
         this.initChatInterface();
         this.initModalChat();
     }
@@ -49,8 +49,8 @@ class StudentView extends BaseView {
      * Initialize the main chat interface
      */
     initChatInterface() {
-        const { promptInput, chatExpandFab, chatCollapseBtn, chatHeader, 
-                sendBtn, chatInput } = this.elements;
+        const { promptInput, chatExpandFab, chatCollapseBtn, chatHeader,
+            sendBtn, chatInput } = this.elements;
 
         // Chat prompt input handler
         if (promptInput) {
@@ -89,7 +89,7 @@ class StudentView extends BaseView {
                     this.sendMessage();
                 }
             });
-            
+
             // Auto-resize textarea
             chatInput.addEventListener('input', () => {
                 chatInput.style.height = 'auto';
@@ -110,7 +110,7 @@ class StudentView extends BaseView {
      */
     initModalChat() {
         const { modalSendBtn, modalChatInput } = this.elements;
-        
+
         if (modalSendBtn && modalChatInput) {
             modalSendBtn.addEventListener('click', () => this.sendModalMessage());
             modalChatInput.addEventListener('keydown', (e) => {
@@ -139,7 +139,7 @@ class StudentView extends BaseView {
             this.elements.modalChatInput.style.height = 'auto';
         }
         this.hideModalTypingIndicator();
-        
+
         super.openTopicModal(topic);
     }
 
@@ -159,16 +159,16 @@ class StudentView extends BaseView {
         this.isChatExpanded = true;
         this.elements.chatContainer.classList.remove('collapsed');
         this.elements.chatContainer.classList.add('expanded');
-        
+
         if (this.elements.chatExpandFab) {
             this.elements.chatExpandFab.classList.remove('visible');
         }
-        
+
         const collapseIcon = document.getElementById('collapse-icon');
         if (collapseIcon) {
             collapseIcon.style.transform = 'rotate(180deg)';
         }
-        
+
         setTimeout(() => this.elements.chatInput.focus(), 300);
     }
 
@@ -176,11 +176,11 @@ class StudentView extends BaseView {
         this.isChatExpanded = false;
         this.elements.chatContainer.classList.remove('expanded');
         this.elements.chatContainer.classList.add('collapsed');
-        
+
         if (this.elements.chatExpandFab) {
             this.elements.chatExpandFab.classList.add('visible');
         }
-        
+
         const collapseIcon = document.getElementById('collapse-icon');
         if (collapseIcon) {
             collapseIcon.style.transform = 'rotate(0deg)';
@@ -263,7 +263,7 @@ class StudentView extends BaseView {
             const sourcesDiv = document.createElement('div');
             sourcesDiv.className = 'message-sources';
             sourcesDiv.innerHTML = '<strong>Sources:</strong>';
-            
+
             message.sources.forEach(source => {
                 if (typeof source === 'string') {
                     const sourceTag = document.createElement('span');
@@ -276,7 +276,7 @@ class StudentView extends BaseView {
                     sourceLink.textContent = source.filename;
                     sourceLink.href = '#';
                     sourceLink.title = `Download ${source.filename}`;
-                    
+
                     sourceLink.addEventListener('click', async (e) => {
                         e.preventDefault();
                         try {
@@ -287,7 +287,7 @@ class StudentView extends BaseView {
                             alert(`Failed to download ${source.filename}. Please try again.`);
                         }
                     });
-                    
+
                     sourcesDiv.appendChild(sourceLink);
                 }
             });
@@ -299,17 +299,17 @@ class StudentView extends BaseView {
         if (message.role === 'assistant' && message.log_doc_id) {
             const ratingDiv = document.createElement('div');
             ratingDiv.className = 'message-rating';
-            
+
             const likeBtn = document.createElement('button');
             likeBtn.className = 'rating-btn like-btn';
             likeBtn.textContent = 'Helpful';
             likeBtn.onclick = () => this.rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
-            
+
             const dislikeBtn = document.createElement('button');
             dislikeBtn.className = 'rating-btn dislike-btn';
             dislikeBtn.textContent = 'Not Helpful';
             dislikeBtn.onclick = () => this.rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
-            
+
             ratingDiv.appendChild(likeBtn);
             ratingDiv.appendChild(dislikeBtn);
             content.appendChild(ratingDiv);
@@ -337,7 +337,7 @@ class StudentView extends BaseView {
     async sendModalMessage() {
         const { modalChatInput, modalSendBtn } = this.elements;
         if (!modalChatInput || !modalSendBtn) return;
-        
+
         const query = modalChatInput.value.trim();
         if (!query) return;
 
@@ -372,7 +372,7 @@ class StudentView extends BaseView {
         } catch (error) {
             console.error('Error sending modal message:', error);
             this.hideModalTypingIndicator();
-            
+
             this.addModalMessage({
                 role: 'assistant',
                 content: 'Sorry, I encountered an error processing your question. Please try again.',
@@ -388,28 +388,35 @@ class StudentView extends BaseView {
     showModalTypingIndicator() {
         const { modalChatMessages } = this.elements;
         if (!modalChatMessages) return;
-        
+
         this.hideModalTypingIndicator();
-        
+
         const typingIndicator = document.createElement('div');
         typingIndicator.className = 'modal-typing-indicator';
         typingIndicator.id = 'modal-typing-indicator';
-        
+
         const avatar = document.createElement('div');
         avatar.className = 'typing-avatar';
-        avatar.textContent = '🤖';
-        
+        // Use Playground logo instead of emoji
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        logoImg.style.width = '100%';
+        logoImg.style.height = '100%';
+        logoImg.style.objectFit = 'contain';
+        avatar.appendChild(logoImg);
+
         const dotsContainer = document.createElement('div');
         dotsContainer.className = 'typing-dots';
         for (let i = 0; i < 3; i++) {
             const dot = document.createElement('span');
             dotsContainer.appendChild(dot);
         }
-        
+
         typingIndicator.appendChild(avatar);
         typingIndicator.appendChild(dotsContainer);
         modalChatMessages.appendChild(typingIndicator);
-        
+
         setTimeout(() => {
             modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
         }, 100);
@@ -429,20 +436,26 @@ class StudentView extends BaseView {
         const messageDiv = document.createElement('div');
         messageDiv.className = `modal-chat-message ${message.role === 'user' ? 'user' : 'bot'}`;
 
-        const avatar = document.createElement('div');
-        avatar.className = 'modal-chat-avatar';
-        avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+        // Only add avatar for bot messages
+        if (message.role !== 'user') {
+            const avatar = document.createElement('div');
+            avatar.className = 'modal-chat-avatar';
+            const logoImg = document.createElement('img');
+            logoImg.src = '/static/img/playground_logo.png';
+            logoImg.alt = 'Playground AI';
+            avatar.appendChild(logoImg);
+            messageDiv.appendChild(avatar);
+        }
 
         const content = document.createElement('div');
         content.className = 'modal-chat-content';
-        
+
         if (message.role === 'user') {
             content.textContent = message.content;
         } else {
             content.innerHTML = MarkdownUtils.renderMarkdownWithMath(message.content);
         }
 
-        messageDiv.appendChild(avatar);
         messageDiv.appendChild(content);
         modalChatMessages.appendChild(messageDiv);
 
