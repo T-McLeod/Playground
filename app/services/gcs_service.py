@@ -396,18 +396,25 @@ def generate_signed_upload_url(playground_id: str, file_id: str, content_type: s
         
         credentials, _ = google.auth.default()
 
+        iam_scope = "https://www.googleapis.com/auth/iam"
+        if iam_scope not in (credentials.scopes or []):
+            credentials = credentials.with_scopes([iam_scope])
+        
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
+
         service_account_email = _resolve_service_account_email(credentials)
         logger.info(f"Using service account email: {service_account_email}")
         
         logger.info(f"Generating signed upload URL for {blob_path}")
         
-        # Generate signed URL for PUT (upload) using IAM signing
-        # We pass service_account_email to trigger IAM signing via the IAMCredentials API
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
             method="PUT",
             content_type=content_type,
+            service_account_email=service_account_email,
+            access_token=credentials.token # CRITICAL: Tells library to use SignBlob
         )
 
         gcs_uri = f"gs://{bucket_name}/{blob_path}"
@@ -464,40 +471,21 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
     bucket_name, blob_path = parts[0], parts[1] if len(parts) > 1 else ''
     
     try:
-        # Initialize GCS Objects
         client = get_storage_client()
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
 
-        # 2. Get Credentials & Add Required IAM Scope
         credentials, _ = google.auth.default()
-        logger.info(f"DEBUG: Credential Type: {type(credentials)}")
 
         iam_scope = "https://www.googleapis.com/auth/iam"
         if iam_scope not in (credentials.scopes or []):
-            logger.info("DEBUG: Adding IAM scope to credentials...")
             credentials = credentials.with_scopes([iam_scope])
         
-        # 3. Force Refresh to populate the access token
-        logger.info("DEBUG: Refreshing token via metadata server...")
         auth_request = auth_requests.Request()
         credentials.refresh(auth_request)
 
-        # 4. Resolve the email
         service_account_email = _resolve_service_account_email(credentials)
-        logger.info(f"DEBUG: Resolved Email: {service_account_email}")
 
-        if credentials.token:
-            # Log only the first/last few characters to confirm it's there
-            masked_token = f"{credentials.token[:5]}...{credentials.token[-5:]}"
-            logger.info(f"DEBUG: Token is present (Masked: {masked_token})")
-            logger.info(f"DEBUG: Token expiry: {credentials.expiry}")
-        else:
-            logger.warning("DEBUG: Token is MISSING after refresh!")
-
-        # 5. Generate the URL using access_token
-        # This is the 'Surefire' fix. By providing the token, we tell the library
-        # to use the IAM Credentials API instead of trying to find a local key file.
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
