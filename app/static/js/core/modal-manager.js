@@ -6,7 +6,7 @@
 const ModalManager = {
     currentTopic: null,
     topicModal: null,
-    
+
     /**
      * Initialize the modal manager with DOM references
      * @param {Object} elements - DOM element references
@@ -18,18 +18,18 @@ const ModalManager = {
         this.modalIcon = elements.modalIcon || document.getElementById('modal-topic-icon');
         this.resourceList = elements.resourceList || document.getElementById('resource-list');
         this.modalClose = elements.modalClose || document.getElementById('modal-close');
-        
+
         // Bind close handlers
         if (this.modalClose) {
             this.modalClose.addEventListener('click', () => this.closeModal());
         }
-        
+
         if (this.topicModal) {
             this.topicModal.addEventListener('click', (e) => {
                 if (e.target === this.topicModal) this.closeModal();
             });
         }
-        
+
         // Escape key handler
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.topicModal && !this.topicModal.classList.contains('hidden')) {
@@ -48,17 +48,17 @@ const ModalManager = {
         this.currentTopic = topic;
 
         // Get topic data from kg_data if available
-        const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id] 
-            ? knowledgeGraph.kg_data[topic.id] 
+        const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id]
+            ? knowledgeGraph.kg_data[topic.id]
             : {};
 
         const summary = topicData.summary || 'No detailed summary available for this topic yet.';
-        
+
         // Update modal title
         if (this.modalTitle) {
             this.modalTitle.textContent = topic.label;
         }
-        
+
         // Update modal summary with markdown rendering
         if (this.modalSummary) {
             if (window.MarkdownUtils) {
@@ -67,12 +67,11 @@ const ModalManager = {
                 this.modalSummary.textContent = summary;
             }
         }
-        
+
         // Update icon if available
         if (this.modalIcon && options.showIcon) {
-            const icons = ['📚', '🧠', '💡', '🔬', '🎯', '🚀', '⚡', '🌟', '🎨', '🔥', '💎', '🌈', '🎭', '🏆', '🎪'];
-            const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
-            this.modalIcon.textContent = icons[topicIndex % icons.length];
+            // Use SVG book icon instead of emojis
+            this.modalIcon.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>';
         }
 
         // Get and render related resources
@@ -101,7 +100,7 @@ const ModalManager = {
      */
     closeModal() {
         if (!this.topicModal) return;
-        
+
         this.topicModal.classList.remove('show');
         setTimeout(() => {
             this.topicModal.classList.add('hidden');
@@ -127,7 +126,7 @@ const ModalManager = {
         if (!knowledgeGraph.kg_edges || !knowledgeGraph.kg_nodes) return [];
 
         const relatedNodeIds = new Set();
-        
+
         // Find all connected nodes
         knowledgeGraph.kg_edges.forEach(edge => {
             if (edge.from === topicId) relatedNodeIds.add(edge.to);
@@ -154,7 +153,7 @@ const ModalManager = {
      */
     renderRelatedResources(resources, knowledgeGraph, onResourceClick) {
         if (!this.resourceList) return;
-        
+
         if (resources.length === 0) {
             this.resourceList.innerHTML = '<li style="cursor: default;">No resources linked yet</li>';
             return;
@@ -165,7 +164,7 @@ const ModalManager = {
             const li = document.createElement('li');
             li.textContent = resource.label;
             li.dataset.resourceId = resource.id;
-            
+
             li.addEventListener('click', () => {
                 if (onResourceClick) {
                     onResourceClick(resource, knowledgeGraph);
@@ -173,7 +172,7 @@ const ModalManager = {
                     this.openResource(resource, knowledgeGraph);
                 }
             });
-            
+
             this.resourceList.appendChild(li);
         });
     },
@@ -185,7 +184,7 @@ const ModalManager = {
      */
     async openResource(resource, knowledgeGraph) {
         const fileId = resource.id;
-        
+
         if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[fileId]) {
             const fileData = knowledgeGraph.indexed_files[fileId];
             if (fileData.gcs_uri && window.ApiClient) {
@@ -198,7 +197,7 @@ const ModalManager = {
                 }
             }
         }
-        
+
         console.error('Could not find GCS URI for file:', resource);
         alert(`Could not open ${resource.label}. File may not be available.`);
     }
