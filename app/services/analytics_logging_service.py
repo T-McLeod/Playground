@@ -1,34 +1,18 @@
-"""
-Analytics Logging Service
-Handles real-time logging of student interactions for analytics.
-
-This service is responsible for:
-- Logging chat queries with embeddings
-- Logging knowledge graph interactions
-- Storing all analytics events to Firestore
-
-This is a lightweight service focused only on data collection.
-Analysis and reporting is handled by analytics_reporting_service.
-
-Dependencies:
-- firestore_service: For database operations
-- gemini_service: For generating embeddings
-"""
 import logging
 from google.cloud import firestore
 import sys
 import os
 
-# Handle imports for both module use and standalone testing
-if __name__ == "__main__":
-    # Running as standalone script
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-    from app.services import firestore_service, gemini_service
-else:
-    # Imported as a module
-    from . import firestore_service, gemini_service
+from .rag_services import get_rag_service
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+from app.services import firestore_service
 
 logger = logging.getLogger(__name__)
+
+rag_service = get_rag_service()
 
 
 # ============================================================================
@@ -53,10 +37,8 @@ def get_query_vector(query_text: str) -> list:
         logger.info(f"Generating embedding for query: {query_text[:50]}...")
         
         # Use Gemini's text-embedding model for query embeddings
-        vector = gemini_service.get_embedding(
-            text=query_text,
-            model_name="text-embedding-004",
-            task_type="RETRIEVAL_QUERY"
+        vector = rag_service.get_query_embedding(
+            text=query_text
         )
         
         return vector
@@ -70,7 +52,7 @@ def get_query_vector(query_text: str) -> list:
 # LOGGING FUNCTIONS
 # ============================================================================
 
-def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sources: list = None) -> str:
+def log_chat_query(playground_id: str, query_text: str, answer_text: str = None, sources: list = None) -> str:
     """
     Logs a chat query event with its embedding for later analysis.
     
@@ -78,7 +60,7 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
     It generates an embedding of the query and stores it for clustering analysis.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         query_text: The student's question
         answer_text: Optional - the generated answer
         sources: Optional - list of source files used
@@ -88,14 +70,14 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         
     Example:
         doc_id = log_chat_query(
-            course_id="12345",
+            playground_id="abc123",
             query_text="What is machine learning?",
             answer_text="Machine learning is...",
             sources=["Chapter1.pdf"]
         )
     """
     try:
-        logger.info(f"Logging chat query for course {course_id}: {query_text[:50]}...")
+        logger.info(f"Logging chat query for playground {playground_id}: {query_text[:50]}...")
         
         # Get embedding vector for the query
         query_vector = get_query_vector(query_text)
@@ -103,7 +85,7 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         # Prepare the log data
         log_data = {
             'type': 'chat',
-            'course_id': course_id,
+            'course_id': playground_id,  # TODO: Consider renaming field to playground_id in Firestore
             'query_text': query_text,
             'answer_text': answer_text,
             'sources': sources or [],
@@ -124,14 +106,14 @@ def log_chat_query(course_id: str, query_text: str, answer_text: str = None, sou
         return None
 
 
-def log_kg_node_click(course_id: str, node_id: str, node_label: str, node_type: str = None) -> str:
+def log_kg_node_click(playground_id: str, node_id: str, node_label: str, node_type: str = None) -> str:
     """
     Logs a knowledge graph node click event.
     
     This tracks which topics students are exploring in the knowledge graph.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
         node_id: The unique identifier of the clicked node
         node_label: The display name of the node (topic name or file name)
         node_type: Optional - 'topic' or 'file'
@@ -141,19 +123,19 @@ def log_kg_node_click(course_id: str, node_id: str, node_label: str, node_type: 
         
     Example:
         log_kg_node_click(
-            course_id="12345",
+            playground_id="abc123",
             node_id="topic_1",
             node_label="Machine Learning",
             node_type="topic"
         )
     """
     try:
-        logger.info(f"Logging KG click for course {course_id}: {node_label}")
+        logger.info(f"Logging KG click for playground {playground_id}: {node_label}")
         
         # Prepare the log data
         log_data = {
             'type': 'kg_click',
-            'course_id': course_id,
+            'playground_id': playground_id,
             'node_id': node_id,
             'node_label': node_label,
             'node_type': node_type,

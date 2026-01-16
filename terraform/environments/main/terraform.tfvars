@@ -1,0 +1,5 @@
+project_id = "playground-ai-478208"
+region     = "us-east1"
+environment   = "global-prod"
+image_tag  = "main"
+artifact_image_path="us-docker.pkg.dev/playground-ai-478208/playground-global-repo/playground-backend"

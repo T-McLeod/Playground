@@ -1,0 +1,25 @@
+<!-- Modal Chat Section Partial (for use inside topic modal) -->
+<div class="modal-chat-section">
+    <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round"
+            style="display:inline-block;vertical-align:middle;margin-right:6px;">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Ask about this topic
+    </h3>
+    <div class="modal-chat-input-container">
+        <textarea id="modal-chat-input" class="modal-chat-input" placeholder="Ask a question about this topic..."
+            rows="2"></textarea>
+        <button id="modal-send-btn" class="modal-send-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        </button>
+    </div>
+    <div class="modal-chat-messages" id="modal-chat-messages">
+        <!-- Typing indicator will be inserted here -->
+    </div>
+</div>

@@ -4,6 +4,7 @@ Handles all Cloud Firestore operations for course data persistence.
 """
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1.collection import CollectionReference
 import os
 import logging
 
@@ -11,22 +12,25 @@ logger = logging.getLogger(__name__)
 
 # Get GCP configuration from environment
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
+DATABASE = os.environ.get('FIRESTORE_DATABASE', '(default)')
 
 # Initialize Firestore client
 # If GOOGLE_APPLICATION_CREDENTIALS is set, it will be used automatically
 # Otherwise, it will use Application Default Credentials (ADC)
 try:
     if PROJECT_ID:
-        db = firestore.Client(project=PROJECT_ID)
+        db = firestore.Client(project=PROJECT_ID, database=DATABASE)
         logger.info(f"Firestore initialized for project: {PROJECT_ID}")
     else:
-        db = firestore.Client()
+        db = firestore.Client(database=DATABASE)
         logger.warning("GOOGLE_CLOUD_PROJECT not set, using default project")
 except Exception as e:
     logger.error(f"Failed to initialize Firestore: {e}")
     db = None
 
-COURSES_COLLECTION = 'courses'
+PLAYGROUNDS_COLLECTION = 'playgrounds'
+GRAPH_NODES_COLLECTION = 'graph_nodes'
+FILES_COLLECTION = 'files'
 ANALYTICS_COLLECTION = 'course_analytics'
 REPORTS_COLLECTION = 'analytics_reports'
 
@@ -40,7 +44,7 @@ def _ensure_db():
         )
 
 
-def get_course_state(course_id: str) -> str:
+def get_course_state(playground_id: str) -> str:
     """
     Returns the current state of the course.
     
@@ -52,7 +56,7 @@ def get_course_state(course_id: str) -> str:
     """
     _ensure_db()
     try:
-        doc = db.collection(COURSES_COLLECTION).document(course_id).get()
+        doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
         
         if not doc.exists:
             return 'NEEDS_INIT'
@@ -71,20 +75,74 @@ def get_course_state(course_id: str) -> str:
         return 'NEEDS_INIT'
 
 
-
-def create_course_doc(course_id: str) -> None:
+def is_canvas_course(playground_id: str) -> bool:
     """
-    Creates the initial course document with GENERATING status.
+    Checks if the playground is associated with a Canvas course.
     
     Args:
-        course_id: The Canvas course ID
+        playground_id: The playground document ID
+    Returns:
+        True if associated with a Canvas course, False otherwise
     """
     _ensure_db()
-    #sets status to GENERATING
-    db.collection(COURSES_COLLECTION).document(course_id).set({
-        'status': 'GENERATING',
-        'init_logs': []  # Initialize empty logs array
-    })
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    if not doc.exists:
+        return False
+    source = doc.get('source')
+    return source.get('type') == 'canvas_course'
+
+
+def create_playground_entity(
+    name: str,
+    source_type: str = "standalone",
+    course_id: str = None
+) -> str:
+    """
+    Creates a standardized playground document in Firestore.
+    This is the single source of truth for playground entity creation.
+    
+    Args:
+        name: Display name for the playground
+        source_type: Either "standalone" or "canvas"
+        course_id: Canvas course ID (required if source_type is "canvas")
+        
+    Returns:
+        playground_id: The generated document ID
+    """
+    _ensure_db()
+    
+    # Build source metadata based on type
+    if source_type == "canvas_course":
+        if not course_id:
+            raise ValueError("course_id is required for canvas source type")
+        source = {
+            'type': 'canvas_course',
+            'course_id': course_id
+        }
+    else:
+        source = {
+            'type': 'standalone'
+        }
+    
+    # Create the playground document with standardized schema
+    playground_ref = db.collection(PLAYGROUNDS_COLLECTION).document()
+    playground_data = {
+        'display_name': name,
+        'created_at': firestore.SERVER_TIMESTAMP,
+        'last_modified_at': firestore.SERVER_TIMESTAMP,
+        'source': source,
+        'status': 'CREATED',
+        'corpus_id': None,  # Will be set after RAG provisioning
+        'config': {
+            'model': 'default',
+            'temperature': 0.7
+        }
+    }
+    
+    playground_ref.set(playground_data)
+    logger.info(f"Created playground entity: {playground_ref.id} ({name})")
+    
+    return playground_ref.id
 
 
 def add_init_log(course_id: str, message: str, level: str = 'info') -> None:
@@ -104,7 +162,7 @@ def add_init_log(course_id: str, message: str, level: str = 'info') -> None:
         'level': level,
         'timestamp': time.time()
     }
-    db.collection(COURSES_COLLECTION).document(course_id).update({
+    db.collection(PLAYGROUNDS_COLLECTION).document(course_id).update({
         'init_logs': ArrayUnion([log_entry])
     })
 
@@ -120,27 +178,171 @@ def get_init_logs(course_id: str) -> list:
         List of log entries
     """
     _ensure_db()
-    doc = db.collection(COURSES_COLLECTION).document(course_id).get()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(course_id).get()
     if doc.exists:
         return doc.get('init_logs', [])
     return []
 
 
-# returns the google.cloud.firestore.document.DocumentSnapshot class
-def get_course_data(course_id: str):
+def get_playground_data(playground_id: str):
     """
-    Fetches the complete course document.
+    Fetches the complete playground document.
+    
+    Args:
+        playground_id: The playground document ID
+        
+    Returns:
+        DocumentSnapshot containing all playground data
+    """
+    _ensure_db()
+    return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+
+
+def get_canvas_course_id(playground_id: str) -> str | None:
+    """
+    Retrieves the Canvas course ID associated with a playground.
+    
+    Args:
+        playground_id: The playground document ID
+        
+    Returns:
+        The Canvas course ID, or None if not found
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    if doc.exists:
+        source = doc.get('source')
+        return source.get('course_id')
+    return None
+
+
+def initialize_file(playground_id: str) -> str:
+    """
+    Creates a new file document in the files subcollection for a playground.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        The new file document ID
+    """
+    _ensure_db()
+    file_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+    new_file_ref = file_collection.document()
+    new_file_ref.set({
+        'created_at': firestore.SERVER_TIMESTAMP,
+        'status': 'initialized'
+    })
+    return new_file_ref.id
+
+
+REQUIRED_FILE_FIELDS = ["name", "size", "gcs_uri", "content_type", "source"]
+def add_files(playground_id: str, files: list[dict]) -> None:
+    """
+    Adds or updates the indexed_files field in the course document.
+    
+    Args:
+        playground_id: The playground document ID
+        files: List of dictionaries representing indexed files to add/update
+    """
+    _ensure_db()
+
+    batch = db.batch()
+    file_collection = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+
+    for file in files:
+        # Validate required fields
+        for field in REQUIRED_FILE_FIELDS:
+            if field not in file:
+                raise ValueError(f"File is missing required field: {field}")
+            
+        if 'id' not in file:
+            file_id = file_collection.document().id
+            file_document = file_collection.document(file_id)
+            file['id'] = file_id
+        else:
+            file_document = file_collection.document(file['id'])
+        
+        batch.set(file_document, file)
+
+    batch.commit()
+
+
+def get_files_metadata(playground_id: str, file_ids: list[str]) -> dict[str, dict]:
+    """
+    Retrieves metadata for a list of file IDs within a playground.
+    
+    Args:
+        playground_id: The playground document ID
+        file_ids: List of file IDs to retrieve
+        
+    Returns:
+        Dictionary mapping file_id to file metadata (filtered to name/display_name)
+    """
+    _ensure_db()
+    if not file_ids:
+        return {}
+        
+    files_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection("files")
+    
+    # Firestore 'in' query supports up to 10/30 items depending on API version.
+    # Safe approach is to look them up individually or in batches if list is long.
+    # Given chat sources (usually < 5-10), fetching all by doc ref is efficient.
+    
+    refs = [files_ref.document(fid) for fid in file_ids]
+    snapshots = db.get_all(refs)
+    
+    result = {}
+    for snap in snapshots:
+        if snap.exists:
+            data = snap.to_dict()
+            # Prefer 'display_name', fallback to 'name'
+            result[snap.id] = {
+                'name': data.get('display_name') or data.get('name', 'Unknown File')
+            }
+            
+    return result
+
+
+def update_status(course_id: str, status: str) -> None:
+    """
+    Updates the status field in the course document.
     
     Args:
         course_id: The Canvas course ID
-        
-    Returns:
-        DocumentSnapshot containing all course data
+        status: The new status value for the course
     """
     _ensure_db()
-    return db.collection(COURSES_COLLECTION).document(course_id).get()
+    db.collection(PLAYGROUNDS_COLLECTION).document(course_id).update({
+        'status': status
+    })
 
 
+def add_corpus_id(playground_id: str, corpus_id: str) -> None:
+    """
+    Adds the corpus_id field to the course document.
+    
+    Args:
+        playground_id: The playground document ID
+        corpus_id: The RAG corpus ID
+    """
+    _ensure_db()
+    db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).set({
+        'corpus_id': corpus_id
+    }, merge=True)
+
+
+def get_corpus_id(playground_id: str) -> str:
+    """
+    Retrieves the corpus_id field from the course document.
+    
+    Args:
+        playground_id: The playground document ID
+    Returns:
+        The RAG corpus ID, or None if not set
+    """
+    _ensure_db()
+    doc = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).get()
+    return doc.get('corpus_id')
 
 
 # call with dictionary of:
@@ -154,38 +356,108 @@ def finalize_course_doc(course_id: str, data: dict) -> None:
         data: Dictionary containing corpus_id, indexed_files, kg_nodes, kg_edges, kg_data
     """
     _ensure_db()
-    db.collection(COURSES_COLLECTION).document(course_id).update({
+    db.collection(PLAYGROUNDS_COLLECTION).document(course_id).update({
         'status': 'ACTIVE',
-        'corpus_id': data.get('corpus_id'),
-        'indexed_files': data.get('indexed_files'),
         'kg_nodes': data.get('kg_nodes'),
         'kg_edges': data.get('kg_edges'),
         'kg_data': data.get('kg_data')
     })
 
-def update_knowledge_graph(course_id: str, kg_nodes: list, kg_edges: list, kg_data: dict) -> None:
-    """
-    Updates only the knowledge graph portion of a course document.
-    Does NOT overwrite corpus_id, indexed_files, or status.
 
+def get_node_collection(playground_id: str) -> CollectionReference:
+    """
+    Returns the graph_nodes subcollection reference for a playground.
+    
     Args:
-        course_id: The Canvas course ID
-        kg_nodes: Updated list of node dicts
-        kg_edges: Updated list of edge dicts
-        kg_data:  Updated dict keyed by topic_id
+        playground_id: The playground document ID
+    Returns:
+        CollectionReference for the graph_nodes subcollection
     """
     _ensure_db()
+    return db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(GRAPH_NODES_COLLECTION)
 
-    update_payload = {
-        'kg_nodes': kg_nodes,
-        'kg_edges': kg_edges,
-        'kg_data':  kg_data
-    }
 
-    db.collection(COURSES_COLLECTION).document(course_id).update(update_payload)
+def get_file_map(playground_id: str) -> dict:
+    """
+    Returns a mapping of file document IDs to their data for a playground.
+    
+    Args:
+        playground_id: The playground document ID
+    
+    Returns:
+        dict: A dictionary where keys are file document IDs and values are file data dictionaries.
+    """
+    _ensure_db()
+    files = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).stream()
+    file_map = {file.id: file.to_dict() for file in files}
+    return file_map
 
-    logger.info(f"Updated knowledge graph for course {course_id}")
 
+def get_file_by_id(playground_id: str, file_id: str) -> dict | None:
+    """
+    Retrieves a file document from the files subcollection.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The file document ID
+        
+    Returns:
+        Dictionary containing file data with doc_id, or None if not found
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_doc = file_ref.get()
+    
+    if not file_doc.exists:
+        return None
+    
+    file_data = file_doc.to_dict()
+    file_data['doc_id'] = file_doc.id
+    return file_data
+
+
+def delete_file_document(playground_id: str, file_id: str) -> None:
+    """
+    Deletes a file document from the files subcollection.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The file document ID to delete
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_ref.delete()
+
+
+def register_uploaded_file(playground_id: str, file_id: str, file_data: dict) -> str:
+    """
+    Registers a file uploaded via signed URL in Firestore.
+    
+    Args:
+        playground_id: The playground document ID
+        file_id: The unique file ID (from signed URL generation)
+        file_data: Dictionary containing file metadata:
+            - name: Original filename
+            - display_name: Display name
+            - size: File size in bytes
+            - content_type: MIME type
+            - gcs_uri: GCS URI where file is stored
+            - source: Source information dict
+            - status: Current status (e.g., 'uploaded', 'indexed')
+            - indexed: Boolean indicating if file is indexed in RAG
+            
+    Returns:
+        The file document ID
+    """
+    _ensure_db()
+    
+    file_ref = db.collection(PLAYGROUNDS_COLLECTION).document(playground_id).collection(FILES_COLLECTION).document(file_id)
+    file_ref.set(file_data)
+    
+    logger.info(f"Registered uploaded file: {file_data.get('name')} ({file_id}) for playground {playground_id}")
+    return file_id
 
 
 def log_analytics_event(data: dict) -> str:
@@ -371,63 +643,27 @@ def rate_analytics_event(doc_id: str, rating: str = None) -> None:
         })
         logger.info(f"Updated rating for analytics event {doc_id}: {rating}")
 
-if __name__ == "__main__":
-    # Test Firestore credentials and connection
-    from dotenv import load_dotenv
-    
-    print("="*70)
-    print("FIRESTORE SERVICE TEST")
-    print("="*70)
-    
-    # Load environment variables
-    load_dotenv()
-    
-    # Re-initialize after loading env
-    PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    
-    print(f"\nEnvironment Variables:")
-    print(f"  GOOGLE_CLOUD_PROJECT: {PROJECT_ID or 'NOT SET'}")
 
-    db = firestore.Client(project=PROJECT_ID)
-    test_course_id = 'test_course_12345'
-
-    print(f"Creating course document for {test_course_id}...")
-    create_course_doc(test_course_id)
-    print("Course document created.")
-    state = get_course_state(test_course_id)
-    print(f"Course state: {state}")
+# Not scalable for large numbers of courses, but fine for current use case
+def get_playground_id_for_course(course_id: str) -> str | None:
+    """
+    Retrieves the playground document ID associated with a Canvas course.
     
-    mock_data = {
-        'corpus_id': 'mock_corpus_001',
-        'indexed_files': {'file1.pdf': 'gcs://bucket/file1.pdf'},
-        'kg_nodes': [{'id': 'node1', 'label': 'Topic 1'}],
-        'kg_edges': [{'source': 'node1', 'target': 'node2', 'relation': 'related_to'}],
-        'kg_data': {'summary': 'This is a mock knowledge graph.'}
-    }
-    finalize_course_doc(test_course_id, mock_data)
-
-    course_data = get_course_data(test_course_id)
-    print(f"\nFinal Course Document Data for {test_course_id}:")
-    print(course_data.to_dict())
+    Args:
+        course_id: The Canvas course ID
+        
+    Returns:
+        The playground document ID, or None if not found
+    """
+    _ensure_db()
     
-    # ------------------------------------------------------------------
-    # Cleanup: remove any analytics chat events with query_text == 'hello'
-    # This helps keep test data clean when running the module as a script.
-    # ------------------------------------------------------------------
-    try:
-        print("\nSearching for analytics chat events with query_text == 'hello'...")
-        hello_docs = db.collection(ANALYTICS_COLLECTION) \
-            .where('course_id', '==', test_course_id) \
-            .where('type', '==', 'chat') \
-            .where('query_text', '==', 'hello') \
-            .stream()
-
-        deleted_count = 0
-        for doc in hello_docs:
-            print(f"Deleting analytics doc: {doc.id} -> {doc.to_dict()}")
-            db.collection(ANALYTICS_COLLECTION).document(doc.id).delete()
-            deleted_count += 1
-
-        print(f"Deleted {deleted_count} analytics documents with query_text == 'hello' for course {test_course_id}.")
-    except Exception as e:
-        logger.error(f"Failed to remove 'hello' chat analytics: {e}", exc_info=True)
+    query = db.collection("playgrounds").where(
+        filter=FieldFilter('source.course_id', '==', course_id)
+    ).limit(1)
+    
+    docs = query.stream()
+    for doc in docs:
+        return doc.id  # Return the first matching document ID
+    
+    logger.warning(f"No playground found for course {course_id}")
+    return None

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,24 +9,45 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <!-- Inject server-side data -->
     <script>
-        const APP_COURSE_ID = "{{ course_id }}";
+        const PLAYGROUND_ID = "{{ playground_id }}";
     </script>
 
     <div id="analytics-dashboard">
         <header class="dashboard-header">
-            <h1>Course Analytics Dashboard</h1>
-            <p class="course-id">Course ID: <span>{{ course_id }}</span></p>
+            <h1 style="display:flex;align-items:center;gap:10px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                Course Analytics Dashboard
+            </h1>
+            <p class="playground-id">Playground ID: <span>{{ playground_id }}</span></p>
             <div class="header-actions">
-                <a href="/launch?course_id={{ course_id }}&role=teacher" class="btn-explorer">
-                    <span class="btn-icon">🗺️</span>
-                    <span class="btn-text">Main View</span>
+                <a href="/launch?playground_id={{ playground_id }}&role=teacher" class="btn-main-view">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    Main View
                 </a>
-                <button id="regenerate-button" class="btn-primary">
-                    <span class="btn-icon">🔄</span>
-                    <span class="btn-text">Regenerate Report</span>
+                <button id="regenerate-button" class="btn-regenerate">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    Regenerate Report
                 </button>
             </div>
         </header>
@@ -105,4 +127,5 @@
 
     <script src="{{ url_for('static', filename='analytics.js') }}"></script>
 </body>
+
 </html>

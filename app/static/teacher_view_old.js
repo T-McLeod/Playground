@@ -27,13 +27,6 @@ const resourceList = document.getElementById('resource-list');
 const modalClose = document.getElementById('modal-close');
 const chatPrompt = document.getElementById('chat-prompt');
 const promptInput = document.getElementById('prompt-input');
-const chatExpandFab = document.getElementById('chat-expand-fab');
-const chatContainer = document.getElementById('chat-container');
-const chatCollapseBtn = document.getElementById('chat-collapse');
-const chatHeader = document.querySelector('.chat-header');
-const chatMessagesContainer = document.getElementById('chat-messages');
-const chatInput = document.getElementById('chat-input');
-const sendBtn = document.getElementById('send-btn');
 const typingIndicator = document.getElementById('typing-indicator');
 const loadingOverlay = document.getElementById('loading-overlay');
 const modalChatInput = document.getElementById('modal-chat-input');
@@ -51,21 +44,21 @@ const modalChatMessages = document.getElementById('modal-chat-messages');
 function renderMarkdownWithMath(content) {
     // First, render markdown
     let html = marked.parse(content);
-    
+
     // Create a temporary div to manipulate the HTML
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
-    
+
     // Render all math expressions using KaTeX
     renderMathInElement(tempDiv, {
         delimiters: [
-            {left: '$$', right: '$$', display: true},
-            {left: '$', right: '$', display: false}
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
         ],
         throwOnError: false,
         trust: true
     });
-    
+
     return tempDiv.innerHTML;
 }
 
@@ -74,7 +67,7 @@ function renderMarkdownWithMath(content) {
 // ===========================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Student View initialized for course:', COURSE_ID);
+    console.log('Teacher View initialized for playground:', PLAYGROUND_ID);
     console.log('User:', USER_ID);
 
     initializeEventListeners();
@@ -85,7 +78,7 @@ function initializeEventListeners() {
     // View toggle handlers
     cardsViewBtn.addEventListener('click', () => switchView('cards'));
     graphViewBtn.addEventListener('click', () => switchView('graph'));
-    
+
     // Graph controls
     fitGraphBtn.addEventListener('click', () => {
         if (network) network.fit();
@@ -103,6 +96,69 @@ function initializeEventListeners() {
         // Close if clicking directly on the modal (not the content)
         if (e.target === topicModal) closeModal();
     });
+
+    // Remove topic button handler
+    const removeTopicBtn = document.getElementById('remove-topic-btn');
+    if (removeTopicBtn) {
+        removeTopicBtn.addEventListener('click', async () => {
+            if (!currentTopic) {
+                alert("No topic selected");
+                return;
+            }
+
+            // Confirm deletion
+            const topicName = currentTopic.label;
+            const confirmed = confirm(`Are you sure you want to remove the topic "${topicName}"?\n\nThis action cannot be undone.`);
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                // Show loading state
+                removeTopicBtn.disabled = true;
+                removeTopicBtn.textContent = "Removing...";
+
+                // POST to backend
+                const response = await fetch('/api/remove-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playground_id: PLAYGROUND_ID,
+                        topic_id: currentTopic.id
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log("Topic removed successfully:", data);
+
+                    // Close modal
+                    closeModal();
+
+                    // Reload the knowledge graph to reflect the removal
+                    await loadKnowledgeGraph();
+
+                    // Show success message
+                    alert(`Topic "${topicName}" removed successfully!`);
+                } else {
+                    console.error("Failed to remove topic:", data);
+                    alert(`Error: ${data.error || data.message || 'Failed to remove topic'}`);
+                }
+            } catch (error) {
+                console.error("Error removing topic:", error);
+                alert("Failed to remove topic. Please try again.");
+            } finally {
+                // Reset button state
+                removeTopicBtn.disabled = false;
+                removeTopicBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Remove Topic`;
+            }
+        });
+    }
+
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (isChatExpanded) {
@@ -124,47 +180,10 @@ function initializeEventListeners() {
         });
     }
 
-    // Floating expand button
-    if (chatExpandFab) {
-        chatExpandFab.addEventListener('click', expandChat);
-    }
 
 
-    // Chat collapse/expand toggle
-    chatCollapseBtn.addEventListener('click', toggleChat);
-    if (chatHeader) {
-        chatHeader.addEventListener('click', toggleChat);
-    }
 
-    // Chat input handlers
-    sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
 
-    // Auto-resize textarea
-    chatInput.addEventListener('input', () => {
-        chatInput.style.height = 'auto';
-        chatInput.style.height = chatInput.scrollHeight + 'px';
-    });
-
-    // Modal chat handlers
-    if (modalSendBtn && modalChatInput) {
-        modalSendBtn.addEventListener('click', sendModalMessage);
-        modalChatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendModalMessage();
-            }
-        });
-        modalChatInput.addEventListener('input', () => {
-            modalChatInput.style.height = 'auto';
-            modalChatInput.style.height = modalChatInput.scrollHeight + 'px';
-        });
-    }
 }
 
 // ===========================
@@ -175,23 +194,22 @@ async function loadKnowledgeGraph() {
     showLoading('Loading knowledge graph...');
 
     try {
-        const response = await fetch(`/api/get-graph?course_id=${COURSE_ID}`);
+        const response = await fetch(`/api/get-graph?playground_id=${PLAYGROUND_ID}`);
         if (!response.ok) {
             throw new Error(`Failed to load graph: ${response.statusText}`);
         }
 
         const data = await response.json();
-        
+
         // Parse the JSON strings into objects
         knowledgeGraph = {
             kg_nodes: JSON.parse(data.nodes),
             kg_edges: JSON.parse(data.edges),
-            kg_data: JSON.parse(data.data),
-            indexed_files: data.indexed_files || {}  // File metadata with gcs_uri
+            kg_data: JSON.parse(data.data)
         };
 
         console.log('Knowledge graph loaded:', knowledgeGraph);
-        
+
         // Render both views (only one will be visible)
         renderTopicCards();
         renderGraph();
@@ -209,13 +227,13 @@ async function loadKnowledgeGraph() {
 
 function switchView(view) {
     currentView = view;
-    
+
     if (view === 'cards') {
         topicsGrid.classList.add('view-active');
         topicsGrid.classList.remove('view-hidden');
         graphContainer.classList.add('view-hidden');
         graphContainer.classList.remove('view-active');
-        
+
         cardsViewBtn.classList.add('active');
         graphViewBtn.classList.remove('active');
     } else {
@@ -223,10 +241,10 @@ function switchView(view) {
         graphContainer.classList.remove('view-hidden');
         topicsGrid.classList.add('view-hidden');
         topicsGrid.classList.remove('view-active');
-        
+
         graphViewBtn.classList.add('active');
         cardsViewBtn.classList.remove('active');
-        
+
         // Fit graph when switching to it
         if (network) {
             setTimeout(() => network.fit(), 100);
@@ -250,7 +268,7 @@ function renderTopicCards() {
     topicNodes.forEach(topic => {
         const card = document.createElement('div');
         card.className = 'topic-card';
-        
+
         // Count connections (related resources)
         const connections = knowledgeGraph.kg_edges.filter(
             edge => edge.from === topic.id || edge.to === topic.id
@@ -271,58 +289,93 @@ function renderTopicCards() {
         topicsGrid.appendChild(card);
     });
 }
+document.addEventListener("DOMContentLoaded", () => {
 
-// ===========================
-// CHAT INTERFACE
-// ===========================
+    const addTopicBtn = document.getElementById("add-topic-btn");
+    const addTopicModal = document.getElementById("add-topic-modal");
+    const addTopicClose = document.getElementById("add-topic-close");
+    const addTopicCancel = document.getElementById("add-topic-cancel-btn");
+    const addTopicSave = document.getElementById("add-topic-save-btn");
 
-function toggleChat() {
-    if (isChatExpanded) {
-        collapseChat();
-    } else {
-        expandChat();
-    }
-}
-
-function expandChat() {
-    isChatExpanded = true;
-    chatContainer.classList.remove('collapsed');
-    chatContainer.classList.add('expanded');
-    
-    // Hide floating button when chat is expanded
-    if (chatExpandFab) {
-        chatExpandFab.classList.remove('visible');
-    }    
-    // Rotate arrow
-    const collapseIcon = document.getElementById('collapse-icon');
-    if (collapseIcon) {
-        collapseIcon.style.transform = 'rotate(180deg)';
-    }
-    
-    collapseIcon.onclick = collapseChat;
-    
-    // Focus on chat input
-    setTimeout(() => chatInput.focus(), 300);
-}
-
-function collapseChat() {
-    isChatExpanded = false;
-    chatContainer.classList.remove('expanded');
-    chatContainer.classList.add('collapsed');
-    
-    // Show floating button when chat is collapsed
-    if (chatExpandFab) {
-        chatExpandFab.classList.add('visible');
+    function openAddTopicModal() {
+        addTopicModal.classList.remove("hidden");
+        setTimeout(() => addTopicModal.classList.add("show"), 10);
     }
 
-    
-    // Rotate arrow back
-    const collapseIcon = document.getElementById('collapse-icon');
-    if (collapseIcon) {
-        collapseIcon.style.transform = 'rotate(0deg)';
+    function closeAddTopicModal() {
+        addTopicModal.classList.remove("show");
+        setTimeout(() => addTopicModal.classList.add("hidden"), 300);
     }
-    collapseIcon.onclick = expandChat;
-}
+
+    if (addTopicBtn) addTopicBtn.addEventListener("click", openAddTopicModal);
+    if (addTopicClose) addTopicClose.addEventListener("click", closeAddTopicModal);
+    if (addTopicCancel) addTopicCancel.addEventListener("click", closeAddTopicModal);
+
+    // Hook for save button
+    if (addTopicSave) {
+        addTopicSave.addEventListener("click", async () => {
+            const name = document.getElementById("new-topic-name").value.trim();
+            const summary = document.getElementById("new-topic-summary").value.trim();
+
+            if (!name) {
+                alert("Please enter a topic name");
+                return;
+            }
+
+            console.log("Adding topic:", { name, summary });
+
+            try {
+                // Show loading state
+                addTopicSave.disabled = true;
+                addTopicSave.textContent = "Adding...";
+
+                // POST to backend
+                const response = await fetch('/api/add-topic', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        playground_id: PLAYGROUND_ID,
+                        topic_name: name,
+                        summary: summary || undefined // Only include if provided
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    console.log("Topic added successfully:", data);
+
+                    // Close modal
+                    closeAddTopicModal();
+
+                    // Clear inputs
+                    document.getElementById("new-topic-name").value = "";
+                    document.getElementById("new-topic-summary").value = "";
+
+                    // Reload the knowledge graph to show new topic
+                    await loadKnowledgeGraph();
+
+                    // Show success message
+                    alert(`Topic "${name}" added successfully!`);
+                } else {
+                    console.error("Failed to add topic:", data);
+                    alert(`Error: ${data.error || 'Failed to add topic'}`);
+                }
+            } catch (error) {
+                console.error("Error adding topic:", error);
+                alert("Failed to add topic. Please try again.");
+            } finally {
+                // Reset button state
+                addTopicSave.disabled = false;
+                addTopicSave.textContent = "Save";
+            }
+        });
+    }
+});
+
+
 
 // ===========================
 // GRAPH VISUALIZATION
@@ -337,41 +390,38 @@ function renderGraph() {
     // Prepare nodes for vis-network
     const nodes = knowledgeGraph.kg_nodes.map(node => {
         const isTopicNode = node.group === 'topic';
-        
+
         return {
             id: node.id,
             label: node.label,
             title: node.label, // Tooltip
             group: node.group,
-            // Swap colors: topics darker/richer, sources lavender with grey text
             color: isTopicNode ? {
-                background: '#7c3aed',  // Rich purple for topics
-                border: '#6d28d9',
+                background: '#6366f1',
+                border: '#4f46e5',
                 highlight: {
-                    background: '#8b5cf6',
-                    border: '#7c3aed'
+                    background: '#818cf8',
+                    border: '#6366f1'
                 }
             } : {
-                background: '#d4c5f9',  // Light lavender for sources
-                border: '#c4b5fd',
+                background: '#10b981',
+                border: '#059669',
                 highlight: {
-                    background: '#e9d5ff',
-                    border: '#d8b4fe'
+                    background: '#34d399',
+                    border: '#10b981'
                 }
             },
             font: {
-                color: isTopicNode ? '#ffffff' : '#4b5563',  // White for topics, grey for sources
-                // Topics bigger, sources slightly bigger too
-                size: isTopicNode ? 20 : 15,
+                color: '#ffffff',
+                size: isTopicNode ? 18 : 15,
                 face: 'Arial',
                 bold: isTopicNode ? true : false
             },
             shape: isTopicNode ? 'box' : 'ellipse',
-            // Topics larger, sources slightly bigger
-            size: isTopicNode ? 30 : 20,
+            size: isTopicNode ? 25 : 20,
             borderWidth: 2,
             shadow: true,
-            margin: isTopicNode ? 18 : 8
+            margin: isTopicNode ? 15 : 10
         };
     });
 
@@ -414,23 +464,22 @@ function renderGraph() {
         physics: {
             enabled: true,
             barnesHut: {
-                gravitationalConstant: -1200,  // Reduced repulsion (was -2000)
-                centralGravity: 0.05,
-                springLength: 250,
-                springConstant: 0.005,  // Much lower stiffness for flexible, flowing edges (was 0.015)
-                damping: 0.25,  // Lower damping for more liveliness (was 0.35)
-                avoidOverlap: 0.2  // Slightly reduced to allow more natural overlap (was 0.3)
+                gravitationalConstant: -2000,  // Much stronger repulsion for wider spread
+                centralGravity: 0.05,  // Very weak center pull - allows horizontal spread
+                springLength: 250,  // Even longer edges for more spacing
+                springConstant: 0.015,  // Lower stiffness for less pull
+                damping: 0.35,  // Higher damping for stability
+                avoidOverlap: 0.3  // Strong overlap avoidance
             },
             stabilization: {
-                iterations: 300,
+                iterations: 300,  // More iterations for better settling
                 updateInterval: 25
             }
         },
         edges: {
             smooth: {
                 type: 'dynamic',
-                forceDirection: 'horizontal',
-                roundness: 0.5  // Smoother curves
+                forceDirection: 'horizontal'  // Encourage horizontal spread
             },
             endPointOffset: {
                 from: 0,
@@ -474,55 +523,33 @@ function renderGraph() {
     // Track dragging to prevent opening modal on drag
     let isDragging = false;
     let clickPosition = null;
-    
-    network.on('dragStart', function(params) {
+
+    network.on('dragStart', function (params) {
         isDragging = true;
         clickPosition = params.pointer.canvas;
     });
-    
-    network.on('dragEnd', function() {
+
+    network.on('dragEnd', function () {
         setTimeout(() => {
             isDragging = false;
         }, 100);
     });
 
     // Handle node clicks - only if not dragging
-    network.on('click', function(params) {
-        // Only open modal/link if we didn't drag and clicked on a node
+    network.on('click', function (params) {
+        // Only open modal if we didn't drag and clicked on a topic node
         if (!isDragging && params.nodes.length > 0) {
             const nodeId = params.nodes[0];
             const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-            
-            console.log('Node clicked:', nodeId, node);
-            
-            if (node) {
-                if (node.group === 'topic') {
-                    // Open topic modal
-                    openTopicModal(node);
-                } else if (node.group === 'file_pdf' || node.group === 'file') {
-                    // Open source file - get the file's GCS URI from indexed_files
-                    console.log('File node clicked, indexed_files:', knowledgeGraph.indexed_files);
-                    console.log('Looking for file ID:', nodeId);
-                    
-                    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[nodeId]) {
-                        const fileData = knowledgeGraph.indexed_files[nodeId];
-                        console.log('File data found:', fileData);
-                        
-                        if (fileData.gcs_uri) {
-                            downloadSource(fileData.gcs_uri, fileData.display_name || node.label);
-                        } else {
-                            console.error('No gcs_uri in file data');
-                        }
-                    } else {
-                        console.error('File not found in indexed_files');
-                    }
-                }
+
+            if (node && node.group === 'topic') {
+                openTopicModal(node);
             }
         }
     });
 
     // Fit graph after stabilization
-    network.once('stabilizationIterationsDone', function() {
+    network.once('stabilizationIterationsDone', function () {
         network.fit();
     });
 }
@@ -535,14 +562,20 @@ async function openTopicModal(topic) {
     currentTopic = topic;
 
     // Get topic data
-    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id] 
-        ? knowledgeGraph.kg_data[topic.id] 
+    const topicData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[topic.id]
+        ? knowledgeGraph.kg_data[topic.id]
         : {};
 
     const summary = topicData.summary || 'No detailed summary available for this topic yet.';
-    
+
+    // Get icon based on topic index
+    const topicIndex = knowledgeGraph.kg_nodes.findIndex(n => n.id === topic.id);
+    const icons = ['<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>'];
+    const icon = icons[topicIndex % icons.length];
+
     // Update modal content
     modalTitle.textContent = topic.label;
+    modalIcon.innerHTML = icon;
     modalSummary.innerHTML = renderMarkdownWithMath(summary);
 
     // Get related resources
@@ -557,7 +590,7 @@ async function openTopicModal(topic) {
         modalChatInput.value = '';
         modalChatInput.style.height = 'auto';
     }
-    
+
     // Ensure typing indicator is hidden
     hideModalTypingIndicator();
 
@@ -581,18 +614,18 @@ function getRelatedResources(topicId) {
     if (!knowledgeGraph.kg_edges || !knowledgeGraph.kg_nodes) return [];
 
     const relatedNodeIds = new Set();
-    
+
     // Find all connected nodes
     knowledgeGraph.kg_edges.forEach(edge => {
         if (edge.from === topicId) relatedNodeIds.add(edge.to);
         if (edge.to === topicId) relatedNodeIds.add(edge.from);
     });
 
-    // Get node details - look for file nodes (group 'file_pdf' or 'file')
+    // Get node details
     const resources = [];
     relatedNodeIds.forEach(nodeId => {
         const node = knowledgeGraph.kg_nodes.find(n => n.id === nodeId);
-        if (node && (node.group === 'file_pdf' || node.group === 'file' || node.group === 'resource')) {
+        if (node && node.group === 'resource') {
             resources.push(node);
         }
     });
@@ -617,96 +650,26 @@ function renderRelatedResources(resources) {
 }
 
 function openResource(resource) {
-    // For file nodes, get the file's GCS URI from indexed_files and download
-    const fileId = resource.id;
-    
-    if (knowledgeGraph.indexed_files && knowledgeGraph.indexed_files[fileId]) {
-        const fileData = knowledgeGraph.indexed_files[fileId];
-        if (fileData.gcs_uri) {
-            downloadSource(fileData.gcs_uri, fileData.display_name || resource.label);
-            return;
-        }
+    // Get resource data
+    const resourceData = knowledgeGraph.kg_data && knowledgeGraph.kg_data[resource.id]
+        ? knowledgeGraph.kg_data[resource.id]
+        : {};
+
+    if (resourceData.url) {
+        window.open(resourceData.url, '_blank');
+    } else {
+        alert(`Resource: ${resource.label}\n\nNo URL available for this resource.`);
     }
-    
-    console.error('Could not find GCS URI for file:', resource);
-    alert(`Could not open ${resource.label}. File may not be available.`);
 }
 
 // ===========================
 // CHAT FUNCTIONALITY
 // ===========================
 
-async function sendMessage() {
-    const query = chatInput.value.trim();
-    if (!query) return;
-
-    // Expand chat if not already expanded
-    if (!isChatExpanded) {
-        expandChat();
-    }
-
-    // Disable input while sending
-    chatInput.disabled = true;
-    sendBtn.disabled = true;
-
-    // Add user message to chat
-    addMessage({
-        role: 'user',
-        content: query
-    });
-
-    // Clear input
-    chatInput.value = '';
-    chatInput.style.height = 'auto';
-
-    // Show typing indicator
-    typingIndicator.classList.remove('hidden');
-
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                course_id: COURSE_ID,
-                query: query
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`Chat request failed: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // Add bot response
-        addMessage({
-            role: 'assistant',
-            content: data.answer || data.response || 'I received your question but had trouble generating an answer.',
-            sources: data.sources || [],
-            log_doc_id: data.log_doc_id  // Include log_doc_id for rating
-        });
-
-    } catch (error) {
-        console.error('Error sending message:', error);
-        addMessage({
-            role: 'assistant',
-            content: 'Sorry, I encountered an error processing your question. Please try again.',
-            sources: []
-        });
-    } finally {
-        typingIndicator.classList.add('hidden');
-        chatInput.disabled = false;
-        sendBtn.disabled = false;
-        chatInput.focus();
-    }
-}
-
 // Modal chat functionality
 async function sendModalMessage() {
     if (!modalChatInput || !modalSendBtn) return;
-    
+
     const query = modalChatInput.value.trim();
     if (!query) return;
 
@@ -740,7 +703,7 @@ async function sendModalMessage() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 query: contextualQuery
             })
         });
@@ -763,10 +726,10 @@ async function sendModalMessage() {
 
     } catch (error) {
         console.error('Error sending modal message:', error);
-        
+
         // Hide typing indicator
         hideModalTypingIndicator();
-        
+
         addModalMessage({
             role: 'assistant',
             content: 'Sorry, I encountered an error processing your question. Please try again.',
@@ -781,29 +744,36 @@ async function sendModalMessage() {
 
 function showModalTypingIndicator() {
     if (!modalChatMessages) return;
-    
+
     // Remove existing typing indicator if any
     hideModalTypingIndicator();
-    
+
     const typingIndicator = document.createElement('div');
     typingIndicator.className = 'modal-typing-indicator';
     typingIndicator.id = 'modal-typing-indicator';
-    
+
     const avatar = document.createElement('div');
     avatar.className = 'typing-avatar';
-    avatar.textContent = '🤖';
-    
+    // Use Playground logo instead of emoji
+    const logoImg = document.createElement('img');
+    logoImg.src = '/static/img/playground_logo.png';
+    logoImg.alt = 'Playground AI';
+    logoImg.style.width = '100%';
+    logoImg.style.height = '100%';
+    logoImg.style.objectFit = 'contain';
+    avatar.appendChild(logoImg);
+
     const dotsContainer = document.createElement('div');
     dotsContainer.className = 'typing-dots';
     for (let i = 0; i < 3; i++) {
         const dot = document.createElement('span');
         dotsContainer.appendChild(dot);
     }
-    
+
     typingIndicator.appendChild(avatar);
     typingIndicator.appendChild(dotsContainer);
     modalChatMessages.appendChild(typingIndicator);
-    
+
     // Scroll to bottom
     setTimeout(() => {
         modalChatMessages.scrollTop = modalChatMessages.scrollHeight;
@@ -824,13 +794,20 @@ function addModalMessage(message) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `modal-chat-message ${message.role === 'user' ? 'user' : 'bot'}`;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'modal-chat-avatar';
-    avatar.textContent = message.role === 'user' ? '👤' : '🤖';
+    // Only add avatar for bot messages
+    if (message.role !== 'user') {
+        const avatar = document.createElement('div');
+        avatar.className = 'modal-chat-avatar';
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        avatar.appendChild(logoImg);
+        messageDiv.appendChild(avatar);
+    }
 
     const content = document.createElement('div');
     content.className = 'modal-chat-content';
-    
+
     // Render markdown with math for assistant messages, plain text for user messages
     if (message.role === 'user') {
         content.textContent = message.content;
@@ -838,7 +815,6 @@ function addModalMessage(message) {
         content.innerHTML = renderMarkdownWithMath(message.content);
     }
 
-    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
     modalChatMessages.appendChild(messageDiv);
 
@@ -851,6 +827,18 @@ function addMessage(message) {
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${message.role === 'user' ? 'user-message' : 'bot-message'}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    if (message.role === 'user') {
+        const initial = (typeof USER_ID === 'string' && USER_ID.length > 0) ? USER_ID.charAt(0).toUpperCase() : 'U';
+        avatar.textContent = initial;
+    } else {
+        const logoImg = document.createElement('img');
+        logoImg.src = '/static/img/playground_logo.png';
+        logoImg.alt = 'Playground AI';
+        avatar.appendChild(logoImg);
+    }
 
     const content = document.createElement('div');
     content.className = 'message-content';
@@ -869,7 +857,7 @@ function addMessage(message) {
         const sourcesDiv = document.createElement('div');
         sourcesDiv.className = 'message-sources';
         sourcesDiv.innerHTML = '<strong>Sources:</strong>';
-        
+
         message.sources.forEach(source => {
             // Handle both old string format and new object format
             if (typeof source === 'string') {
@@ -885,13 +873,13 @@ function addMessage(message) {
                 sourceLink.textContent = source.filename;
                 sourceLink.href = '#';
                 sourceLink.title = `Download ${source.filename}`;
-                
+
                 // Add click handler to get signed URL and download
                 sourceLink.addEventListener('click', async (e) => {
                     e.preventDefault();
                     await downloadSource(source.source_uri, source.filename);
                 });
-                
+
                 sourcesDiv.appendChild(sourceLink);
             }
         });
@@ -903,24 +891,25 @@ function addMessage(message) {
     if (message.role === 'assistant' && message.log_doc_id) {
         const ratingDiv = document.createElement('div');
         ratingDiv.className = 'message-rating';
-        
+
         const likeBtn = document.createElement('button');
         likeBtn.className = 'rating-btn like-btn';
-        likeBtn.textContent = 'Helpful';
+        likeBtn.innerHTML = '👍';
         likeBtn.title = 'Helpful';
         likeBtn.onclick = () => rateAnswer(message.log_doc_id, 'helpful', ratingDiv);
-        
+
         const dislikeBtn = document.createElement('button');
         dislikeBtn.className = 'rating-btn dislike-btn';
-        dislikeBtn.textContent = 'Not Helpful';
+        dislikeBtn.innerHTML = '👎';
         dislikeBtn.title = 'Not helpful';
         dislikeBtn.onclick = () => rateAnswer(message.log_doc_id, 'not_helpful', ratingDiv);
-        
+
         ratingDiv.appendChild(likeBtn);
         ratingDiv.appendChild(dislikeBtn);
         content.appendChild(ratingDiv);
     }
 
+    messageDiv.appendChild(avatar);
     messageDiv.appendChild(content);
 
     chatMessagesContainer.appendChild(messageDiv);
@@ -936,17 +925,17 @@ async function downloadSource(gcsUri, filename) {
     try {
         // Fetch signed URL from backend
         const response = await fetch(`/api/download-source?gcs_uri=${encodeURIComponent(gcsUri)}`);
-        
+
         if (!response.ok) {
             throw new Error('Failed to get download URL');
         }
-        
+
         const data = await response.json();
         const downloadUrl = data.download_url;
-        
+
         // Open the signed URL in a new tab to trigger download
         window.open(downloadUrl, '_blank');
-        
+
     } catch (error) {
         console.error('Error downloading source:', error);
         alert(`Failed to download ${filename}. Please try again.`);
@@ -974,8 +963,8 @@ async function rateAnswer(logDocId, rating, ratingDiv) {
         }
 
         // Show feedback and disable buttons
-        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback!</span>`;
-        
+        ratingDiv.innerHTML = `<span class="rating-feedback">Thanks for your feedback! ${rating === 'helpful' ? '👍' : '👎'}</span>`;
+
     } catch (error) {
         console.error('Error rating answer:', error);
         alert('Failed to submit rating. Please try again.');
@@ -994,11 +983,11 @@ async function logNodeClick(nodeId, nodeLabel, nodeType = 'topic') {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                course_id: COURSE_ID,
+                playground_id: PLAYGROUND_ID,
                 node_id: nodeId,
                 node_label: nodeLabel,
                 node_type: nodeType,
-                user_id: '',
+                user_id: USER_ID,
                 timestamp: new Date().toISOString()
             })
         });

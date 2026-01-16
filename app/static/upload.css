@@ -1,0 +1,577 @@
+/* Upload Modal Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+.upload-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.upload-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.upload-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.upload-modal-content-wide {
+    max-width: 900px;
+}
+
+.upload-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, rgba(0, 26, 87, 0.05) 0%, rgba(168, 200, 240, 0.15) 100%);
+}
+
+.upload-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.status-up_to_date {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-out_of_date {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-missing {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-unknown {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.upload-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+    transition: color 0.2s ease;
+}
+
+.upload-modal-close:hover {
+    color: #1e293b;
+}
+
+.upload-modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.upload-modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e2e8f0;
+    text-align: right;
+    background: #f8fafc;
+}
+
+/* Dropzone Customization */
+#file-dropzone {
+    border: 2px dashed #a8c8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    min-height: 200px;
+}
+
+#file-dropzone.dz-drag-hover {
+    border-color: #001A57;
+    background: rgba(0, 26, 87, 0.05);
+}
+
+#file-dropzone .dz-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+#file-dropzone .dz-message span {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+/* File preview styling */
+#file-dropzone .dz-preview {
+    margin: 10px;
+}
+
+/* File Manager Styles */
+.file-manager-list-container {
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.file-manager-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.file-manager-table th,
+.file-manager-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.file-manager-table th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #1e293b;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.file-manager-table tr:hover {
+    background-color: #f8fafc;
+}
+
+.file-manager-upload-section {
+    margin-top: 10px;
+}
+
+.skinny-dropzone {
+    min-height: 50px !important;
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    border: 2px dashed #a8c8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.skinny-dropzone .dz-message {
+    margin: 0 !important;
+    padding: 10px !important;
+    text-align: center;
+}
+
+/* File preview row */
+.skinny-dropzone .dz-preview {
+    display: flex !important;
+    align-items: center !important;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 6px 10px !important;
+    margin: 2px 0 !important;
+    min-height: auto !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.skinny-dropzone .dz-preview .dz-image {
+    display: none !important;
+}
+
+/* Details container with filename and size */
+.skinny-dropzone .dz-preview .dz-details {
+    display: flex !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    gap: 0 !important;
+    opacity: 1 !important;
+    position: static !important;
+    padding: 0 !important;
+    font-size: 0.85rem;
+    color: #1e293b;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* Filename - order 1, takes remaining space */
+.skinny-dropzone .dz-preview .dz-details .dz-filename {
+    order: 1;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.skinny-dropzone .dz-preview .dz-details .dz-filename span {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Size - order 2, fixed width on right */
+.skinny-dropzone .dz-preview .dz-details .dz-size {
+    order: 2;
+    font-size: 0.75rem;
+    color: #64748b;
+    flex-shrink: 0;
+    margin-left: 12px;
+    white-space: nowrap;
+}
+
+.skinny-dropzone .dz-preview .dz-details .dz-size span {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.skinny-dropzone .dz-preview .dz-progress {
+    display: none !important;
+}
+
+.skinny-dropzone .dz-preview .dz-success-mark,
+.skinny-dropzone .dz-preview .dz-error-mark {
+    display: none !important;
+}
+
+.skinny-dropzone .dz-preview .dz-error-message {
+    position: static !important;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: #ef4444;
+}
+
+/* Custom remove button - small inline X */
+.skinny-dropzone .dz-preview .dz-remove {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background: none;
+    border: none !important;
+    border-radius: 3px;
+    color: #9ca3af;
+    font-size: 0 !important;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    flex-shrink: 0;
+    margin-left: 10px;
+    padding: 0 !important;
+}
+
+.skinny-dropzone .dz-preview .dz-remove::before {
+    content: '×';
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.skinny-dropzone .dz-preview .dz-remove:hover {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+/* When file is uploading */
+.skinny-dropzone .dz-preview.dz-processing {
+    background: #f0f9ff;
+    border-color: #a8c8f0;
+}
+
+/* When file upload succeeds */
+.skinny-dropzone .dz-preview.dz-success {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+/* When file upload fails */
+.skinny-dropzone .dz-preview.dz-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+/* Canvas Files Button - Duke Blue Accent */
+.btn-canvas-files {
+    background: linear-gradient(135deg, rgba(168, 200, 240, 0.25) 0%, rgba(168, 200, 240, 0.4) 100%);
+    color: #1e293b;
+    border: 1px solid #a8c8f0;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-canvas-files:hover {
+    background: #a8c8f0;
+    border-color: #a8c8f0;
+    transform: translateY(-1px);
+}
+
+/* Delete Button */
+.btn-delete-files {
+    background: linear-gradient(135deg, rgba(245, 165, 184, 0.2) 0%, rgba(245, 165, 184, 0.35) 100%);
+    color: #1e293b;
+    border: 1px solid #f5a5b8;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-delete-files:hover {
+    background: #f5a5b8;
+    border-color: #f5a5b8;
+    transform: translateY(-1px);
+}
+
+.btn-delete-files:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-danger {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+.btn-danger:disabled {
+    background-color: #fca5a5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: white;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+/* Action Buttons for Canvas Files */
+.btn-action-reload {
+    background: linear-gradient(135deg, rgba(168, 200, 240, 0.25) 0%, rgba(168, 200, 240, 0.4) 100%);
+    color: #1e293b;
+    border: 1px solid #a8c8f0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-action-reload:hover {
+    background: #a8c8f0;
+    border-color: #a8c8f0;
+    transform: translateY(-1px);
+}
+
+.btn-action-add {
+    background: #001A57;
+    color: white;
+    border: 1px solid #001A57;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-action-add:hover {
+    background: #00134a;
+    border-color: #00134a;
+    transform: translateY(-1px);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+#file-dropzone .dz-preview .dz-progress {
+    height: 6px;
+    border-radius: 3px;
+}
+
+#file-dropzone .dz-preview .dz-progress .dz-upload {
+    background: #001A57;
+}
+
+#file-dropzone .dz-preview.dz-success .dz-progress .dz-upload {
+    background: #10B981;
+}
+
+#file-dropzone .dz-preview.dz-error .dz-progress .dz-upload {
+    background: #EF4444;
+}
+
+/* Upload Actions Section */
+.upload-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    justify-content: flex-end;
+}
+
+.btn-upload-confirm {
+    background: #001A57;
+    color: white;
+    border: 1px solid #001A57;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-upload-confirm:hover:not(:disabled) {
+    background: #00134a;
+    border-color: #00134a;
+    transform: translateY(-1px);
+}
+
+.btn-upload-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-clear-queue {
+    background: white;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-clear-queue:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+.btn-clear-queue:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Spinning animation for loading */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Improve dropzone message styling */
+#file-dropzone .dz-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #64748b;
+}
+
+#file-dropzone .dz-message svg {
+    color: #a8c8f0;
+}
+
+/* Hide the message when there are files */
+.skinny-dropzone.dz-started .dz-message {
+    display: none !important;
+}

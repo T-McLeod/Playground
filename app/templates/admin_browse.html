@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playground AI - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='explorer.css') }}">
+</head>
+
+<body>
+    <!-- Inject server-side data -->
+    <script>
+        const INITIAL_FOLDER_ID = "{{ folder_id or 'root' }}";
+    </script>
+
+    <div class="explorer-shell">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='img/playground_logo.png') }}" class="logo-image" alt="Logo">
+                <h1 class="logo-text">Playground AI</h1>
+            </div>
+
+            <div class="new-menu-container">
+                <button id="new-menu-btn" class="new-menu-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>New</span>
+                    <i class="fas fa-chevron-down dropdown-icon"></i>
+                </button>
+                <div id="new-menu-dropdown" class="new-menu-dropdown hidden">
+                    <button class="dropdown-item" data-action="new-instance">
+                        <i class="fas fa-robot"></i>
+                        <span>New Instance</span>
+                    </button>
+                    <button class="dropdown-item" data-action="new-folder">
+                        <i class="fas fa-folder"></i>
+                        <span>New Folder</span>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-view="home">
+                    <i class="fas fa-home nav-icon"></i>
+                    <span class="nav-label">Home</span>
+                </a>
+                <a href="#" class="nav-item" data-view="recent">
+                    <i class="fas fa-clock nav-icon"></i>
+                    <span class="nav-label">Recent</span>
+                </a>
+                <a href="#" class="nav-item" data-view="starred">
+                    <i class="fas fa-star nav-icon"></i>
+                    <span class="nav-label">Starred</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+
+            <nav class="sidebar-nav secondary">
+                <a href="#" class="nav-item" data-view="archive">
+                    <i class="fas fa-archive nav-icon"></i>
+                    <span class="nav-label">Archive</span>
+                </a>
+                <a href="#" class="nav-item" data-view="settings">
+                    <i class="fas fa-cog nav-icon"></i>
+                    <span class="nav-label">Settings</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <!-- Breadcrumbs -->
+                <nav class="breadcrumbs" id="breadcrumbs">
+                    <a href="#" class="breadcrumb-item" data-id="root">Home</a>
+                </nav>
+
+                <!-- Actions -->
+                <div class="toolbar-actions">
+                    <!-- Actions moved to sidebar New menu -->
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-area">
+                <!-- Loading State -->
+                <div id="loading-state" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state hidden">
+                    <i class="fas fa-folder-open empty-icon"></i>
+                    <h2>No items yet</h2>
+                    <p>Create your first folder or instance to get started.</p>
+                    <button id="empty-new-instance-btn" class="primary-btn">
+                        <i class="fas fa-plus"></i>
+                        <span>Create Instance</span>
+                    </button>
+                </div>
+
+                <!-- Items Grid -->
+                <div id="items-grid" class="items-grid hidden">
+                    <!-- Items will be dynamically inserted here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Modal -->
+    <div id="create-modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Create New Item</h2>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="item-name-input">Name</label>
+                <input type="text" id="item-name-input" placeholder="Enter name..." autofocus>
+                <p class="input-hint" id="input-hint"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel-btn" class="secondary-btn">Cancel</button>
+                <button id="modal-create-btn" class="primary-btn">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu hidden">
+        <button class="context-item" data-action="open">
+            <i class="fas fa-folder-open context-icon"></i>
+            <span>Open</span>
+        </button>
+        <button class="context-item" data-action="rename">
+            <i class="fas fa-edit context-icon"></i>
+            <span>Rename</span>
+        </button>
+        <button class="context-item" data-action="move">
+            <i class="fas fa-arrows-alt context-icon"></i>
+            <span>Move to...</span>
+        </button>
+        <div class="context-divider"></div>
+        <button class="context-item danger" data-action="delete">
+            <i class="fas fa-trash context-icon"></i>
+            <span>Delete</span>
+        </button>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/explorer.js') }}"></script>
+</body>
+
+</html>

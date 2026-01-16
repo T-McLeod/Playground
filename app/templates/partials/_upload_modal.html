@@ -1,0 +1,97 @@
+<!-- File Manager Modal -->
+<div id="upload-modal" class="upload-modal" style="display: none;">
+    <div class="upload-modal-overlay" onclick="closeUploadModal()"></div>
+    <div class="upload-modal-content">
+        <div class="upload-modal-header">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    style="display:inline-block;vertical-align:middle;margin-right:8px;">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                File Manager
+            </h2>
+            <button class="upload-modal-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <div class="upload-modal-body">
+            <!-- File List Section -->
+            <div class="file-manager-list-container">
+                <div id="file-list-loading" style="display: none; text-align: center; padding: 20px;">
+                    Loading files...
+                </div>
+                <div id="file-list-empty" style="display: none; text-align: center; padding: 20px; color: #6b7280;">
+                    No files found. Upload some below!
+                </div>
+                <table id="file-manager-table" class="file-manager-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="select-all-files"></th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-list-body">
+                        <!-- Files will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Dropzone Section -->
+            <div class="file-manager-upload-section">
+                <form id="file-dropzone" class="dropzone skinny-dropzone">
+                    <div class="dz-message">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Drop files here or click to select</span>
+                    </div>
+                </form>
+                <div class="upload-actions">
+                    <button id="upload-files-confirm-btn" class="btn-upload-confirm" disabled
+                        onclick="uploadQueuedFiles()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload Files (<span id="queued-file-count">0</span>)
+                    </button>
+                    <button id="clear-queue-btn" class="btn-clear-queue" disabled onclick="clearFileQueue()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="upload-modal-footer">
+            <div style="float: left; display: flex; gap: 10px;">
+                <button id="open-canvas-files-btn" class="btn-canvas-files" onclick="openCanvasFilesModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                    </svg>
+                    Canvas Files
+                </button>
+                <button id="delete-files-btn" class="btn-delete-files" disabled onclick="deleteSelectedFiles()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    Delete Selected
+                </button>
+            </div>
+            <button class="btn-secondary" onclick="closeUploadModal()">Close</button>
+        </div>
+    </div>
+</div>

@@ -10,10 +10,16 @@ This service provides functions to:
 
 All files are organized by course_id for easy management.
 """
+from datetime import timedelta
+import io
 from google.cloud import storage
 import os
 import logging
 from typing import List, Dict, Optional
+import requests
+import google.auth
+from google.auth.transport import requests as auth_requests
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +28,7 @@ logger = logging.getLogger(__name__)
 # GCS configuration from environment variables
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
 BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
+LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-east1')
 
 
 def get_storage_client() -> storage.Client:
@@ -49,14 +55,53 @@ def ensure_bucket_exists(bucket_name: str = BUCKET_NAME) -> storage.Bucket:
     
     try:
         bucket = client.get_bucket(bucket_name)
-        logger.info(f"Bucket '{bucket_name}' already exists")
         return bucket
-    except Exception:
-        # Bucket doesn't exist, create it
-        logger.info(f"Creating bucket '{bucket_name}' in location '{LOCATION}'...")
-        bucket = client.create_bucket(bucket_name, location=LOCATION)
-        logger.info(f"Bucket '{bucket_name}' created successfully")
-        return bucket
+    except Exception as e:
+        logger.error(f"Bucket '{bucket_name}' does not exist or cannot be accessed. Error: {e}")
+        raise
+
+
+def stream_files_to_gcs(files: List[Dict], playground_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
+    """
+    Streams files from their download URLs to Google Cloud Storage and updates file objects with GCS URIs.
+    Files are organized in the bucket as: courses/{course_id}/{filename}
+    
+    Args:
+        files: Dictionary mapping file IDs to file metadata dictionaries, each containing at least
+            a 'display_name' and a 'url' used to download the file contents.
+        course_id: Canvas course ID for organizing files
+        bucket_name: GCS bucket name (default from env)
+        
+    Returns:
+        Updated dictionary of file objects with 'gcs_uri' property added
+    """
+    bucket = ensure_bucket_exists(bucket_name)
+
+    for file in files:
+        display_name = file.get('display_name', f"file_{file.get('id')}")
+        file_id = file.get('id')
+        download_url = file['source']['download_url']
+
+        logger.debug(f"Starting upload for file: {display_name}")
+        logger.debug(file)
+        with requests.get(download_url, stream=True) as response:
+            response.raise_for_status()
+            
+            blob_path = f"playgrounds/{playground_id}/{file_id}.pdf"
+            blob = bucket.blob(blob_path)
+            gcs_uri = f"gs://{bucket_name}/{blob_path}"
+
+            logger.debug(f"Starting stream for {blob_path}...")
+            blob.upload_from_file(
+                response.raw, 
+                content_type=response.headers.get('Content-Type')
+            )
+            blob.content_disposition = f'inline; filename="{display_name}"'
+            blob.patch()
+            file['gcs_uri'] = gcs_uri
+            logger.info(f"Successfully uploaded {blob_path}")
+
+    return files
 
 
 def upload_course_files(files: List[Dict], course_id: str, bucket_name: str = BUCKET_NAME) -> List[Dict]:
@@ -209,6 +254,34 @@ def delete_course_files(course_id: str, bucket_name: str = BUCKET_NAME) -> int:
     return delete_count
 
 
+def delete_file(gcs_uri: str) -> bool:
+    """
+    Deletes a single file from GCS.
+    
+    Args:
+        gcs_uri: GCS URI of the file to delete (e.g., 'gs://bucket/path/to/file.pdf')
+    """
+    # Parse GCS URI
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name = parts[0]
+    blob_path = parts[1] if len(parts) > 1 else ''
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        blob.delete()
+        logger.info(f"Deleted file: {gcs_uri}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete file {gcs_uri}: {str(e)}")
+        return False
+
+
 def get_file_info(gcs_uri: str) -> Optional[Dict]:
     """
     Gets metadata for a file in GCS.
@@ -248,29 +321,19 @@ def get_file_info(gcs_uri: str) -> Optional[Dict]:
     except Exception as e:
         logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
         return None
-
-
-def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
+    
+def get_file_obj(gcs_uri: str) -> Optional[io.BytesIO]:
     """
-    Generates a signed URL for downloading a file from GCS.
+    Retrieves the file contents for a given GCS URI as a file-like object.
     
     Args:
         gcs_uri: GCS URI (e.g., 'gs://bucket/path/to/file.pdf')
-        expiration_minutes: URL expiration time in minutes (default: 60)
-        
-    Returns:
-        Signed URL string that allows temporary public access
-        
-    Raises:
-        ValueError: If GCS URI is invalid
-        Exception: If signed URL generation fails
-        
-    Example:
-        url = generate_signed_url('gs://my-bucket/file.pdf', 30)
-        # Returns: https://storage.googleapis.com/my-bucket/file.pdf?X-Goog-Signature=...
-    """
-    from datetime import timedelta
     
+    Returns:
+        Optional[io.BytesIO]: A file-like object containing the file contents
+        if the blob exists and is successfully downloaded, or None if the
+        blob does not exist or an error occurs.
+    """
     # Parse GCS URI
     if not gcs_uri.startswith('gs://'):
         raise ValueError(f"Invalid GCS URI: {gcs_uri}")
@@ -284,79 +347,232 @@ def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
         bucket = client.bucket(bucket_name)
         blob = bucket.blob(blob_path)
         
-        # Generate signed URL with expiration
+        if not blob.exists():
+            return None
+        
+        file_bytes = blob.download_as_bytes()
+
+        file_obj = io.BytesIO(file_bytes)
+        file_obj.name = blob_path
+
+        return file_obj
+    except Exception as e:
+        logger.error(f"Failed to get info for {gcs_uri}: {str(e)}")
+        return None
+
+
+def generate_signed_upload_url(playground_id: str, file_id: str, content_type: str = 'application/octet-stream', 
+                                expiration_minutes: int = 15, bucket_name: str = BUCKET_NAME) -> dict:
+    """
+    Generates a signed URL for uploading a file directly to GCS.
+    This bypasses Cloud Run memory limits by allowing direct browser-to-GCS uploads.
+    
+    Args:
+        playground_id: The playground ID to organize uploads
+        file_id: Unique file ID (UUID) for the uploaded file
+        content_type: MIME type of the file to upload
+        expiration_minutes: URL expiration time in minutes (default: 15)
+        bucket_name: GCS bucket name
+        
+    Returns:
+        Dictionary with upload_url and gcs_uri
+        
+    Example:
+        result = generate_signed_upload_url('playground123', 'file-uuid', 'application/pdf')
+        # Returns: {
+        #   'upload_url': 'https://storage.googleapis.com/...?X-Goog-Signature=...',
+        #   'gcs_uri': 'gs://bucket/playgrounds/playground123/uploads/file-uuid'
+        # }
+    """
+    from datetime import timedelta
+    
+    try:
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        
+        # Store uploads in a dedicated folder
+        blob_path = f"playgrounds/{playground_id}/uploads/{file_id}.pdf"
+        blob = bucket.blob(blob_path)
+        
+        credentials, _ = google.auth.default()
+
+        iam_scope = "https://www.googleapis.com/auth/iam"
+        if iam_scope not in (credentials.scopes or []):
+            credentials = credentials.with_scopes([iam_scope])
+        
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
+
+        service_account_email = _resolve_service_account_email(credentials)
+        logger.info(f"Using service account email: {service_account_email}")
+        
+        logger.info(f"Generating signed upload URL for {blob_path}")
+        
         url = blob.generate_signed_url(
             version="v4",
             expiration=timedelta(minutes=expiration_minutes),
-            method="GET"
+            method="PUT",
+            content_type=content_type,
+            service_account_email=service_account_email,
+            access_token=credentials.token # CRITICAL: Tells library to use SignBlob
         )
+
+        gcs_uri = f"gs://{bucket_name}/{blob_path}"
         
-        logger.info(f"Generated signed URL for {blob_path} (expires in {expiration_minutes} min)")
-        return url
+        logger.info(f"Generated signed upload URL for {blob_path} (expires in {expiration_minutes} min)")
+        
+        return {
+            'upload_url': url,
+            'gcs_uri': gcs_uri
+        }
         
     except Exception as e:
-        logger.error(f"Failed to generate signed URL for {gcs_uri}: {str(e)}")
+        logger.error(f"Failed to generate signed upload URL: {str(e)}")
         raise
 
 
-if __name__ == "__main__":
-    # Test the GCS service
-    from dotenv import load_dotenv
-    import sys
-    
-    # Load environment variables
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    env_path = os.path.join(root_dir, '.env')
-    load_dotenv(env_path)
+def _resolve_service_account_email(credentials) -> str:
+    """
+    Helper to resolve the actual service account email.
+    Cloud Run credentials often have 'default' as the email, but the IAM API
+    requires the actual email address for signing.
+    """
+    if hasattr(credentials, 'service_account_email') and credentials.service_account_email != 'default':
+        return credentials.service_account_email
+        
+    # Attempt to fetch from metadata server
+    try:
+        logger.info("Fetching service account email from metadata server...")
+        resp = requests.get(
+            'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email',
+            headers={'Metadata-Flavor': 'Google'},
+            timeout=2
+        )
+        if resp.status_code == 200:
+            email = resp.text.strip()
+            logger.info(f"Resolved service account email: {email}")
+            return email
+    except Exception as e:
+        logger.warning(f"Failed to fetch service account email from metadata: {e}")
+        
+    return 'default'
 
-    PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT')
-    BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME', f'{PROJECT_ID}-canvas-files')
-    LOCATION = os.environ.get('GOOGLE_CLOUD_LOCATION', 'us-central1')
-    
-    print(f"Loaded environment from: {env_path}")
-    print(f"GOOGLE_CLOUD_PROJECT: {os.getenv('GOOGLE_CLOUD_PROJECT')}")
-    print(f"GCS_BUCKET_NAME: {BUCKET_NAME}")
-    
-    if not PROJECT_ID:
-        print("\n⚠️  Please set GOOGLE_CLOUD_PROJECT in .env")
-        sys.exit(1)
 
-    mock_file = {
-        'id': '319580865',
-        'display_name': 'Lec 1.pdf',
-        'filename': 'Lec+1.pdf',
-        'url': 'https://canvas.instructure.com/files/319580865/download?download_frd=1&verifier=hPXvy0owVxSkEZ7paw1TVZLD5mrXWcTBvGF4KK1A',
-        'html_url': 'https://canvas.instructure.com/files/319580865/download?download_frd=1&verifier=hPXvy0owVxSkEZ7paw1TVZLD5mrXWcTBvGF4KK1A',
-        'content_type': 'application/pdf',
-        'size': 153935,
-        'created_at': '2025-11-07T05:39:33Z',
-        'updated_at': '2025-11-07T05:39:33Z',
-        'local_path': os.path.join(os.getcwd(), 'app', 'data', 'courses', '13299557', 'Lec 1.pdf')
-    }
+def generate_signed_url(gcs_uri: str, expiration_minutes: int = 60) -> str:
+    """
+    Generates a v4 signed URL using the IAM SignBlob API.
+    Explicitly passes the access_token to bypass the 'private key' requirement on Cloud Run.
+    """
+    # 1. Standard Parsing
+    if not gcs_uri.startswith('gs://'):
+        raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+    
+    parts = gcs_uri[5:].split('/', 1)
+    bucket_name, blob_path = parts[0], parts[1] if len(parts) > 1 else ''
     
     try:
-        # Test bucket creation/verification
-        print(f"\nTesting bucket existence...")
-        bucket = ensure_bucket_exists(BUCKET_NAME)
-        print(f"✅ Bucket ready: {bucket.name}")
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+
+        credentials, _ = google.auth.default()
+
+        iam_scope = "https://www.googleapis.com/auth/iam"
+        if iam_scope not in (credentials.scopes or []):
+            credentials = credentials.with_scopes([iam_scope])
         
-        # Test file listing (if any exist)
-        print(f"\nTesting file listing...")
-        test_course_id = "13299557"
-        files = list_course_files(test_course_id, BUCKET_NAME)
-        print(f"✅ Found {len(files)} files for course '{test_course_id}'")
+        auth_request = auth_requests.Request()
+        credentials.refresh(auth_request)
 
-        # Test file upload
-        print(f"\nTesting file upload...")
-        files = upload_course_files([mock_file], test_course_id, BUCKET_NAME)
-        print(f"✅ Uploaded file to: {files}")
+        service_account_email = _resolve_service_account_email(credentials)
 
-        files = list_course_files(test_course_id, BUCKET_NAME)
-        print(f"✅ Found {len(files)} files for course '{test_course_id}'")
-
-        print("\n🎉 GCS service test complete!")
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=expiration_minutes),
+            method="GET",
+            service_account_email=service_account_email,
+            access_token=credentials.token # CRITICAL: Tells library to use SignBlob
+        )
+        
+        logger.info(f"SUCCESS: Generated signed URL for {blob_path}")
+        return url
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
+        # Detailed error logging for debugging
+        logger.error(f"CRITICAL FAILURE: {type(e).__name__}: {str(e)}")
+        logger.info(f"DEBUG: Credentials valid: {getattr(credentials, 'valid', 'Unknown')}")
+        logger.info(f"DEBUG: Scopes: {getattr(credentials, 'scopes', 'None')}")
+        logger.info(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS: {os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')}")
+        raise
+
+
+def update_blob_metadata(gcs_uri: str, display_name: str, content_type: str = None, 
+                         bucket_name: str = BUCKET_NAME) -> bool:
+    """
+    Updates the metadata of a blob in GCS after upload.
+    Sets content disposition for proper filename display when downloading.
+    
+    Args:
+        gcs_uri: GCS URI of the uploaded file
+        display_name: Human-readable filename for Content-Disposition
+        content_type: Optional MIME type to set
+        bucket_name: GCS bucket name
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Parse GCS URI
+        if not gcs_uri.startswith('gs://'):
+            raise ValueError(f"Invalid GCS URI: {gcs_uri}")
+        
+        parts = gcs_uri[5:].split('/', 1)
+        parsed_bucket_name = parts[0]
+        blob_path = parts[1] if len(parts) > 1 else ''
+        
+        client = get_storage_client()
+        bucket = client.bucket(parsed_bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        # Update metadata
+        blob.content_disposition = f'inline; filename="{display_name}"'
+        if content_type:
+            blob.content_type = content_type
+        blob.patch()
+        
+        logger.info(f"Updated metadata for {blob_path}: display_name={display_name}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to update blob metadata for {gcs_uri}: {str(e)}")
+        return False
+
+
+def verify_blob_exists(gcs_uri: str) -> bool:
+    """
+    Verifies that a blob exists in GCS.
+    
+    Args:
+        gcs_uri: GCS URI of the file to check
+        
+    Returns:
+        True if the blob exists, False otherwise
+    """
+    try:
+        # Parse GCS URI
+        if not gcs_uri.startswith('gs://'):
+            return False
+        
+        parts = gcs_uri[5:].split('/', 1)
+        bucket_name = parts[0]
+        blob_path = parts[1] if len(parts) > 1 else ''
+        
+        client = get_storage_client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        
+        return blob.exists()
+        
+    except Exception as e:
+        logger.error(f"Failed to verify blob existence for {gcs_uri}: {str(e)}")
+        return False

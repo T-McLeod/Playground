@@ -53,7 +53,7 @@ async function loadAnalyticsReport() {
     dashboardContent.style.display = 'none';
 
     try {
-        const response = await fetch(`/api/analytics/${APP_COURSE_ID}`);
+        const response = await fetch(`/api/analytics/${PLAYGROUND_ID}`);
 
         if (!response.ok) {
             const error = await response.json();
@@ -93,7 +93,7 @@ async function regenerateReport() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                course_id: APP_COURSE_ID
+                playground_id: PLAYGROUND_ID
             })
         });
 
