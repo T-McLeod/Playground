@@ -4,41 +4,46 @@
  * Google Drive-inspired file explorer for managing folders and bot instances.
  */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* =============================================================================
    CSS Variables
    ============================================================================= */
 
 :root {
-    /* Colors */
-    --color-primary: #667eea;
-    --color-primary-hover: #5568d3;
-    --color-danger: #dc3545;
-    --color-danger-hover: #c82333;
-    
-    --color-bg: #f8f9fa;
+    /* Duke Blue Color Scheme */
+    --color-primary: #001A57;
+    --color-primary-hover: #00134a;
+    --color-primary-light: #1e3a6e;
+    --color-accent-blue: #a8c8f0;
+    --color-accent-blue-light: #d4e4f7;
+    --color-danger: #ef4444;
+    --color-danger-hover: #dc2626;
+
+    --color-bg: #f8fafc;
     --color-surface: #ffffff;
-    --color-border: #e0e0e0;
-    --color-text: #333333;
-    --color-text-secondary: #666666;
-    --color-text-muted: #999999;
-    
+    --color-border: #e2e8f0;
+    --color-text: #1e293b;
+    --color-text-secondary: #64748b;
+    --color-text-muted: #94a3b8;
+
     /* Sidebar */
     --sidebar-width: 240px;
     --sidebar-bg: #ffffff;
-    --sidebar-border: #e0e0e0;
-    
+    --sidebar-border: #e2e8f0;
+
     /* Card */
-    --card-radius: 8px;
+    --card-radius: 10px;
     --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
-    
+
     /* Spacing */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
-    
+
     /* Animation */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.25s ease;
@@ -55,7 +60,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--color-bg);
     color: var(--color-text);
     min-height: 100vh;
@@ -101,8 +106,14 @@ body {
     color: var(--color-primary);
 }
 
+.logo-image {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
 .logo-text {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--color-text);
 }
@@ -213,12 +224,12 @@ body {
 }
 
 .nav-item:hover {
-    background: rgba(102, 126, 234, 0.08);
+    background: rgba(0, 26, 87, 0.08);
     color: var(--color-text);
 }
 
 .nav-item.active {
-    background: rgba(102, 126, 234, 0.15);
+    background: rgba(0, 26, 87, 0.15);
     color: var(--color-primary);
     font-weight: 500;
 }
@@ -359,7 +370,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* =============================================================================
@@ -436,14 +449,14 @@ body {
 
 .item-card.selected {
     border-color: var(--color-primary);
-    background: rgba(102, 126, 234, 0.05);
-    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    background: rgba(0, 26, 87, 0.05);
+    box-shadow: 0 0 0 2px rgba(0, 26, 87, 0.2);
 }
 
 .item-card:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 26, 87, 0.3);
 }
 
 .item-icon {
@@ -607,6 +620,7 @@ body {
         opacity: 0;
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -670,7 +684,7 @@ body {
 .modal-body input[type="text"]:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 26, 87, 0.1);
 }
 
 .modal-body input[type="text"].error {
@@ -803,25 +817,25 @@ body {
         transform: translateX(-100%);
         transition: transform var(--transition-normal);
     }
-    
+
     .sidebar.open {
         transform: translateX(0);
     }
-    
+
     .main-content {
         margin-left: 0;
     }
-    
+
     .items-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
-    
+
     .toolbar {
         flex-direction: column;
         gap: var(--spacing-sm);
         align-items: flex-start;
     }
-    
+
     .toolbar-actions {
         width: 100%;
         justify-content: flex-end;
